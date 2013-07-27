@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    
+    <programs>
+        <program name="HUD Editor" jar="hl2-hudeditor" url="https://dl.dropboxusercontent.com/u/42745598/tf/HUD%20Editor/TF2%20HUD%20Editor.jar.changes">
+            <args></args>
+        </program>
+    </programs>
+</root>
