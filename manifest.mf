@@ -1,3 +1,5 @@
 Manifest-Version: 1.0
-X-COMMENT: Main-Class will be added automatically by build
+Ant-Version: Apache Ant 1.8.4
+Created-By: 1.7.0_25-b30 (Oracle Corporation)
+Implementation-Version: 1376130903
 

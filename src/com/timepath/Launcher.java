@@ -1,12 +1,19 @@
 package com.timepath;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.*;
+import java.lang.reflect.InvocationTargetException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.net.URLDecoder;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -31,6 +38,35 @@ public class Launcher extends javax.swing.JFrame {
 
     private static final Logger LOG = Logger.getLogger(Launcher.class.getName());
 
+    public static final long myVer = getVer();
+
+    private static long getVer() {
+        String impl = Launcher.class.getPackage().getImplementationVersion();
+        if(impl == null) {
+            return 0;
+        }
+        return Long.parseLong(impl);
+    }
+
+    public static File currentFile() {
+        String encoded = Launcher.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+        try {
+            return new File(URLDecoder.decode(encoded, "UTF-8"));
+        } catch(UnsupportedEncodingException ex) {
+            ex.printStackTrace();
+        }
+        String ans = System.getProperty("user.dir") + File.separator;
+        String cmd = System.getProperty("sun.java.command");
+        int idx = cmd.lastIndexOf(File.separator);
+        if(idx != -1) {
+            cmd = cmd.substring(0, idx + 1);
+        } else {
+            cmd = "";
+        }
+        ans += cmd;
+        return new File(ans);
+    }
+
     private static String getAttribute(Node n, String key) {
         Element p = (Element) n;
         String val = p.getAttributeNode(key) != null ? p.getAttributeNode(key).getValue().trim() : null;
@@ -43,6 +79,49 @@ public class Launcher extends javax.swing.JFrame {
         return val;
     }
 
+    private static String hash(File f, String method) throws IOException, NoSuchAlgorithmException {
+        FileChannel c = new RandomAccessFile(f, "r").getChannel();
+        MappedByteBuffer buf = c.map(FileChannel.MapMode.READ_ONLY, 0, c.size());
+        StringBuilder sb = new StringBuilder();
+        MessageDigest md = MessageDigest.getInstance(method);
+        md.update(buf);
+        byte[] b = md.digest();
+        for(int i = 0; i < b.length; i++) {
+            sb.append(Integer.toString((b[i] & 0xFF) + 256, 16).substring(1));
+        }
+        return sb.toString();
+    }
+
+    private static boolean download(URL u, File f) {
+        boolean ret;
+        InputStream is = null;
+        try {
+            LOG.log(Level.INFO, "Downloading {0} to {1}", new Object[] {u, f});
+            is = new BufferedInputStream(u.openStream());
+            byte[] buffer = new byte[10240];
+            int read = 0;
+            f.mkdirs();
+            f.delete();
+            f.createNewFile();
+            FileOutputStream fos = new FileOutputStream(f);
+            while((read = is.read(buffer)) != -1) {
+                fos.write(buffer, 0, read);
+            }
+            fos.flush();
+            ret = true;
+        } catch(IOException ex) {
+            LOG.log(Level.SEVERE, null, ex);
+            ret = false;
+        } finally {
+            try {
+                is.close();
+            } catch(IOException ex) {
+                LOG.log(Level.SEVERE, null, ex);
+            }
+        }
+        return ret;
+    }
+
     private DefaultListModel/*
              * <Project>
              */ listModel;
@@ -51,6 +130,7 @@ public class Launcher extends javax.swing.JFrame {
      * Creates new form Launcher
      */
     public Launcher() {
+        long start = System.currentTimeMillis();
         initComponents();
 
         list.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
@@ -64,12 +144,61 @@ public class Launcher extends javax.swing.JFrame {
             }
         });
 
-        parseXML();
+        list.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                Project p = (Project) list.getSelectedValue();
+                if(e.getClickCount() >= 2) {
+                    start(p);
+                }
+            }
+        });
+
+        list.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                Project p = (Project) list.getSelectedValue();
+                if(e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    start(p);
+                }
+            }
+        });
+
+        LOG.log(Level.INFO, "Created UI in {0}ms", System.currentTimeMillis() - start);
+
+        InputStream is = null;
+        if(currentFile().isDirectory()) {
+            try {
+                is = new FileInputStream(
+                        System.getProperty("user.home") + "/Dropbox/Public/projects.xml");
+            } catch(FileNotFoundException ex) {
+                LOG.log(Level.SEVERE, null, ex);
+            }
+        }
+        if(is == null) {
+            try {
+                LOG.log(Level.INFO, "Connecting...");
+                start = System.currentTimeMillis();
+                String s = "https://dl.dropboxusercontent.com/u/42745598/projects.xml";
+                URL u = new URL(s);
+                URLConnection c = u.openConnection();
+                c.connect();
+                LOG.log(Level.INFO, "Connected in {0}ms", System.currentTimeMillis() - start);
+                is = c.getInputStream();
+            } catch(IOException ex) {
+                LOG.log(Level.SEVERE, null, ex);
+                System.exit(1);
+            }
+        }
+        parseXML(is);
     }
 
     private void loadPageForProject(final Project p) {
-        if(p.url != null) {
-            System.out.println(p.url);
+        if(p.changelog == null) {
+            Launcher.this.jEditorPane1.setContentType("text/html");
+            Launcher.this.jEditorPane1.setText("No changelog available");
+        } else {
+            LOG.log(Level.INFO, "Loading {0}", p.changelog);
 
             Launcher.this.jEditorPane1.setContentType("text/html");
             Launcher.this.jEditorPane1.setText("");
@@ -77,7 +206,7 @@ public class Launcher extends javax.swing.JFrame {
                 @Override
                 public void run() {
                     try {
-                        String s = p.url;
+                        String s = p.changelog;
                         StringBuilder sb = new StringBuilder();
 
                         URL u = new URL(s);
@@ -98,20 +227,61 @@ public class Launcher extends javax.swing.JFrame {
         }
     }
 
-    private void runProject(Project p) {
+    private static void start(Project p) {
+        boolean upToDate = false;
+        boolean valid = true;
+        File f = new File("bin", p.local);
+        if(f.exists()) {
+            try {
+                String md5 = hash(f, "MD5");
+                BufferedReader br = new BufferedReader(new InputStreamReader(
+                        new URL(p.upstream).openStream()));
+                String expectedMd5 = br.readLine();
+                upToDate = true;
+            } catch(IOException ex) {
+                Logger.getLogger(Launcher.class.getName()).log(Level.SEVERE, null, ex);
+            } catch(NoSuchAlgorithmException ex) {
+                Logger.getLogger(Launcher.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } else {
+            valid = false;
+        }
+        if(!upToDate && (!f.exists() || f.canWrite())) {
+            try {
+                URL u = new URL(p.upstream);
+                download(u, f);
+            } catch(MalformedURLException ex) {
+                Logger.getLogger(Launcher.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        if(valid) {
+            LOG.log(Level.SEVERE, "Starting {0}, latest version: {1}", new Object[] {p, upToDate});
+            start(f.getPath());
+        } else {
+            LOG.log(Level.SEVERE, "Unable to start {0}", p);
+        }
+    }
+
+    private static void start(String s) {
+        start(s, null);
+    }
+
+    private static void start(String s, ArrayList<String> args) {
         try {
             final String javaBin = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
 
             final ArrayList<String> cmd = new ArrayList<String>();
             cmd.add(javaBin);
             cmd.add("-jar");
-            cmd.add(p.jar);
+            cmd.add(s);
+            if(args != null) {
+                cmd.addAll(args);
+            }
             String[] exec = new String[cmd.size()];
             cmd.toArray(exec);
             LOG.log(Level.INFO, "Invoking other: {0}", Arrays.toString(exec));
             final ProcessBuilder process = new ProcessBuilder(exec);
             process.start();
-            System.exit(0);
         } catch(IOException ex) {
             LOG.log(Level.SEVERE, null, ex);
         }
@@ -132,7 +302,7 @@ public class Launcher extends javax.swing.JFrame {
         jEditorPane1 = new javax.swing.JEditorPane();
         jButton1 = new javax.swing.JButton();
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
         list.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
         jScrollPane1.setViewportView(list);
@@ -181,22 +351,94 @@ public class Launcher extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        runProject((Project) list.getSelectedValue());
+        Project p = (Project) list.getSelectedValue();
+        start(p);
     }//GEN-LAST:event_jButton1ActionPerformed
 
     /**
      * @param args the command line arguments
      */
     public static void main(String args[]) {
+        long start = System.currentTimeMillis();
+
+        LOG.log(Level.INFO, "Args = {0}", Arrays.toString(args));
+        LOG.log(Level.INFO, "Current version = {0}", myVer);
+        File current = currentFile();
+        LOG.log(Level.INFO, "Current file = {0}", current);
+        File cwd = current.getParentFile().getAbsoluteFile();
+        LOG.log(Level.INFO, "Working directory = {0}", cwd);
+        File update = new File(cwd, "update.tmp");
+        if(update.exists()) {
+            LOG.log(Level.INFO, "Update file = {0}", update);
+            if(!current.equals(update)) {
+                try {
+                    File updateChecksum = new File(update.getPath() + ".MD5");
+                    BufferedReader is = new BufferedReader(new InputStreamReader(
+                            new BufferedInputStream(new FileInputStream(updateChecksum))));
+                    String expectedMd5 = is.readLine();
+                    is.close();
+                    LOG.log(Level.INFO, "Expecting checksum = {0}", expectedMd5);
+
+                    String md5 = hash(update, "MD5");
+                    LOG.log(Level.INFO, "Actual checksum = {0}", md5);
+                    if(!md5.equals(expectedMd5)) {
+                        updateChecksum.delete();
+                        update.delete();
+                        throw new Exception("Corrupt update file");
+                    }
+                    ArrayList<String> cmds = new ArrayList<String>();
+                    cmds.add("-u");
+                    cmds.add(update.getPath());
+                    cmds.add(current.getPath());
+                    start(update.getPath(), cmds);
+                    System.exit(0);
+                } catch(Exception ex) {
+                    LOG.log(Level.SEVERE, null, ex);
+                }
+            }
+        }
+
+        for(int i = 0; i < args.length; i++) {
+            if(args[i].equalsIgnoreCase("-u")) {
+                try {
+                    File sourceFile = new File(args[i + 1]);
+                    File destFile = new File(args[i + 2]);
+                    LOG.log(Level.INFO, "Updating {0}", destFile);
+                    destFile.delete();
+                    destFile.createNewFile();
+
+                    FileChannel source = null;
+                    FileChannel destination = null;
+                    try {
+                        source = new RandomAccessFile(sourceFile, "rw").getChannel();
+                        destination = new RandomAccessFile(destFile, "rw").getChannel();
+                        long position = 0;
+                        long count = source.size();
+
+                        source.transferTo(position, count, destination);
+                    } finally {
+                        if(source != null) {
+                            source.close();
+                        }
+                        if(destination != null) {
+                            destination.force(true);
+                            destination.close();
+                        }
+                    }
+                    new File(update.getPath() + ".MD5").delete();
+                    sourceFile.deleteOnExit();
+                } catch(IOException ex) {
+                    LOG.log(Level.SEVERE, null, ex);
+                }
+            }
+        }
+
+        LOG.log(Level.INFO, "Startup: {0}ms", System.currentTimeMillis() - start);
+
         /*
          * Set the Nimbus look and feel
          */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /*
-         * If Nimbus (introduced in Java SE 6) is not available, stay with the default look and
-         * feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html
-         */
         try {
             for(javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
                 if("Nimbus".equals(info.getName())) {
@@ -205,31 +447,33 @@ public class Launcher extends javax.swing.JFrame {
                 }
             }
         } catch(ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(Launcher.class.getName()).log(
-                    java.util.logging.Level.SEVERE, null, ex);
+            LOG.log(Level.SEVERE, null, ex);
         } catch(InstantiationException ex) {
-            java.util.logging.Logger.getLogger(Launcher.class.getName()).log(
-                    java.util.logging.Level.SEVERE, null, ex);
+            LOG.log(Level.SEVERE, null, ex);
         } catch(IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(Launcher.class.getName()).log(
-                    java.util.logging.Level.SEVERE, null, ex);
+            LOG.log(Level.SEVERE, null, ex);
         } catch(javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(Launcher.class.getName()).log(
-                    java.util.logging.Level.SEVERE, null, ex);
+            LOG.log(Level.SEVERE, null, ex);
         }
         //</editor-fold>
-
-        /*
-         * Create and display the form
-         */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                Launcher l = new Launcher();
-                l.setLocationRelativeTo(null);
-                l.setVisible(true);
-            }
-        });
+        try {
+            /*
+             * Create and display the form
+             */
+            java.awt.EventQueue.invokeAndWait(new Runnable() {
+                @Override
+                public void run() {
+                    Launcher l = new Launcher();
+                    l.pack();
+                    l.setLocationRelativeTo(null);
+                    l.setVisible(true);
+                }
+            });
+        } catch(InterruptedException ex) {
+            Logger.getLogger(Launcher.class.getName()).log(Level.SEVERE, null, ex);
+        } catch(InvocationTargetException ex) {
+            Logger.getLogger(Launcher.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -240,11 +484,11 @@ public class Launcher extends javax.swing.JFrame {
     private javax.swing.JList list;
     // End of variables declaration//GEN-END:variables
 
-    private void parseXML() {
+    private void parseXML(InputStream is) {
         try {
             DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
-            Document doc = docBuilder.parse(new File("projects.xml"));
+            Document doc = docBuilder.parse(is);
             doc.getDocumentElement().normalize();
 
             NodeList programs = doc.getElementsByTagName("program");
@@ -257,14 +501,17 @@ public class Launcher extends javax.swing.JFrame {
                 Node program = programs.item(i);
                 Project p = new Project();
                 p.name = getAttribute(program, "name");
-                p.url = getAttribute(program, "url");
-                p.jar = getAttribute(program, "jar");
+                p.changelog = getAttribute(program, "changelog");
+                p.upstream = getAttribute(program, "upstream");
+                p.local = getAttribute(program, "local");
+                p.hash = getAttribute(program, "md5");
                 listModel.addElement(p);
             }
         } catch(SAXParseException err) {
-            System.out.println(
-                    "** Parsing error" + ", line " + err.getLineNumber() + ", uri " + err.getSystemId());
-            System.out.println(" " + err.getMessage());
+            LOG.log(Level.SEVERE, "** Parsing error" + ", line {0}, uri {1}", new Object[] {
+                err.getLineNumber(),
+                err.getSystemId()});
+            LOG.log(Level.SEVERE, "{0}", err.getMessage());
         } catch(SAXException e) {
             Exception x = e.getException();
             ((x == null) ? e : x).printStackTrace();
@@ -277,9 +524,13 @@ public class Launcher extends javax.swing.JFrame {
 
         private String name;
 
-        private String url;
+        private String changelog;
 
-        private String jar;
+        private String local;
+
+        private String upstream;
+
+        private String hash;
 
         @Override
         public String toString() {
