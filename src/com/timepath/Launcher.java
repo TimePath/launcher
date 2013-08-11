@@ -16,9 +16,11 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.DefaultListModel;
+import javax.swing.JOptionPane;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.xml.parsers.DocumentBuilder;
@@ -93,6 +95,11 @@ public class Launcher extends javax.swing.JFrame {
     }
 
     private static boolean download(URL u, File f) {
+        try {
+            f = f.getCanonicalFile();
+        } catch(IOException ex) {
+            Logger.getLogger(Launcher.class.getName()).log(Level.SEVERE, null, ex);
+        }
         boolean ret;
         InputStream is = null;
         try {
@@ -108,15 +115,18 @@ public class Launcher extends javax.swing.JFrame {
                 fos.write(buffer, 0, read);
             }
             fos.flush();
+            fos.close();
             ret = true;
         } catch(IOException ex) {
             LOG.log(Level.SEVERE, null, ex);
             ret = false;
         } finally {
-            try {
-                is.close();
-            } catch(IOException ex) {
-                LOG.log(Level.SEVERE, null, ex);
+            if(is != null) {
+                try {
+                    is.close();
+                } catch(IOException ex) {
+                    LOG.log(Level.SEVERE, null, ex);
+                }
             }
         }
         return ret;
@@ -231,6 +241,11 @@ public class Launcher extends javax.swing.JFrame {
         boolean upToDate = false;
         boolean valid = true;
         File f = new File("bin", p.local);
+        try {
+            f = f.getCanonicalFile();
+        } catch(IOException ex) {
+            Logger.getLogger(Launcher.class.getName()).log(Level.SEVERE, null, ex);
+        }
         if(f.exists()) {
             try {
                 String md5 = hash(f, "MD5");
@@ -250,32 +265,56 @@ public class Launcher extends javax.swing.JFrame {
             try {
                 URL u = new URL(p.upstream);
                 download(u, f);
+                valid = true;
             } catch(MalformedURLException ex) {
                 Logger.getLogger(Launcher.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
         if(valid) {
-            LOG.log(Level.SEVERE, "Starting {0}, latest version: {1}", new Object[] {p, upToDate});
-            start(f.getPath());
+            if(!p.self) {
+                LOG.log(Level.SEVERE, "Starting {0}, latest version: {1}",
+                        new Object[] {p, upToDate});
+                start(f.getAbsolutePath(), p.args, p.main);
+            } else {
+                JOptionPane.showMessageDialog(null, "Restart to apply", "Update downloaded",
+                                              JOptionPane.INFORMATION_MESSAGE, null);
+            }
         } else {
             LOG.log(Level.SEVERE, "Unable to start {0}", p);
         }
     }
 
-    private static void start(String s) {
-        start(s, null);
-    }
-
-    private static void start(String s, ArrayList<String> args) {
+    private static void start(String s, List<String> args, String main) {
         try {
             final String javaBin = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
 
             final ArrayList<String> cmd = new ArrayList<String>();
             cmd.add(javaBin);
-            cmd.add("-jar");
-            cmd.add(s);
             if(args != null) {
                 cmd.addAll(args);
+            } else {
+                if(main == null) {
+                    cmd.add("-jar");
+                    cmd.add(s);
+                } else {
+                    cmd.add("-cp");
+                    File cp = new File(s).getParentFile();
+                    String[] jars = cp.list(new FilenameFilter() {
+                        public boolean accept(File dir, String name) {
+                            if(name.endsWith(".jar")) {
+                                return true;
+                            }
+                            return false;
+                        }
+                    });
+                    StringBuilder sb = new StringBuilder();
+                    for(String jar : jars) {
+                        sb.append(File.pathSeparator);
+                        sb.append(cp.getPath()).append("/").append(jar);
+                    }
+                    cmd.add(sb.toString().substring(File.pathSeparator.length()));
+                    cmd.add(main);
+                }
             }
             String[] exec = new String[cmd.size()];
             cmd.toArray(exec);
@@ -387,10 +426,12 @@ public class Launcher extends javax.swing.JFrame {
                         throw new Exception("Corrupt update file");
                     }
                     ArrayList<String> cmds = new ArrayList<String>();
+                    cmds.add("-jar");
+                    cmds.add(update.getPath());
                     cmds.add("-u");
                     cmds.add(update.getPath());
                     cmds.add(current.getPath());
-                    start(update.getPath(), cmds);
+                    start(update.getPath(), cmds, null);
                     System.exit(0);
                 } catch(Exception ex) {
                     LOG.log(Level.SEVERE, null, ex);
@@ -484,6 +525,13 @@ public class Launcher extends javax.swing.JFrame {
     private javax.swing.JList list;
     // End of variables declaration//GEN-END:variables
 
+    private List<String> argParse(String cmd) {
+        if(cmd == null) {
+            return null;
+        }
+        return Arrays.asList(cmd.split(" "));
+    }
+
     private void parseXML(InputStream is) {
         try {
             DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
@@ -491,12 +539,24 @@ public class Launcher extends javax.swing.JFrame {
             Document doc = docBuilder.parse(is);
             doc.getDocumentElement().normalize();
 
-            NodeList programs = doc.getElementsByTagName("program");
-
             listModel = new DefaultListModel/*
                      * <Project>
                      */();
             this.list.setModel(listModel);
+
+            Node self = doc.getElementsByTagName("self").item(0);
+            Project s = new Project();
+            s.self = true;
+            s.name = getAttribute(self, "name");
+            s.changelog = getAttribute(self, "changelog");
+            s.upstream = getAttribute(self, "upstream");
+            s.local = getAttribute(self, "local");
+            s.hash = getAttribute(self, "md5");
+//            s.args = argParse(getAttribute(self, "args"));
+            s.main = getAttribute(self, "main");
+            listModel.addElement(s);
+
+            NodeList programs = doc.getElementsByTagName("program");
             for(int i = 0; i < programs.getLength(); i++) {
                 Node program = programs.item(i);
                 Project p = new Project();
@@ -505,6 +565,8 @@ public class Launcher extends javax.swing.JFrame {
                 p.upstream = getAttribute(program, "upstream");
                 p.local = getAttribute(program, "local");
                 p.hash = getAttribute(program, "md5");
+                p.args = argParse(getAttribute(program, "args"));
+                p.main = getAttribute(program, "main");
                 listModel.addElement(p);
             }
         } catch(SAXParseException err) {
@@ -531,6 +593,12 @@ public class Launcher extends javax.swing.JFrame {
         private String upstream;
 
         private String hash;
+
+        private boolean self;
+
+        private List<String> args;
+
+        private String main;
 
         @Override
         public String toString() {
