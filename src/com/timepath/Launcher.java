@@ -21,6 +21,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.DefaultListModel;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.xml.parsers.DocumentBuilder;
@@ -150,7 +151,12 @@ public class Launcher extends javax.swing.JFrame {
                     return;
                 }
                 Project p = (Project) list.getSelectedValue();
-                loadPageForProject(p);
+                jEditorPane1.setContentType("text/html");
+                if(p.changelogData == null) {
+                    loadPageForProject(p);
+                } else {
+                    jEditorPane1.setText(p.changelogData);
+                }
             }
         });
 
@@ -176,65 +182,69 @@ public class Launcher extends javax.swing.JFrame {
 
         LOG.log(Level.INFO, "Created UI in {0}ms", System.currentTimeMillis() - start);
 
-        InputStream is = null;
-        if(currentFile().isDirectory()) {
-            try {
-                is = new FileInputStream(
-                        System.getProperty("user.home") + "/Dropbox/Public/projects.xml");
-            } catch(FileNotFoundException ex) {
-                LOG.log(Level.SEVERE, null, ex);
-            }
-        }
-        if(is == null) {
-            try {
-                LOG.log(Level.INFO, "Connecting...");
-                start = System.currentTimeMillis();
-                String s = "https://dl.dropboxusercontent.com/u/42745598/projects.xml";
-                URL u = new URL(s);
-                URLConnection c = u.openConnection();
-                c.connect();
-                LOG.log(Level.INFO, "Connected in {0}ms", System.currentTimeMillis() - start);
-                is = c.getInputStream();
-            } catch(IOException ex) {
-                LOG.log(Level.SEVERE, null, ex);
-                System.exit(1);
-            }
-        }
-        parseXML(is);
-    }
-
-    private void loadPageForProject(final Project p) {
-        if(p.changelog == null) {
-            Launcher.this.jEditorPane1.setContentType("text/html");
-            Launcher.this.jEditorPane1.setText("No changelog available");
-        } else {
-            LOG.log(Level.INFO, "Loading {0}", p.changelog);
-
-            Launcher.this.jEditorPane1.setContentType("text/html");
-            Launcher.this.jEditorPane1.setText("");
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
+        new Thread(new Runnable() {
+            public void run() {
+                InputStream is = null;
+                if(currentFile().isDirectory()) {
                     try {
-                        String s = p.changelog;
-                        StringBuilder sb = new StringBuilder();
-
-                        URL u = new URL(s);
-                        URLConnection c = u.openConnection();
-                        InputStream is = c.getInputStream();
-                        BufferedReader r = new BufferedReader(new InputStreamReader(is));
-                        String line;
-                        while((line = r.readLine()) != null) {
-                            sb.append(line).append("\n");
-                        }
-                        r.close();
-                        Launcher.this.jEditorPane1.setText(sb.toString());
-                    } catch(IOException ex) {
+                        is = new FileInputStream(
+                                System.getProperty("user.home") + "/Dropbox/Public/projects.xml");
+                    } catch(FileNotFoundException ex) {
                         LOG.log(Level.SEVERE, null, ex);
                     }
                 }
-            }).start();
-        }
+                if(is == null) {
+                    try {
+                        LOG.log(Level.INFO, "Connecting...");
+                        long start = System.currentTimeMillis();
+                        String s = "https://dl.dropboxusercontent.com/u/42745598/projects.xml";
+                        URL u = new URL(s);
+                        URLConnection c = u.openConnection();
+                        c.connect();
+                        LOG.log(Level.INFO, "Connected in {0}ms", System.currentTimeMillis() - start);
+                        is = c.getInputStream();
+                    } catch(IOException ex) {
+                        LOG.log(Level.SEVERE, null, ex);
+                        System.exit(1);
+                    }
+                }
+                final DefaultListModel listM = parseXML(is);
+                SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                        list.setModel(listM);
+                    }
+                });
+            }
+        }).start();
+    }
+
+    private void loadPageForProject(final Project p) {
+        LOG.log(Level.INFO, "Loading {0}", p.changelog);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    jEditorPane1.setEnabled(false);
+                    String s = p.changelog;
+                    StringBuilder sb = new StringBuilder();
+
+                    URL u = new URL(s);
+                    URLConnection c = u.openConnection();
+                    InputStream is = c.getInputStream();
+                    BufferedReader r = new BufferedReader(new InputStreamReader(is));
+                    String line;
+                    while((line = r.readLine()) != null) {
+                        sb.append(line).append("\n");
+                    }
+                    r.close();
+                    p.changelogData = sb.toString();
+                    Launcher.this.jEditorPane1.setEnabled(true);
+                    Launcher.this.jEditorPane1.setText(p.changelogData);
+                } catch(IOException ex) {
+                    LOG.log(Level.SEVERE, null, ex);
+                }
+            }
+        }).start();
     }
 
     private static void start(Project p) {
@@ -335,21 +345,30 @@ public class Launcher extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        jSplitPane1 = new javax.swing.JSplitPane();
         jScrollPane1 = new javax.swing.JScrollPane();
         list = new javax.swing.JList();
+        jPanel1 = new javax.swing.JPanel();
         jScrollPane2 = new javax.swing.JScrollPane();
         jEditorPane1 = new javax.swing.JEditorPane();
         jButton1 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        setTitle("TimePath's program hub");
 
         list.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
         jScrollPane1.setViewportView(list);
+
+        jSplitPane1.setLeftComponent(jScrollPane1);
+
+        jPanel1.setLayout(new java.awt.BorderLayout());
 
         jEditorPane1.setEditable(false);
         jEditorPane1.setContentType("text/html"); // NOI18N
         jEditorPane1.setText("");
         jScrollPane2.setViewportView(jEditorPane1);
+
+        jPanel1.add(jScrollPane2, java.awt.BorderLayout.CENTER);
 
         jButton1.setText("Launch");
         jButton1.addActionListener(new java.awt.event.ActionListener() {
@@ -357,36 +376,22 @@ public class Launcher extends javax.swing.JFrame {
                 jButton1ActionPerformed(evt);
             }
         });
+        jPanel1.add(jButton1, java.awt.BorderLayout.SOUTH);
+
+        jSplitPane1.setRightComponent(jPanel1);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 104, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane2)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addGap(0, 253, Short.MAX_VALUE)
-                        .addComponent(jButton1)))
-                .addContainerGap())
+            .addComponent(jSplitPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 563, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 276, Short.MAX_VALUE)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(jScrollPane2)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButton1)))
-                .addContainerGap())
+            .addComponent(jSplitPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
         );
 
-        pack();
+        setBounds(0, 0, 573, 330);
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
@@ -520,8 +525,10 @@ public class Launcher extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
     private javax.swing.JEditorPane jEditorPane1;
+    private javax.swing.JPanel jPanel1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JSplitPane jSplitPane1;
     private javax.swing.JList list;
     // End of variables declaration//GEN-END:variables
 
@@ -532,17 +539,17 @@ public class Launcher extends javax.swing.JFrame {
         return Arrays.asList(cmd.split(" "));
     }
 
-    private void parseXML(InputStream is) {
+    private DefaultListModel parseXML(InputStream is) {
+        DefaultListModel listM = null;
         try {
             DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
             Document doc = docBuilder.parse(is);
             doc.getDocumentElement().normalize();
 
-            listModel = new DefaultListModel/*
+            listM = new DefaultListModel/*
                      * <Project>
                      */();
-            this.list.setModel(listModel);
 
             Node self = doc.getElementsByTagName("self").item(0);
             Project s = new Project();
@@ -554,7 +561,7 @@ public class Launcher extends javax.swing.JFrame {
             s.hash = getAttribute(self, "md5");
 //            s.args = argParse(getAttribute(self, "args"));
             s.main = getAttribute(self, "main");
-            listModel.addElement(s);
+            listM.addElement(s);
 
             NodeList programs = doc.getElementsByTagName("program");
             for(int i = 0; i < programs.getLength(); i++) {
@@ -562,12 +569,15 @@ public class Launcher extends javax.swing.JFrame {
                 Project p = new Project();
                 p.name = getAttribute(program, "name");
                 p.changelog = getAttribute(program, "changelog");
+                if(p.changelog == null) {
+                    p.changelogData = "No changelog available";
+                }
                 p.upstream = getAttribute(program, "upstream");
                 p.local = getAttribute(program, "local");
                 p.hash = getAttribute(program, "md5");
                 p.args = argParse(getAttribute(program, "args"));
                 p.main = getAttribute(program, "main");
-                listModel.addElement(p);
+                listM.addElement(p);
             }
         } catch(SAXParseException err) {
             LOG.log(Level.SEVERE, "** Parsing error" + ", line {0}, uri {1}", new Object[] {
@@ -580,6 +590,7 @@ public class Launcher extends javax.swing.JFrame {
         } catch(Throwable t) {
             t.printStackTrace();
         }
+        return listM;
     }
 
     private class Project {
@@ -599,6 +610,8 @@ public class Launcher extends javax.swing.JFrame {
         private List<String> args;
 
         private String main;
+
+        private String changelogData;
 
         @Override
         public String toString() {
