@@ -197,7 +197,7 @@ public class Launcher extends javax.swing.JFrame {
                     try {
                         LOG.log(Level.INFO, "Connecting...");
                         long start = System.currentTimeMillis();
-                        String s = "https://raw.github.com/TimePath/hl2-hud-editor/master/src/projects.xml";
+                        String s = "https://raw.github.com/TimePath/launcher/master/src/projects.xml";
                         URL u = new URL(s);
                         URLConnection c = u.openConnection();
                         c.connect();
