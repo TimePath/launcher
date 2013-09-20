@@ -6,7 +6,7 @@
         <script language="javascript">
         <![CDATA[property = project.setProperty("now", Math.floor((new Date()).getTime() / 1000));]]>
         </script>
-        <manifest file="manifest.mf" mode="update">
+        <manifest file="manifest.mf" mode="replace">
             <attribute name="Implementation-Version" value="${now}"/>
         </manifest>
     </target>

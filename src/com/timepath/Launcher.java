@@ -357,6 +357,9 @@ public class Launcher extends javax.swing.JFrame {
             try {
                 URL u = new URL(p.upstream);
                 download(u, f);
+                if(p.self) {
+                    download(new URL(p.hash), new File(f.getPath() + ".MD5"));
+                }
                 valid = true;
             } catch(MalformedURLException ex) {
                 LOG.log(Level.SEVERE, null, ex);
