@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<root>
+    <self>
+        <name>Force self-update</name>
+        <md5>https://dl.dropboxusercontent.com/u/42745598/bin/Launcher.jar.MD5</md5>
+        <local>../update.tmp</local>
+        <upstream>https://dl.dropboxusercontent.com/u/42745598/bin/Launcher.jar</upstream>
+        <changelog>https://dl.dropboxusercontent.com/u/42745598/bin/Launcher.txt</changelog>  
+    </self>
+
+    <program name="Caption Editor" local="hl2-hudeditor.jar">
+        <md5>https://dl.dropboxusercontent.com/u/42745598/tf/HUD%20Editor/TF2%20HUD%20Editor.jar.MD5</md5>
+        <upstream>https://dl.dropboxusercontent.com/u/42745598/tf/HUD%20Editor/TF2%20HUD%20Editor.jar</upstream>
+        <main>com.timepath.hl2.io.test.VCCDTest</main>
+    </program>
+
+    <program name="VTF Viewer" local="hl2-hudeditor.jar">
+        <md5>https://dl.dropboxusercontent.com/u/42745598/tf/HUD%20Editor/TF2%20HUD%20Editor.jar.MD5</md5>
+        <upstream>https://dl.dropboxusercontent.com/u/42745598/tf/HUD%20Editor/TF2%20HUD%20Editor.jar</upstream>
+        <main>com.timepath.hl2.io.test.VTFTest</main>
+    </program>
+
+    <program name="VBF Editor" local="hl2-hudeditor.jar">
+        <md5>https://dl.dropboxusercontent.com/u/42745598/tf/HUD%20Editor/TF2%20HUD%20Editor.jar.MD5</md5>
+        <upstream>https://dl.dropboxusercontent.com/u/42745598/tf/HUD%20Editor/TF2%20HUD%20Editor.jar</upstream>
+        <main>com.timepath.hl2.io.test.VBFTest</main>
+    </program>
+
+    <program name="Data Viewer" local="hl2-hudeditor.jar">
+        <md5>https://dl.dropboxusercontent.com/u/42745598/tf/HUD%20Editor/TF2%20HUD%20Editor.jar.MD5</md5>
+        <upstream>https://dl.dropboxusercontent.com/u/42745598/tf/HUD%20Editor/TF2%20HUD%20Editor.jar</upstream>
+        <main>com.timepath.hl2.io.test.DataTest</main>
+    </program>
+
+    <program name="CTX Decoder" local="hl2-hudeditor.jar">
+        <md5>https://dl.dropboxusercontent.com/u/42745598/tf/HUD%20Editor/TF2%20HUD%20Editor.jar.MD5</md5>
+        <upstream>https://dl.dropboxusercontent.com/u/42745598/tf/HUD%20Editor/TF2%20HUD%20Editor.jar</upstream>
+        <main>com.timepath.hl2.io.test.CTXTest</main>
+    </program>
+
+    <program name="HUD Editor" local="hl2-hudeditor.jar">
+        <md5>https://dl.dropboxusercontent.com/u/42745598/tf/HUD%20Editor/TF2%20HUD%20Editor.jar.MD5</md5>
+        <upstream>https://dl.dropboxusercontent.com/u/42745598/tf/HUD%20Editor/TF2%20HUD%20Editor.jar</upstream>
+        <changelog>https://dl.dropboxusercontent.com/u/42745598/tf/HUD%20Editor/TF2%20HUD%20Editor.jar.changes</changelog>  
+        <main>com.timepath.hl2.hudeditor.Wrapper</main>
+    </program>
+    
+    <program name="Hex Editor" local="Data_Examiner.jar">
+        <md5>https://dl.dropboxusercontent.com/u/42745598/bin/Data_Examiner.jar.MD5</md5>
+        <upstream>https://dl.dropboxusercontent.com/u/42745598/bin/Data_Examiner.jar</upstream> 
+        <main>com.timepath.hex.HexEditor</main>
+    </program>
+    
+    <program name="Server Test" local="Steam_Toolkit.jar">
+        <md5>https://dl.dropboxusercontent.com/u/42745598/bin/Steam_Toolkit.jar.MD5</md5>
+        <upstream>https://dl.dropboxusercontent.com/u/42745598/bin/Steam_Toolkit.jar</upstream> 
+        <main>com.timepath.steam.net.ServerTest</main>
+    </program>
+    
+    <program name="Archive explorer" local="Steam_Toolkit.jar">
+        <md5>https://dl.dropboxusercontent.com/u/42745598/bin/Steam_Toolkit.jar.MD5</md5>
+        <upstream>https://dl.dropboxusercontent.com/u/42745598/bin/Steam_Toolkit.jar</upstream> 
+        <main>com.timepath.steam.io.ArchiveExplorer</main>
+    </program>
+    
+</root>
