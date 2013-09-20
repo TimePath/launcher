@@ -106,12 +106,12 @@ public class Launcher extends javax.swing.JFrame {
         try {
             LOG.log(Level.INFO, "Downloading {0} to {1}", new Object[] {u, f});
             is = new BufferedInputStream(u.openStream());
-            byte[] buffer = new byte[10240];
-            int read = 0;
             f.mkdirs();
             f.delete();
             f.createNewFile();
             FileOutputStream fos = new FileOutputStream(f);
+            byte[] buffer = new byte[10240];
+            int read;
             while((read = is.read(buffer)) != -1) {
                 fos.write(buffer, 0, read);
             }
@@ -197,7 +197,7 @@ public class Launcher extends javax.swing.JFrame {
                     try {
                         LOG.log(Level.INFO, "Connecting...");
                         long start = System.currentTimeMillis();
-                        String s = "https://dl.dropboxusercontent.com/u/42745598/projects.xml";
+                        String s = "https://raw.github.com/TimePath/hl2-hud-editor/master/src/projects.xml";
                         URL u = new URL(s);
                         URLConnection c = u.openConnection();
                         c.connect();
@@ -544,7 +544,7 @@ public class Launcher extends javax.swing.JFrame {
         try {
             DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
-            Document doc = docBuilder.parse(is);
+            Document doc = docBuilder.parse(new BufferedInputStream(is));
             doc.getDocumentElement().normalize();
 
             listM = new DefaultListModel/*
