@@ -41,7 +41,7 @@ import org.xml.sax.SAXParseException;
  * @author timepath
  */
 public class Launcher extends javax.swing.JFrame {
-    
+
     private static ArrayList<URL> entries = new ArrayList<URL>();
 
     private static final Logger LOG = Logger.getLogger(Launcher.class.getName());
@@ -254,7 +254,9 @@ public class Launcher extends javax.swing.JFrame {
                     return;
                 }
                 Project p = (Project) list.getSelectedValue();
-                displayChangelog(p);
+                if(p.main != null) {
+                    displayChangelog(p);
+                }
             }
         });
 
@@ -449,6 +451,7 @@ public class Launcher extends javax.swing.JFrame {
 
     private static void start(String mainJar, List<String> args, String main) {
         if(main == null) {
+            return;
             // TODO: detect it from manifest
         }
         try {
@@ -592,9 +595,7 @@ public class Launcher extends javax.swing.JFrame {
             Document doc = docBuilder.parse(new BufferedInputStream(is));
             doc.getDocumentElement().normalize();
 
-            listM = new DefaultListModel/*
-                     * <Project>
-                     */();
+            listM = new DefaultListModel();
 
             Node self = doc.getElementsByTagName("self").item(0);
             Project s = new Project();
@@ -616,6 +617,9 @@ public class Launcher extends javax.swing.JFrame {
                 p.changelog = getAttribute(program, "changelog");
                 p.upstream = getAttribute(program, "upstream");
                 p.local = getAttribute(program, "local");
+                if(p.local == null) {
+                    continue;
+                }
                 File f = new File("bin", p.local);
                 URL u = f.toURI().toURL();
                 if(!entries.contains(u)) {
