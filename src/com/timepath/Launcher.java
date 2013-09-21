@@ -1,15 +1,14 @@
 package com.timepath;
 
+import java.awt.EventQueue;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.*;
-import java.lang.reflect.InvocationTargetException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLConnection;
-import java.net.URLDecoder;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.net.*;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.security.MessageDigest;
@@ -18,8 +17,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.FileHandler;
+import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
+import java.util.prefs.Preferences;
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
@@ -37,8 +41,78 @@ import org.xml.sax.SAXParseException;
  * @author timepath
  */
 public class Launcher extends javax.swing.JFrame {
+    
+    private static ArrayList<URL> entries = new ArrayList<URL>();
 
     private static final Logger LOG = Logger.getLogger(Launcher.class.getName());
+
+    public static final Preferences prefs = Preferences.userRoot().node("timepath");
+
+    public static final File logFile;
+
+    public static Level consoleLevel = Level.INFO;
+
+    public static Level logfileLevel = Level.INFO;
+
+    //<editor-fold defaultstate="collapsed" desc="Debugging">
+    static {
+        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            public void uncaughtException(Thread thread, Throwable thrwbl) {
+                Logger.getLogger(thread.getName()).log(Level.SEVERE, "Uncaught Exception", thrwbl);
+            }
+        });
+
+        try {
+            consoleLevel = Level.parse(prefs.get("consoleLevel", "FINE"));
+        } catch(IllegalArgumentException ex) {
+        }
+        try {
+            logfileLevel = Level.parse(prefs.get("logfileLevel", "FINE"));
+        } catch(IllegalArgumentException ex) {
+        }
+        Level packageLevel = consoleLevel;
+        if(consoleLevel != Level.OFF && logfileLevel != Level.OFF) {
+            if(logfileLevel.intValue() > consoleLevel.intValue()) {
+                packageLevel = logfileLevel;
+            }
+        }
+        Logger.getLogger("com.timepath").setLevel(packageLevel);
+
+        SimpleFormatter consoleFormatter = new SimpleFormatter();
+        SimpleFormatter fileFormatter = new SimpleFormatter();
+
+        if(consoleLevel != Level.OFF) {
+            Handler[] hs = Logger.getLogger("").getHandlers();
+            for(Handler h : hs) {
+                if(h instanceof ConsoleHandler) {
+                    h.setLevel(consoleLevel);
+                    h.setFormatter(consoleFormatter);
+                }
+            }
+        }
+
+        if(logfileLevel != Level.OFF) {
+            logFile = new File(currentFile().getParentFile(),
+                               "logs/log_" + System.currentTimeMillis() / 1000 + ".txt");
+            try {
+                logFile.getParentFile().mkdirs();
+                FileHandler fh = new FileHandler(logFile.getPath(), 0, 1, false);
+                fh.setLevel(logfileLevel);
+                fh.setFormatter(fileFormatter);
+                Logger.getLogger("").addHandler(fh);
+                LOG.log(Level.INFO, "Logging to {0}", logFile.getPath());
+            } catch(IOException ex) {
+                LOG.log(Level.SEVERE, null, ex);
+            } catch(SecurityException ex) {
+                LOG.log(Level.SEVERE, null, ex);
+            }
+        } else {
+            logFile = null;
+        }
+        LOG.log(Level.INFO, "Console level: {0}", consoleLevel);
+        LOG.log(Level.INFO, "Logfile level: {0}", logfileLevel);
+    }
+    //</editor-fold>
 
     private static long start = System.currentTimeMillis();
 
@@ -75,7 +149,7 @@ public class Launcher extends javax.swing.JFrame {
                     cmds.add("-u");
                     cmds.add(update.getPath());
                     cmds.add(current.getPath());
-                    start(update.getPath(), cmds, null);
+                    startFork(update.getPath(), cmds, null);
                     System.exit(0);
                 } catch(Exception ex) {
                     LOG.log(Level.SEVERE, null, ex);
@@ -155,22 +229,16 @@ public class Launcher extends javax.swing.JFrame {
             }
         }
         //</editor-fold>
-        try {
-            java.awt.EventQueue.invokeAndWait(new Runnable() {
-                @Override
-                public void run() {                    
-                    Launcher l = new Launcher();
-                    l.pack();
-                    l.setLocationRelativeTo(null);
-                    l.setVisible(true);
-                    LOG.log(Level.INFO, "DONE: {0}ms", System.currentTimeMillis() - start);
-                }
-            });
-        } catch(InterruptedException ex) {
-            LOG.log(Level.SEVERE, null, ex);
-        } catch(InvocationTargetException ex) {
-            LOG.log(Level.SEVERE, null, ex);
-        }
+        EventQueue.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                Launcher l = new Launcher();
+                l.pack();
+                l.setLocationRelativeTo(null);
+                l.setVisible(true);
+                LOG.log(Level.INFO, "DONE: {0}ms", System.currentTimeMillis() - start);
+            }
+        });
     }
 
     /**
@@ -367,7 +435,7 @@ public class Launcher extends javax.swing.JFrame {
         }
         if(valid) {
             if(!p.self) {
-                LOG.log(Level.SEVERE, "Starting {0}, latest version: {1}",
+                LOG.log(Level.INFO, "Starting {0}, latest version: {1}",
                         new Object[] {p, upToDate});
                 start(f.getAbsolutePath(), p.args, p.main);
             } else {
@@ -379,7 +447,23 @@ public class Launcher extends javax.swing.JFrame {
         }
     }
 
-    private static void start(String s, List<String> args, String main) {
+    private static void start(String mainJar, List<String> args, String main) {
+        if(main == null) {
+            // TODO: detect it from manifest
+        }
+        try {
+            URL[] urls = entries.toArray(new URL[0]);
+            URLClassLoader loader = new URLClassLoader(urls, Launcher.class.getClassLoader());
+            Class clazz = loader.loadClass(main);
+            Method m = clazz.getMethod("main", String[].class);
+            String[] ar = {};
+            m.invoke(clazz.newInstance(), (Object) ar);
+        } catch(Exception ex) {
+            LOG.log(Level.SEVERE, null, ex);
+        }
+    }
+
+    private static void startFork(String mainJar, List<String> args, String main) {
         try {
             final String javaBin = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
 
@@ -390,10 +474,10 @@ public class Launcher extends javax.swing.JFrame {
             } else {
                 if(main == null) {
                     cmd.add("-jar");
-                    cmd.add(s);
+                    cmd.add(mainJar);
                 } else {
                     cmd.add("-cp");
-                    File cp = new File(s).getParentFile();
+                    File cp = new File(mainJar).getParentFile();
                     String[] jars = cp.list(new FilenameFilter() {
                         public boolean accept(File dir, String name) {
                             if(name.endsWith(".jar")) {
@@ -532,6 +616,11 @@ public class Launcher extends javax.swing.JFrame {
                 p.changelog = getAttribute(program, "changelog");
                 p.upstream = getAttribute(program, "upstream");
                 p.local = getAttribute(program, "local");
+                File f = new File("bin", p.local);
+                URL u = f.toURI().toURL();
+                if(!entries.contains(u)) {
+                    entries.add(u);
+                }
                 p.hash = getAttribute(program, "md5");
                 p.args = argParse(getAttribute(program, "args"));
                 p.main = getAttribute(program, "main");
