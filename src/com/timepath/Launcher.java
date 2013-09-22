@@ -6,7 +6,6 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.*;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.*;
 import java.nio.MappedByteBuffer;
@@ -14,12 +13,7 @@ import java.nio.channels.FileChannel;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.FileHandler;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
+import java.util.logging.*;
 import java.util.prefs.Preferences;
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
@@ -203,7 +197,6 @@ public class Launcher extends JFrame {
         //<editor-fold defaultstate="collapsed" desc="Look and feel setting code">
         if(customLaf) {
             LOG.log(Level.INFO, "Setting theme...");
-            long theme = System.currentTimeMillis();
             try {
                 for(UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
                     if("Nimbus".equals(info.getName())) {
@@ -220,7 +213,7 @@ public class Launcher extends JFrame {
             } catch(javax.swing.UnsupportedLookAndFeelException ex) {
                 LOG.log(Level.SEVERE, null, ex);
             }
-            LOG.log(Level.INFO, "Set theme in {0}ms", System.currentTimeMillis() - theme);
+            LOG.log(Level.INFO, "Set theme at {0}ms", System.currentTimeMillis() - start);
         } else {
             try {
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -242,7 +235,6 @@ public class Launcher extends JFrame {
                 l.pack();
                 l.setLocationRelativeTo(null);
                 l.setVisible(true);
-                LOG.log(Level.INFO, "DONE: {0}ms", System.currentTimeMillis() - start);
             }
         };
         try {
@@ -253,6 +245,8 @@ public class Launcher extends JFrame {
         }
     }
 
+    private DefaultListModel listM = null;
+
     public Launcher() {
         //<editor-fold defaultstate="collapsed" desc="UI">
         initComponents();
@@ -260,6 +254,9 @@ public class Launcher extends JFrame {
         list.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
             @Override
             public void valueChanged(ListSelectionEvent e) {
+                if(!e.getValueIsAdjusting()) {
+                    return;
+                }
                 Project p = (Project) list.getSelectedValue();
                 displayChangelog(p);
             }
@@ -292,7 +289,7 @@ public class Launcher extends JFrame {
             }
         });
 
-        LOG.log(Level.INFO, "Created UI in {0}ms", System.currentTimeMillis() - start);
+        LOG.log(Level.INFO, "Created UI at {0}ms", System.currentTimeMillis() - start);
         //</editor-fold>
 
         //<editor-fold defaultstate="collapsed" desc="Load list">
@@ -313,34 +310,36 @@ public class Launcher extends JFrame {
                         String s = "http://dl.dropboxusercontent.com/u/42745598/projects.xml";
                         LOG.log(Level.INFO, "Resolving...");
                         URL u = new URL(s);
-                        long resolved = System.currentTimeMillis();
-                        LOG.log(Level.INFO, "Resolved in {0}ms", resolved - start);
+                        LOG.log(Level.INFO, "Resolved at {0}ms", System.currentTimeMillis() - start);
                         LOG.log(Level.INFO, "Opening...");
                         URLConnection c = u.openConnection();
-                        long opened = System.currentTimeMillis();
-                        LOG.log(Level.INFO, "Opened in {0}ms", opened - resolved);
+                        LOG.log(Level.INFO, "Opened at {0}ms", System.currentTimeMillis() - start);
                         LOG.log(Level.INFO, "Streaming...");
                         is = c.getInputStream();
-                        long streaming = System.currentTimeMillis();
-                        LOG.log(Level.INFO, "Stream opened in {0}ms", streaming - opened);
+                        LOG.log(Level.INFO, "Stream opened at {0}ms",
+                                System.currentTimeMillis() - start);
                     } catch(IOException ex) {
                         LOG.log(Level.SEVERE, null, ex);
                     }
                 }
                 LOG.log(Level.INFO, "Parsing...");
-                long parsing = System.currentTimeMillis();
-                final DefaultListModel listM = parseXML(is);
-                long parsed = System.currentTimeMillis();
-                LOG.log(Level.INFO, "Parsed in {0}ms", parsed - parsing);
-                SwingUtilities.invokeLater(new Runnable() {
-                    public void run() {
-                        list.setModel(listM);
-                        LOG.log(Level.INFO, "Total: {0}ms", System.currentTimeMillis() - start);
-                    }
-                });
+                listM = parseXML(is);
+                LOG.log(Level.INFO, "Parsed at {0}ms", System.currentTimeMillis() - start);
             }
         }).start();
         //</editor-fold>
+    }
+
+    @Override
+    public void setVisible(boolean b) {
+        super.setVisible(b);
+        LOG.log(Level.INFO, "Visible at {0}ms", System.currentTimeMillis() - start);
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                list.setModel(listM);
+                LOG.log(Level.INFO, "Listing at {0}ms", System.currentTimeMillis() - start);
+            }
+        });
     }
 
     //<editor-fold defaultstate="collapsed" desc="Updating">
@@ -421,7 +420,7 @@ public class Launcher extends JFrame {
         }
         return ret;
     }
-    
+
     private static HashSet<Project> depends(Project parent) {
         HashSet<Project> h = new HashSet<Project>();
         for(Project p : parent.depends) {
@@ -559,35 +558,25 @@ public class Launcher extends JFrame {
         if(p == null) {
             return;
         }
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if(p.jEditorPane == null) {
-                        p.changelogData = loadPage(p.newsfeedURL);
-                        p.jEditorPane = new JEditorPane("text/html", p.changelogData);
-                        p.jEditorPane.setEditable(false);
-                    }
-                    Runnable r = new Runnable() {
-                        public void run() {
-                            textScrollPane.setViewportView(p.jEditorPane);
-                        }
-                    };
+        if(p.jEditorPane == null) {
+            p.jEditorPane = new JEditorPane("text/html", "");
+            p.jEditorPane.setEditable(false);
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
                     try {
-                        SwingUtilities.invokeAndWait(r);
-                    } catch(Exception ex) {
+                        p.changelogData = loadPage(p.newsfeedURL);
+                        p.jEditorPane.setText(p.changelogData);
+                    } catch(IOException ex) {
                         LOG.log(Level.SEVERE, null, ex);
-                        SwingUtilities.invokeLater(r);
                     }
-                } catch(IOException ex) {
-                    LOG.log(Level.SEVERE, null, ex);
                 }
-            }
-        }).start();
+            }).start();
+        }
+        textScrollPane.setViewportView(p.jEditorPane);
     }
-    //</editor-fold>
-
-    //<editor-fold defaultstate="collapsed" desc="Parsing">
+//</editor-fold>
+//<editor-fold defaultstate="collapsed" desc="Parsing">
     private static String getAttribute(Node n, String key) {
         Element e = (Element) n;
         Node child = last(getElements(key, n));
@@ -675,7 +664,7 @@ public class Launcher extends JFrame {
             DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
             Node root = docBuilder.parse(new BufferedInputStream(is));
 
-            LOG.log(Level.FINE, "\n{0}", printTree(root, 0));
+            LOG.log(Level.FINER, "\n{0}", printTree(root, 0));
 
             String[] nodes = {"self", "libs", "programs"};
             for(String n : nodes) {
@@ -738,6 +727,8 @@ public class Launcher extends JFrame {
             return null;
         }
         return Arrays.asList(cmd.split(" "));
+
+
     }
 
     private static class Project {
@@ -820,7 +811,7 @@ public class Launcher extends JFrame {
         }
 
     }
-    //</editor-fold>
+//</editor-fold>
 
     /**
      * This method is called from within the constructor to initialize the form.
