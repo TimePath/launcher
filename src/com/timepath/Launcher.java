@@ -7,16 +7,12 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.*;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.net.*;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
@@ -29,32 +25,36 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
 
 /**
  *
- * @author timepath
+ * @author TimePath
  */
-public class Launcher extends javax.swing.JFrame {
+public class Launcher extends JFrame {
 
-    private static ArrayList<URL> entries = new ArrayList<URL>();
+    private static long start = System.currentTimeMillis();
 
     private static final Logger LOG = Logger.getLogger(Launcher.class.getName());
 
-    public static final Preferences prefs = Preferences.userRoot().node("timepath");
+    private static final Preferences prefs = Preferences.userRoot().node("timepath");
 
-    public static final File logFile;
+    private static final String progDir = "bin";
 
-    public static Level consoleLevel = Level.INFO;
+    private static String updateFile = "update.tmp";
 
-    public static Level logfileLevel = Level.INFO;
+    private static boolean runningTemp = false;
 
     //<editor-fold defaultstate="collapsed" desc="Debugging">
+    private static final File logFile;
+
+    private static Level consoleLevel = Level.INFO;
+
+    private static Level logfileLevel = Level.INFO;
+
     static {
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             public void uncaughtException(Thread thread, Throwable thrwbl) {
@@ -114,8 +114,6 @@ public class Launcher extends javax.swing.JFrame {
     }
     //</editor-fold>
 
-    private static long start = System.currentTimeMillis();
-
     public static void main(String... args) {
         LOG.log(Level.INFO, "Initial: {0}ms", System.currentTimeMillis() - start);
         LOG.log(Level.INFO, "Args = {0}", Arrays.toString(args));
@@ -124,9 +122,10 @@ public class Launcher extends javax.swing.JFrame {
         LOG.log(Level.INFO, "Current file = {0}", current);
         File cwd = current.getParentFile().getAbsoluteFile();
         LOG.log(Level.INFO, "Working directory = {0}", cwd);
-        File update = new File(cwd, "update.tmp");
+        File update = new File(cwd, updateFile);
         if(update.exists()) {
             LOG.log(Level.INFO, "Update file = {0}", update);
+            //<editor-fold defaultstate="collapsed" desc="on user restart">
             if(!current.equals(update)) {
                 try {
                     File updateChecksum = new File(update.getPath() + ".MD5");
@@ -136,27 +135,30 @@ public class Launcher extends javax.swing.JFrame {
                     is.close();
                     LOG.log(Level.INFO, "Expecting checksum = {0}", expectedMd5);
 
-                    String md5 = hash(update, "MD5");
+                    String md5 = checksum(update, "MD5");
                     LOG.log(Level.INFO, "Actual checksum = {0}", md5);
                     if(!md5.equals(expectedMd5)) {
                         updateChecksum.delete();
                         update.delete();
                         throw new Exception("Corrupt update file");
+                    } else {
+                        ArrayList<String> cmds = new ArrayList<String>();
+                        cmds.add("-jar");
+                        cmds.add(update.getPath());
+                        cmds.add("-u");
+                        cmds.add(update.getPath());
+                        cmds.add(current.getPath());
+                        fork(update.getPath(), cmds, null);
+                        System.exit(0);
                     }
-                    ArrayList<String> cmds = new ArrayList<String>();
-                    cmds.add("-jar");
-                    cmds.add(update.getPath());
-                    cmds.add("-u");
-                    cmds.add(update.getPath());
-                    cmds.add(current.getPath());
-                    startFork(update.getPath(), cmds, null);
-                    System.exit(0);
                 } catch(Exception ex) {
                     LOG.log(Level.SEVERE, null, ex);
                 }
             }
+            //</editor-fold>
         }
 
+        //<editor-fold defaultstate="collapsed" desc="on update detected restart">
         for(int i = 0; i < args.length; i++) {
             if(args[i].equalsIgnoreCase("-u")) {
                 try {
@@ -186,11 +188,14 @@ public class Launcher extends javax.swing.JFrame {
                     }
                     new File(update.getPath() + ".MD5").delete();
                     sourceFile.deleteOnExit();
+                    updateFile = destFile.getName();// Can continue running from temp file
+                    runningTemp = true;
                 } catch(IOException ex) {
                     LOG.log(Level.SEVERE, null, ex);
                 }
             }
         }
+        //</editor-fold>
 
         LOG.log(Level.INFO, "Startup: {0}ms", System.currentTimeMillis() - start);
         boolean customLaf = false;
@@ -241,22 +246,22 @@ public class Launcher extends javax.swing.JFrame {
         });
     }
 
-    /**
-     * Creates new form Launcher
-     */
     public Launcher() {
+        //<editor-fold defaultstate="collapsed" desc="UI">
         initComponents();
 
         list.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
             @Override
             public void valueChanged(ListSelectionEvent e) {
-                if(e.getValueIsAdjusting()) {
-                    return;
-                }
                 Project p = (Project) list.getSelectedValue();
-                if(p.main != null) {
-                    displayChangelog(p);
-                }
+                displayChangelog(p);
+            }
+        });
+
+        launchButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                Project p = (Project) list.getSelectedValue();
+                start(p);
             }
         });
 
@@ -281,39 +286,54 @@ public class Launcher extends javax.swing.JFrame {
         });
 
         LOG.log(Level.INFO, "Created UI in {0}ms", System.currentTimeMillis() - start);
+        //</editor-fold>
 
+        //<editor-fold defaultstate="collapsed" desc="Load list">
         new Thread(new Runnable() {
             public void run() {
                 InputStream is = null;
-                try {
-                    long start = System.currentTimeMillis();
-                    String s = "http://dl.dropboxusercontent.com/u/42745598/projects.xml";
-                    LOG.log(Level.INFO, "Resolving...");
-                    URL u = new URL(s);
-                    long resolved = System.currentTimeMillis();
-                    LOG.log(Level.INFO, "Resolved in {0}ms", resolved - start);
-                    LOG.log(Level.INFO, "Opening...");
-                    URLConnection c = u.openConnection();
-                    long opened = System.currentTimeMillis();
-                    LOG.log(Level.INFO, "Opened in {0}ms", opened - resolved);
-                    is = c.getInputStream();
-                    LOG.log(Level.INFO, "Streaming...");
-                    long streaming = System.currentTimeMillis();
-                    LOG.log(Level.INFO, "Streaming in {0}ms", streaming - opened);
-                    long parsing = System.currentTimeMillis();
-                    LOG.log(Level.INFO, "Parsing in {0}ms", parsing - streaming);
-                    final DefaultListModel listM = parseXML(is);
-                    SwingUtilities.invokeLater(new Runnable() {
-                        public void run() {
-                            list.setModel(listM);
-                        }
-                    });
-                    LOG.log(Level.INFO, "Total: {0}ms", System.currentTimeMillis() - start);
-                } catch(IOException ex) {
-                    LOG.log(Level.SEVERE, null, ex);
+                File f = new File(System.getProperty("user.home") + "/Dropbox/Public/projects.xml");
+                if(f.exists()) {
+                    try {
+                        is = new FileInputStream(f);
+                    } catch(FileNotFoundException ex) {
+                        LOG.log(Level.SEVERE, null, ex);
+                    }
                 }
+                if(is == null) {
+                    try {
+                        long start = System.currentTimeMillis();
+                        String s = "http://dl.dropboxusercontent.com/u/42745598/projects.xml";
+                        LOG.log(Level.INFO, "Resolving...");
+                        URL u = new URL(s);
+                        long resolved = System.currentTimeMillis();
+                        LOG.log(Level.INFO, "Resolved in {0}ms", resolved - start);
+                        LOG.log(Level.INFO, "Opening...");
+                        URLConnection c = u.openConnection();
+                        long opened = System.currentTimeMillis();
+                        LOG.log(Level.INFO, "Opened in {0}ms", opened - resolved);
+                        LOG.log(Level.INFO, "Streaming...");
+                        is = c.getInputStream();
+                        long streaming = System.currentTimeMillis();
+                        LOG.log(Level.INFO, "Stream opened in {0}ms", streaming - opened);
+                    } catch(IOException ex) {
+                        LOG.log(Level.SEVERE, null, ex);
+                    }
+                }
+                LOG.log(Level.INFO, "Parsing...");
+                long parsing = System.currentTimeMillis();
+                final DefaultListModel listM = parseXML(is);
+                long parsed = System.currentTimeMillis();
+                LOG.log(Level.INFO, "Parsed in {0}ms", parsed - parsing);
+                SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                        list.setModel(listM);
+                        LOG.log(Level.INFO, "Total: {0}ms", System.currentTimeMillis() - start);
+                    }
+                });
             }
         }).start();
+        //</editor-fold>
     }
 
     //<editor-fold defaultstate="collapsed" desc="Updating">
@@ -326,9 +346,9 @@ public class Launcher extends javax.swing.JFrame {
         return Long.parseLong(impl);
     }
 
-    public static final long myVer = getVer();
+    private static final long myVer = getVer();
 
-    public static File currentFile() {
+    private static File currentFile() {
         String encoded = Launcher.class.getProtectionDomain().getCodeSource().getLocation().getPath();
         try {
             return new File(URLDecoder.decode(encoded, "UTF-8"));
@@ -348,7 +368,8 @@ public class Launcher extends javax.swing.JFrame {
     }
     //</editor-fold>
 
-    private static String hash(File f, String method) throws IOException, NoSuchAlgorithmException {
+    private static String checksum(File f, String method) throws IOException,
+                                                                 NoSuchAlgorithmException {
         FileChannel c = new RandomAccessFile(f, "r").getChannel();
         MappedByteBuffer buf = c.map(FileChannel.MapMode.READ_ONLY, 0, c.size());
         StringBuilder sb = new StringBuilder();
@@ -362,11 +383,6 @@ public class Launcher extends javax.swing.JFrame {
     }
 
     private static boolean download(URL u, File f) {
-        try {
-            f = f.getCanonicalFile();
-        } catch(IOException ex) {
-            LOG.log(Level.SEVERE, null, ex);
-        }
         boolean ret;
         InputStream is = null;
         try {
@@ -376,7 +392,7 @@ public class Launcher extends javax.swing.JFrame {
             f.delete();
             f.createNewFile();
             FileOutputStream fos = new FileOutputStream(f);
-            byte[] buffer = new byte[10240];
+            byte[] buffer = new byte[10240]; // 10K
             int read;
             while((read = is.read(buffer)) != -1) {
                 fos.write(buffer, 0, read);
@@ -399,78 +415,67 @@ public class Launcher extends javax.swing.JFrame {
         return ret;
     }
 
-    private static void start(Project p) {
-        boolean upToDate = false;
-        boolean valid = true;
-        File f = new File("bin", p.local);
-        try {
-            f = f.getCanonicalFile();
-        } catch(IOException ex) {
-            LOG.log(Level.SEVERE, null, ex);
-        }
-        if(f.exists()) {
-            try {
-                String md5 = hash(f, "MD5");
-                BufferedReader br = new BufferedReader(new InputStreamReader(
-                        new URL(p.upstream).openStream()));
-                String expectedMd5 = br.readLine();
-                upToDate = true;
-            } catch(IOException ex) {
-                LOG.log(Level.SEVERE, null, ex);
-            } catch(NoSuchAlgorithmException ex) {
-                LOG.log(Level.SEVERE, null, ex);
-            }
-        } else {
-            valid = false;
-        }
-        if(!upToDate && (!f.exists() || f.canWrite())) {
-            try {
-                URL u = new URL(p.upstream);
-                download(u, f);
-                if(p.self) {
-                    download(new URL(p.hash), new File(f.getPath() + ".MD5"));
-                }
-                valid = true;
-            } catch(MalformedURLException ex) {
-                LOG.log(Level.SEVERE, null, ex);
-            }
-        }
-        if(valid) {
-            if(!p.self) {
-                LOG.log(Level.INFO, "Starting {0}, latest version: {1}",
-                        new Object[] {p, upToDate});
-                start(f.getAbsolutePath(), p.args, p.main);
-            } else {
-                JOptionPane.showMessageDialog(null, "Restart to apply", "Update downloaded",
-                                              JOptionPane.INFORMATION_MESSAGE, null);
-            }
-        } else {
-            LOG.log(Level.SEVERE, "Unable to start {0}", p);
-        }
-    }
-
-    private static void start(String mainJar, List<String> args, String main) {
-        if(main == null) {
+    private static void start(Project run) {
+        if(run == null) { // List hasn't loaded yet
             return;
-            // TODO: detect it from manifest
         }
-        try {
-            URL[] urls = entries.toArray(new URL[0]);
-            URLClassLoader loader = new URLClassLoader(urls, Launcher.class.getClassLoader());
-            Class clazz = loader.loadClass(main);
-            Method m = clazz.getMethod("main", String[].class);
-            String[] ar = {};
-            m.invoke(clazz.newInstance(), (Object) ar);
-        } catch(Exception ex) {
-            LOG.log(Level.SEVERE, null, ex);
+        ArrayList<Project> ps = new ArrayList<Project>();
+        run.depends.remove(null);
+        ps.addAll(run.depends);
+        if(run.downloadURL != null) {
+            ps.add(run);
+        }
+        LOG.log(Level.INFO, "Download list: {0}", Arrays.toString(ps.toArray(new Project[0])));
+        for(Project p : ps) {
+            File f = p.getFile();
+            boolean latest = false;
+            if(f.exists()) {
+                latest = p.isLatest();
+            }
+            if(!latest) {
+                LOG.log(Level.INFO, "Fetching {0}", p);
+                try {
+                    URL u = new URL(p.downloadURL);
+                    download(u, f);
+                    if(p.self && !runningTemp) {
+                        download(new URL(p.checksumURL), new File(f.getPath() + ".MD5"));
+                    }
+                    LOG.log(Level.INFO, "{0} is up to date", p);
+                } catch(MalformedURLException ex) {
+                    LOG.log(Level.SEVERE, null, ex);
+                }
+            }
+        }
+        if(run.self) {
+            JOptionPane.showMessageDialog(null, "Restart to apply", "Update downloaded",
+                                          JOptionPane.INFORMATION_MESSAGE, null);
+        } else {
+            LOG.log(Level.INFO, "Starting {0} ({1})",
+                    new Object[] {run, run.main});
+            if(run.main == null) { // TODO
+                LOG.log(Level.SEVERE, "Manifest detection not implemented ({0})", run);
+                return;
+            }
+            try {
+                URL[] urls = run.classPath().toArray(new URL[0]);
+                LOG.log(Level.INFO, "Classpath = {0}", Arrays.toString(urls));
+                URLClassLoader loader = new URLClassLoader(urls, Launcher.class.getClassLoader());
+                Class clazz = loader.loadClass(run.main);
+                Method m = clazz.getMethod("main", String[].class);
+                String[] ar = run.args.toArray(new String[0]);
+                m.invoke(clazz.newInstance(), (Object) ar);
+            } catch(Exception ex) {
+                LOG.log(Level.SEVERE, "Unable to start {0}:", run);
+                LOG.log(Level.SEVERE, null, ex);
+            }
         }
     }
 
-    private static void startFork(String mainJar, List<String> args, String main) {
+    private static void fork(String mainJar, List<String> args, String main) {
         try {
-            final String javaBin = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
+            String javaBin = System.getProperty("java.home") + File.separator + progDir + File.separator + "java";
 
-            final ArrayList<String> cmd = new ArrayList<String>();
+            ArrayList<String> cmd = new ArrayList<String>();
             cmd.add(javaBin);
             if(args != null) {
                 cmd.addAll(args);
@@ -501,7 +506,7 @@ public class Launcher extends javax.swing.JFrame {
             String[] exec = new String[cmd.size()];
             cmd.toArray(exec);
             LOG.log(Level.INFO, "Invoking other: {0}", Arrays.toString(exec));
-            final ProcessBuilder process = new ProcessBuilder(exec);
+            ProcessBuilder process = new ProcessBuilder(exec);
             process.start();
         } catch(IOException ex) {
             LOG.log(Level.SEVERE, null, ex);
@@ -510,15 +515,15 @@ public class Launcher extends javax.swing.JFrame {
     //</editor-fold>
 
     //<editor-fold defaultstate="collapsed" desc="Changelog">
-    private HashMap<String, String> initPageCache() {
+    private static HashMap<String, String> initPageCache() {
         HashMap<String, String> m = new HashMap<String, String>();
         m.put(null, "No changelog available");
         return m;
     }
 
-    private HashMap<String, String> pages = initPageCache();
+    private static HashMap<String, String> pages = initPageCache();
 
-    private String loadPage(String s) throws IOException {
+    private static String loadPage(String s) throws IOException {
         if(!pages.containsKey(s)) {
             LOG.log(Level.INFO, "Loading {0}", s);
             StringBuilder sb = new StringBuilder();
@@ -538,19 +543,21 @@ public class Launcher extends javax.swing.JFrame {
     }
 
     private void displayChangelog(final Project p) {
+        if(p == null) {
+            return;
+        }
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
                     if(p.jEditorPane == null) {
-                        p.changelogData = loadPage(p.changelog);
+                        p.changelogData = loadPage(p.newsfeedURL);
                         p.jEditorPane = new JEditorPane("text/html", p.changelogData);
                         p.jEditorPane.setEditable(false);
                     }
                     Runnable r = new Runnable() {
                         public void run() {
                             textScrollPane.setViewportView(p.jEditorPane);
-                            textScrollPane.getVerticalScrollBar().setValue(0);
                         }
                     };
                     try {
@@ -569,92 +576,178 @@ public class Launcher extends javax.swing.JFrame {
 
     //<editor-fold defaultstate="collapsed" desc="Parsing">
     private static String getAttribute(Node n, String key) {
-        Element p = (Element) n;
-        String val = p.getAttributeNode(key) != null ? p.getAttributeNode(key).getValue().trim() : null;
-        NodeList nodes = p.getElementsByTagName(key);
-        if(p.getNodeType() == Node.ELEMENT_NODE && nodes.getLength() > 0) {
-            Element lastElement = (Element) nodes.item(nodes.getLength() - 1);
-            NodeList children = lastElement.getChildNodes();
-            val = ((Node) children.item(children.getLength() - 1)).getNodeValue();
+        Element e = (Element) n;
+        Node child = last(getElements(key, n));
+        if(child != null) {
+            return child.getNodeValue();
+        } else if(e.getAttributeNode(key) != null) {
+            return e.getAttributeNode(key).getValue();
+        } else {
+            return null;
         }
-        return val;
     }
 
-    private List<String> argParse(String cmd) {
+    private static <E> E last(ArrayList<E> arr) {
+        if(arr == null || arr.isEmpty()) {
+            return null;
+        } else {
+            return arr.get(arr.size() - 1);
+        }
+    }
+
+    private static ArrayList<Node> get(Node parent, short nodeType) {
+        ArrayList<Node> al = new ArrayList<Node>();
+        if(parent.hasChildNodes()) {
+            NodeList nodes = parent.getChildNodes();
+            for(int i = 0; i < nodes.getLength(); i++) {
+                Node n = nodes.item(i);
+                if(n.getNodeType() == nodeType) {
+                    al.add(n);
+                }
+            }
+        }
+        return al;
+    }
+
+    private static ArrayList<Node> getElements(String eval, Node root) {
+        String[] path = eval.split("/");
+        ArrayList<Node> nodes = new ArrayList<Node>();
+        nodes.add(root);
+        for(String part : path) {
+            ArrayList<Node> repl = new ArrayList<Node>();
+            for(Node scan : nodes) {
+                for(Node n : get(scan, Node.ELEMENT_NODE)) {
+                    if(n.getNodeName().equals(part)) {
+                        repl.add(n);
+                    }
+                }
+            }
+            nodes = repl;
+        }
+        return nodes;
+    }
+
+    private static String printTree(Node root, int depth) {
+        StringBuilder sb = new StringBuilder();
+        String str = root.getNodeName();
+        String spacing = "";
+        if(depth > 0) {
+            spacing = String.format("%-" + depth * 4 + "s", "");
+        }
+        if(root.hasAttributes()) {
+            NamedNodeMap attribs = root.getAttributes();
+            for(int i = attribs.getLength() - 1; i >= 0; i--) {
+                str += " " + attribs.item(i).getNodeName() + "=\"" + attribs.item(i).getNodeValue() + "\"";
+            }
+        }
+        ArrayList<Node> elements = get(root, Node.ELEMENT_NODE);
+        sb.append(depth).append(": ").append(spacing).append("<").append(str).append(
+                elements.isEmpty() ? "/" : "").append(">\n");
+        for(Node n : elements) {
+            sb.append(printTree(n, depth + 1));
+        }
+        if(!elements.isEmpty()) {
+            sb.append(depth).append(": ").append(spacing).append("</").append(root.getNodeName()).append(
+                    ">\n");
+        }
+        return sb.toString();
+    }
+
+    private static HashMap<String, Project> libs = new HashMap<String, Project>();
+
+    private static DefaultListModel parseXML(InputStream is) {
+        DefaultListModel listM = new DefaultListModel();
+        try {
+            DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+            Node root = docBuilder.parse(new BufferedInputStream(is));
+
+            LOG.log(Level.FINE, "\n{0}", printTree(root, 0));
+
+            String[] nodes = {"self", "libs", "programs"};
+            for(String n : nodes) {
+                ArrayList<Node> programs = getElements("root/" + n + "/entry", root);
+                for(Node entry : programs) {
+                    //<editor-fold defaultstate="collapsed" desc="Parse">
+                    Project p = new Project();
+
+                    p.name = getAttribute(entry, "name");
+
+                    String depends = getAttribute(entry, "depends");
+                    if(depends != null) {
+                        String[] dependencies = depends.split(",");
+                        for(String s : dependencies) {
+                            p.depends.add(libs.get(s));
+                        }
+                    }
+
+                    p.file = getAttribute(entry, "file");
+
+                    Node java = last(getElements("java", entry));
+                    if(java != null) {
+                        p.main = getAttribute(java, "main");
+                        p.args = argParse(getAttribute(java, "args"));
+                    }
+
+                    Node news = last(getElements("newsfeed", entry));
+                    if(news != null) {
+                        p.newsfeedURL = getAttribute(news, "url");
+                    }
+
+                    Node download = last(getElements("download", entry));
+                    if(download != null) {
+                        p.downloadURL = getAttribute(download, "url");
+                    }
+
+                    Node checksum = last(getElements("checksum", entry));
+                    if(checksum != null) {
+                        p.checksumURL = getAttribute(checksum, "url");
+                    }
+                    //</editor-fold>
+                    if(n.equals(nodes[0])) {
+                        p.self = true;
+                        listM.addElement(p);
+                    } else if(n.equals(nodes[1])) {
+                        libs.put(p.name, p);
+                    } else if(n.equals(nodes[2])) {
+                        listM.addElement(p);
+                    }
+                }
+            }
+        } catch(Exception ex) {
+            LOG.log(Level.SEVERE, null, ex);
+        }
+        return listM;
+    }
+
+    private static List<String> argParse(String cmd) {
         if(cmd == null) {
             return null;
         }
         return Arrays.asList(cmd.split(" "));
     }
 
-    private DefaultListModel parseXML(InputStream is) {
-        DefaultListModel listM = null;
-        try {
-            DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
-            Document doc = docBuilder.parse(new BufferedInputStream(is));
-            doc.getDocumentElement().normalize();
-
-            listM = new DefaultListModel();
-
-            Node self = doc.getElementsByTagName("self").item(0);
-            Project s = new Project();
-            s.self = true;
-            s.name = getAttribute(self, "name");
-            s.changelog = getAttribute(self, "changelog");
-            s.upstream = getAttribute(self, "upstream");
-            s.local = getAttribute(self, "local");
-            s.hash = getAttribute(self, "md5");
-            //            s.args = argParse(getAttribute(self, "args"));
-            s.main = getAttribute(self, "main");
-            listM.addElement(s);
-
-            NodeList programs = doc.getElementsByTagName("program");
-            for(int i = 0; i < programs.getLength(); i++) {
-                Node program = programs.item(i);
-                Project p = new Project();
-                p.name = getAttribute(program, "name");
-                p.changelog = getAttribute(program, "changelog");
-                p.upstream = getAttribute(program, "upstream");
-                p.local = getAttribute(program, "local");
-                if(p.local == null) {
-                    continue;
-                }
-                File f = new File("bin", p.local);
-                URL u = f.toURI().toURL();
-                if(!entries.contains(u)) {
-                    entries.add(u);
-                }
-                p.hash = getAttribute(program, "md5");
-                p.args = argParse(getAttribute(program, "args"));
-                p.main = getAttribute(program, "main");
-                listM.addElement(p);
-            }
-        } catch(SAXParseException err) {
-            LOG.log(Level.SEVERE, "** Parsing error" + ", line {0}, uri {1}", new Object[] {
-                err.getLineNumber(),
-                err.getSystemId()});
-            LOG.log(Level.SEVERE, "{0}", err.getMessage());
-        } catch(SAXException e) {
-            Exception x = e.getException();
-            ((x == null) ? e : x).printStackTrace();
-        } catch(Throwable t) {
-            t.printStackTrace();
-        }
-        return listM;
-    }
-
-    private class Project {
+    private static class Project {
 
         private String name;
 
-        private String changelog;
+        private String newsfeedURL;
 
-        private String local;
+        private String file;
 
-        private String upstream;
+        public File getFile() {
+            if(self) {
+                return new File(updateFile);
+            }
+            if(file == null) {
+                return null;
+            }
+            return new File(progDir, file);
+        }
 
-        private String hash;
+        private String downloadURL;
+
+        private String checksumURL;
 
         private boolean self;
 
@@ -666,9 +759,51 @@ public class Launcher extends javax.swing.JFrame {
 
         private JEditorPane jEditorPane;
 
+        private HashSet<Project> depends = new HashSet<Project>();
+
         @Override
         public String toString() {
             return name;
+        }
+
+        private HashSet<URL> classPath() {
+            HashSet<URL> h = new HashSet<URL>();
+            for(Project p : depends) {
+                h.addAll(p.classPath());
+            }
+            File f = this.getFile();
+            if(f != null) {
+                try {
+                    URL u = f.toURI().toURL();
+                    h.add(u);
+                } catch(MalformedURLException ex) {
+                    LOG.log(Level.SEVERE, null, ex);
+                }
+            }
+            return h;
+        }
+
+        /**
+         *
+         * @return false if not up to date, true if up to date or offline
+         */
+        private boolean isLatest() {
+            File f = getFile();
+            if(f.exists()) {
+                LOG.log(Level.INFO, "Checking {0} for updates...", this);
+                try {
+                    String checksum = checksum(f, "MD5");
+                    BufferedReader br = new BufferedReader(new InputStreamReader(
+                            new URL(checksumURL).openStream()));
+                    String expected = br.readLine();
+                    if(!checksum.equals(expected)) {
+                        return false;
+                    }
+                } catch(Exception ex) {
+                    LOG.log(Level.SEVERE, null, ex);
+                }
+            }
+            return true;
         }
 
     }
@@ -704,11 +839,6 @@ public class Launcher extends javax.swing.JFrame {
         sidePanel.add(textScrollPane, java.awt.BorderLayout.CENTER);
 
         launchButton.setText("Launch");
-        launchButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                launchButtonActionPerformed(evt);
-            }
-        });
         sidePanel.add(launchButton, java.awt.BorderLayout.SOUTH);
 
         splitPane.setRightComponent(sidePanel);
@@ -726,11 +856,6 @@ public class Launcher extends javax.swing.JFrame {
 
         setBounds(0, 0, 573, 330);
     }// </editor-fold>//GEN-END:initComponents
-
-    private void launchButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_launchButtonActionPerformed
-        Project p = (Project) list.getSelectedValue();
-        start(p);
-    }//GEN-LAST:event_launchButtonActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton launchButton;
