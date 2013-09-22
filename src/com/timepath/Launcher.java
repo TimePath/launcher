@@ -6,6 +6,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.*;
 import java.nio.MappedByteBuffer;
@@ -234,7 +235,7 @@ public class Launcher extends JFrame {
             }
         }
         //</editor-fold>
-        EventQueue.invokeLater(new Runnable() {
+        Runnable r = new Runnable() {
             @Override
             public void run() {
                 Launcher l = new Launcher();
@@ -243,7 +244,13 @@ public class Launcher extends JFrame {
                 l.setVisible(true);
                 LOG.log(Level.INFO, "DONE: {0}ms", System.currentTimeMillis() - start);
             }
-        });
+        };
+        try {
+            EventQueue.invokeAndWait(r);
+        } catch(Exception ex) {
+            Logger.getLogger(Launcher.class.getName()).log(Level.SEVERE, null, ex);
+            EventQueue.invokeLater(r);
+        }
     }
 
     public Launcher() {
@@ -353,7 +360,7 @@ public class Launcher extends JFrame {
         try {
             return new File(URLDecoder.decode(encoded, "UTF-8"));
         } catch(UnsupportedEncodingException ex) {
-            ex.printStackTrace();
+            LOG.log(Level.WARNING, null, ex);
         }
         String ans = System.getProperty("user.dir") + File.separator;
         String cmd = System.getProperty("sun.java.command");
@@ -414,18 +421,24 @@ public class Launcher extends JFrame {
         }
         return ret;
     }
+    
+    private static HashSet<Project> depends(Project parent) {
+        HashSet<Project> h = new HashSet<Project>();
+        for(Project p : parent.depends) {
+            h.addAll(depends(p));
+        }
+        if(parent.downloadURL != null) {
+            h.add(parent);
+        }
+        return h;
+    }
 
     private static void start(Project run) {
         if(run == null) { // List hasn't loaded yet
             return;
         }
-        ArrayList<Project> ps = new ArrayList<Project>();
-        run.depends.remove(null);
-        ps.addAll(run.depends);
-        if(run.downloadURL != null) {
-            ps.add(run);
-        }
-        LOG.log(Level.INFO, "Download list: {0}", Arrays.toString(ps.toArray(new Project[0])));
+        HashSet<Project> ps = depends(run);
+        LOG.log(Level.INFO, "Download list: {0}", ps.toString());
         for(Project p : ps) {
             File f = p.getFile();
             boolean latest = false;
@@ -763,7 +776,7 @@ public class Launcher extends JFrame {
 
         @Override
         public String toString() {
-            return name;
+            return name;// + (!depends.isEmpty() ? (" " + depends.toString()) : "");
         }
 
         private HashSet<URL> classPath() {
