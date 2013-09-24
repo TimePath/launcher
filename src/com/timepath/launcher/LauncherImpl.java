@@ -7,10 +7,7 @@ import java.awt.EventQueue;
 import java.awt.Window;
 import java.io.*;
 import java.lang.Thread.UncaughtExceptionHandler;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URL;
-import java.net.URLConnection;
+import java.net.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -198,6 +195,7 @@ public class LauncherImpl extends Launcher {
     private static Level logfileLevel = Level.INFO;
 
     static {
+        Utils.log("launcher/connects", Utils.currentVersion);
         Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
             public void uncaughtException(Thread t, Throwable e) {
                 Logger.getLogger(t.getName()).log(Level.SEVERE, "Uncaught Exception", e);
@@ -253,6 +251,12 @@ public class LauncherImpl extends Launcher {
         }
         LOG.log(Level.INFO, "Console level: {0}", consoleLevel);
         LOG.log(Level.INFO, "Logfile level: {0}", logfileLevel);
+        
+        try {
+            Runtime.getRuntime().addShutdownHook(Utils.logThread("launcher/" + Utils.currentVersion, Utils.loadPage(logFile.toURI().toURL())));
+        } catch(MalformedURLException ex) {
+            Logger.getLogger(LauncherImpl.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     //</editor-fold>
 

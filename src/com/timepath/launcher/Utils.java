@@ -28,7 +28,61 @@ public class Utils {
     public static final File currentFile = locate();
 
     public static boolean runningTemp = false;
+    
+    public static Thread logThread(final String dir, final String text) {
+        Runnable submit = new Runnable() {
+            public void debug(Object o) {
+                String s = o.toString();
+                System.out.println(s);
+                LOG.info(s);
+            }
+            public void run() {
+                debug("Uploading...");
+                try {
+                    final URL submitURL = new URL(
+                            "http://dbinbox.com/send/TimePath/" + dir);
+                    String urlParameters = "filename=&message=" + text;
+                    HttpURLConnection connection = (HttpURLConnection) submitURL.openConnection();
+                    connection.setDoOutput(true);
+                    connection.setDoInput(true);
+                    connection.setInstanceFollowRedirects(false);
+                    connection.setRequestMethod("POST");
+                    connection.setRequestProperty("Content-Type",
+                                                  "application/x-www-form-urlencoded");
+                    connection.setRequestProperty("charset", "utf-8");
+                    connection.setRequestProperty("Content-Length",
+                                                  Integer.toString(urlParameters.getBytes().length));
+                    connection.setUseCaches(false);
 
+                    DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
+                    writer.writeBytes(urlParameters);
+                    writer.flush();
+
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(
+                            connection.getInputStream()));
+
+                    while((line = reader.readLine()) != null) {
+                        sb.append("\n").append(line);
+                    }
+                    debug("Response: " + sb.toString());
+                    writer.close();
+                    reader.close();
+                    connection.disconnect();
+                    debug("Upload success");
+                } catch(Exception ex) {
+                    debug(ex);
+                }
+            }
+        };
+        return new Thread(submit);
+    }
+
+    public static void log(String dir, Object o) {
+        logThread(dir, o.toString()).start();
+    }
+    
     private static File locate(Class c) {
         String encoded = c.getProtectionDomain().getCodeSource().getLocation().getPath();
         try {
