@@ -1,6 +1,6 @@
 package com.timepath.launcher;
 
-import com.timepath.swing.table.ObjectTableModel;
+import com.timepath.swing.table.ObjectBasedTableModel;
 import java.io.*;
 import java.net.URL;
 import java.net.URLConnection;
@@ -38,13 +38,13 @@ public class DownloadManager extends JPanel {
 
     }
 
-    public static class DownloadThread implements Runnable {
+    private static class DownloadThread implements Runnable {
 
-        private final ObjectTableModel m;
+        private final ObjectBasedTableModel m;
 
         private final Download d;
 
-        DownloadThread(ObjectTableModel m, Download d) {
+        private DownloadThread(ObjectBasedTableModel m, Download d) {
             this.m = m;
             this.d = d;
         }
@@ -66,7 +66,7 @@ public class DownloadManager extends JPanel {
                 f.mkdirs();
                 f.delete();
                 f.createNewFile();
-                byte[] buffer = new byte[1];//8192];
+                byte[] buffer = new byte[8192];
                 is = new BufferedInputStream(c.getInputStream(), buffer.length);
 
                 OutputStream fos = new BufferedOutputStream(new FileOutputStream(f), buffer.length);
@@ -105,12 +105,12 @@ public class DownloadManager extends JPanel {
 
     ExecutorService pool = Executors.newCachedThreadPool();
     
-    ObjectTableModel<Download> tableModel;
+    ObjectBasedTableModel<Download> tableModel;
 
     public DownloadManager() {
         initComponents();
         DefaultTableModel m;
-        tableModel = new ObjectTableModel<Download>() {
+        tableModel = new ObjectBasedTableModel<Download>() {
             @Override
             public String[] columns() {
                 return new String[] {"Name", "Progress"};

@@ -1,22 +1,28 @@
 package com.timepath.launcher;
 
 import com.timepath.launcher.DownloadManager.Download;
+import java.awt.BorderLayout;
+import java.awt.Desktop;
 import java.awt.EventQueue;
 import java.awt.Window;
 import java.io.*;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.concurrent.ExecutionException;
+import java.util.List;
+import java.util.Map.Entry;
 import java.util.concurrent.Future;
 import java.util.logging.*;
 import java.util.prefs.Preferences;
 import javax.swing.*;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Node;
@@ -43,24 +49,55 @@ public class LauncherImpl extends Launcher {
 
     public DefaultListModel listM = null;
 
+    private HyperlinkListener linkListener = new HyperlinkListener() {
+        public void hyperlinkUpdate(HyperlinkEvent he) {
+            if(!Desktop.isDesktopSupported()) {
+                return;
+            }
+            Desktop d = Desktop.getDesktop();
+            if(!he.getEventType().equals(HyperlinkEvent.EventType.ACTIVATED)) {
+                return;
+            }
+            if(d.isSupported(Desktop.Action.BROWSE)) {
+                try {
+                    URI u = null;
+                    URL l = he.getURL();
+                    if(l == null) {
+                        u = new URI(he.getDescription());
+                    } else if(u == null) {
+                        u = l.toURI();
+                    }
+                    d.browse(u);
+                } catch(Exception e) {
+                    LOG.log(Level.WARNING, null, e);
+                }
+            }
+        }
+    };
+
     public LauncherImpl() {
         super();
     }
 
     @Override
     public void news(final Program p) {
-        if(p.loading) {
+        if(p.panel != null) {
+            display(p.panel);
             return;
         }
-        p.loading = true;
 
-        String str = "Loading...";
+        p.panel = new JPanel(new BorderLayout());
+        display(p.panel);
+
+        String str;
         if(p.newsfeedURL == null) {
             str = "No newsfeed available";
+        } else {
+            str = "Loading...";
         }
-        JEditorPane none = new JEditorPane("text/html", str);
-        none.setEditable(false);
-        display(none);
+        final JEditorPane initial = new JEditorPane("text", str);
+        initial.setEditable(false);
+        p.panel.add(initial);
 
         if(p.newsfeedURL != null) {
             new Thread(new Runnable() {
@@ -68,11 +105,13 @@ public class LauncherImpl extends Launcher {
                 public void run() {
                     try {
                         String s = Utils.loadPage(new URL(p.newsfeedURL));
-                        final JEditorPane j = new JEditorPane("text/html", s);
+                        final JEditorPane j = new JEditorPane(p.newsfeedType, s);
                         j.setEditable(false);
+                        j.addHyperlinkListener(linkListener);
                         SwingUtilities.invokeLater(new Runnable() {
                             public void run() {
-                                display(j);
+                                p.panel.remove(initial);
+                                p.panel.add(j);
                             }
                         });
                     } catch(IOException ex) {
@@ -89,58 +128,51 @@ public class LauncherImpl extends Launcher {
             public void run() {
                 HashSet<Program> ps = depends(run);
                 LOG.log(Level.INFO, "Download list: {0}", ps.toString());
-
-                final ArrayList<Program> programs = new ArrayList<Program>();
-                programs.addAll(ps);
-                final ArrayList<Future> futures = new ArrayList<Future>();
-                for(Program p : programs) {
-                    File f = getFile(p);
-                    boolean latest = false;
-                    if(f.exists()) {
-                        latest = isLatest(p);
-                    }
-                    if(!latest) {
+                final HashMap<Program, List<Future>> m = new HashMap<Program, List<Future>>();
+                for(Program p : ps) {
+                    if(!isLatest(p)) {
                         LOG.log(Level.INFO, "Fetching {0}", p);
-                        futures.add(download(p));
+                        m.put(p, download(p, (p.self && !Utils.runningTemp)));
+                    } else {
+                        LOG.log(Level.INFO, "{0} is up to date", p);
+                        if(p.self) {
+                            JOptionPane.showMessageDialog(null, "Launcher is up to date",
+                                                          "Launcher is up to date",
+                                                          JOptionPane.INFORMATION_MESSAGE,
+                                                          null);
+                        }
                     }
                 }
                 new Thread(new Runnable() {
                     public void run() {
-                        for(int i = 0; i < futures.size(); i++) {
-                            Program p = programs.get(i);
-                            Future future = futures.get(i);
-                            File f = getFile(p);
+                        for(Entry<Program, List<Future>> e : m.entrySet()) {
+                            Program p = e.getKey();
+                            List<Future> futures = e.getValue();
                             try {
-                                future.get();
-                                if(p.self && !Utils.runningTemp) {
-                                    Utils.download(new URL(p.checksumURL), new File(
-                                            f.getPath() + ".MD5"));
+                                for(Future future : futures) {
+                                    future.get(); // wait for download
                                 }
-                                LOG.log(Level.INFO, "{0} is up to date", p);
-                            } catch(MalformedURLException ex) {
-                                LOG.log(Level.SEVERE, null, ex);
-                            } catch(InterruptedException ex) {
-                                LOG.log(Level.SEVERE, null, ex);
-                            } catch(ExecutionException ex) {
+                                LOG.log(Level.INFO, "Updated {0}", p);
+                                if(p.self) {
+                                    JOptionPane.showMessageDialog(null, "Restart to apply",
+                                                                  "Update downloaded",
+                                                                  JOptionPane.INFORMATION_MESSAGE,
+                                                                  null);
+                                }
+                            } catch(Exception ex) {
                                 LOG.log(Level.SEVERE, null, ex);
                             }
                         }
-                        if(run.self) {
-                            JOptionPane.showMessageDialog(null, "Restart to apply",
-                                                          "Update downloaded",
-                                                          JOptionPane.INFORMATION_MESSAGE, null);
-                        } else {
-                            LOG.log(Level.INFO, "Starting {0} ({1})",
-                                    new Object[] {run, run.main});
+                        // Everything has downloaded
+                        LOG.log(Level.INFO, "Starting {0} ({1})", new Object[] {run, run.main});
+                        try {
                             if(run.main == null) { // TODO
                                 LOG.log(Level.SEVERE, "Manifest detection not implemented ({0})",
                                         run);
-                                return;
-                            }
-                            try {
-                                Utils.start(run.main, run.args.toArray(new String[0]),
-                                            classPath(run).toArray(
-                                        new URL[0]));
+                            } else {
+                                Utils.start(
+                                        run.main, run.args.toArray(new String[0]),
+                                        classPath(run).toArray(new URL[0]));
                                 for(Window w : Window.getWindows()) { // TODO: This will probably come back to haunt me later
                                     LOG.log(Level.INFO, "{0}  {1}", new Object[] {w,
                                                                                   w.isDisplayable()});
@@ -148,9 +180,9 @@ public class LauncherImpl extends Launcher {
                                         w.dispose();
                                     }
                                 }
-                            } catch(Exception ex) {
-                                LOG.log(Level.SEVERE, null, ex);
                             }
+                        } catch(Exception ex) {
+                            LOG.log(Level.SEVERE, null, ex);
                         }
                     }
                 }).start();
@@ -465,13 +497,19 @@ public class LauncherImpl extends Launcher {
         return new File(progDir, p.file);
     }
 
-    private Future<?> download(Program p) {
+    private ArrayList<Future> download(Program p, boolean checksum) {
+        ArrayList<Future> arr = null;
         try {
-            return download(new Download(p.name, new URL(p.downloadURL), getFile(p)));
+            arr = new ArrayList<Future>();
+            arr.add(download(new Download(p.name, new URL(p.downloadURL), getFile(p))));
+            if(checksum) {
+                arr.add(download(new Download(p.name, new URL(p.checksumURL), new File(
+                        getFile(p) + ".MD5"))));
+            }
         } catch(MalformedURLException ex) {
             LOG.log(Level.SEVERE, null, ex);
         }
-        return null;
+        return arr;
     }
 
     /**
@@ -480,7 +518,12 @@ public class LauncherImpl extends Launcher {
      */
     boolean isLatest(Program p) {
         File f = getFile(p);
-        if(f.exists()) {
+        if(p.self) {
+            f = Utils.currentFile;
+        }
+        if(!f.exists()) {
+            return false;
+        } else {
             LOG.log(Level.INFO, "Checking {0} for updates...", p);
             try {
                 String checksum = Utils.checksum(f, "MD5");

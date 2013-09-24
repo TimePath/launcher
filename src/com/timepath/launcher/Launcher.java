@@ -2,7 +2,6 @@ package com.timepath.launcher;
 
 import com.timepath.launcher.DownloadManager.Download;
 import java.awt.Component;
-import java.awt.Window;
 import java.awt.event.*;
 import java.util.concurrent.Future;
 import javax.swing.*;
@@ -14,28 +13,27 @@ import javax.swing.event.ListSelectionListener;
  * @author TimePath
  */
 public abstract class Launcher extends JFrame {
-    
+
     public abstract void news(final Program p);
-    
+
     public abstract void start(final Program p);
 
     public Future<?> download(Download d) {
         return downloadManager.submit(d);
     }
-    
+
     public void display(Component c) {
         newsScroll.setViewportView(c);
     }
-    
+
     public void setListModel(ListModel m) {
         programList.setModel(m);
     }
 
     public Launcher() {
         initComponents();
-        
-        this.addWindowListener(new WindowAdapter() {
 
+        this.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
                 downloadManager.shutdown();

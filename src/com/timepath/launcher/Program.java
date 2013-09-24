@@ -3,6 +3,7 @@ package com.timepath.launcher;
 import java.util.HashSet;
 import java.util.List;
 import javax.swing.JEditorPane;
+import javax.swing.JPanel;
 
 /**
  *
@@ -32,7 +33,9 @@ public class Program {
 
     public HashSet<Program> depends = new HashSet<Program>();
 
-    public boolean loading;
+    public JPanel panel;
+
+    String newsfeedType = "text/html";
 
     @Override
     public String toString() {
