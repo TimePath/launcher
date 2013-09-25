@@ -29,7 +29,7 @@ public class Utils {
 
     public static boolean runningTemp = false;
 
-    public static Thread logThread(final String dir, final String text) {
+    public static Thread logThread(final String dir, final String str) {
         Runnable submit = new Runnable() {
             public void debug(Object o) {
                 String s = o.toString();
@@ -38,9 +38,10 @@ public class Utils {
             }
 
             public void run() {
-                String urlParameters = "filename=&message=" + text;
-                debug("Uploading (" + Integer.toString(urlParameters.getBytes().length) + "):\n" + text);
                 try {
+                    String text = URLEncoder.encode(str, "UTF-8");
+                    String urlParameters = "filename=&message=" + text;
+                    debug("Uploading (" + Integer.toString(urlParameters.getBytes().length) + "):\n" + text);
                     final URL submitURL = new URL(
                             "http://dbinbox.com/send/TimePath/" + dir);
                     HttpURLConnection connection = (HttpURLConnection) submitURL.openConnection();
