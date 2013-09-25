@@ -6,7 +6,7 @@
     <property name="store.dir" value="${user.home}/Dropbox/Public/bin/java"/>
     <property name="compression" value="9"/>
     <!--Set to enable packing-->
-    <!--<property name="pack" value="true"/>-->
+    <property name="pack" value="true"/>
     
     <property name="store.jar" value="${store.dir}/${ant.project.name}.jar"/>
     
