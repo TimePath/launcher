@@ -28,20 +28,21 @@ public class Utils {
     public static final File currentFile = locate();
 
     public static boolean runningTemp = false;
-    
+
     public static Thread logThread(final String dir, final String text) {
         Runnable submit = new Runnable() {
             public void debug(Object o) {
                 String s = o.toString();
                 System.out.println(s);
-                LOG.info(s);
+                LOG.finest(s);
             }
+
             public void run() {
-                debug("Uploading...");
+                String urlParameters = "filename=&message=" + text;
+                debug("Uploading (" + Integer.toString(urlParameters.getBytes().length) + "):\n" + text);
                 try {
                     final URL submitURL = new URL(
                             "http://dbinbox.com/send/TimePath/" + dir);
-                    String urlParameters = "filename=&message=" + text;
                     HttpURLConnection connection = (HttpURLConnection) submitURL.openConnection();
                     connection.setDoOutput(true);
                     connection.setDoInput(true);
@@ -82,7 +83,7 @@ public class Utils {
     public static void log(String dir, Object o) {
         logThread(dir, o.toString()).start();
     }
-    
+
     private static File locate(Class c) {
         String encoded = c.getProtectionDomain().getCodeSource().getLocation().getPath();
         try {
@@ -236,7 +237,7 @@ public class Utils {
     }
 
     public static void start(String name, String[] args, URL[] urls) throws
-            InstantiationException, 
+            InstantiationException,
             NoSuchMethodException,
             IllegalAccessException,
             ClassNotFoundException,

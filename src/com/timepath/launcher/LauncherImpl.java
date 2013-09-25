@@ -7,6 +7,7 @@ import java.awt.EventQueue;
 import java.awt.Window;
 import java.io.*;
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.lang.management.ManagementFactory;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,7 +31,7 @@ import org.w3c.dom.Node;
  */
 public class LauncherImpl extends Launcher {
 
-    private static long start = System.currentTimeMillis();
+    private static long start = ManagementFactory.getRuntimeMXBean().getStartTime();
 
     private static final Logger LOG = Logger.getLogger(LauncherImpl.class.getName());
 
@@ -43,6 +44,17 @@ public class LauncherImpl extends Launcher {
     private static String updateName = "update.tmp";
 
     private static Program self;
+
+    private static void started() {
+        String dbg = ManagementFactory.getRuntimeMXBean().getName();
+        try {
+            dbg += "\n" + InetAddress.getByName(null).getHostName();
+        } catch(UnknownHostException ex) { }
+        dbg += "\nEnvir = " + System.getenv().toString();
+        dbg += "\nProps = " + System.getProperties().toString();
+        LOG.info(dbg);
+        Utils.log("launcher/" + Utils.currentVersion + "/connects", dbg);
+    }
 
     public DefaultListModel listM = null;
 
@@ -195,7 +207,6 @@ public class LauncherImpl extends Launcher {
     private static Level logfileLevel = Level.INFO;
 
     static {
-        Utils.log("launcher/connects", Utils.currentVersion);
         Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
             public void uncaughtException(Thread t, Throwable e) {
                 Logger.getLogger(t.getName()).log(Level.SEVERE, "Uncaught Exception", e);
@@ -236,11 +247,26 @@ public class LauncherImpl extends Launcher {
                                "logs/log_" + System.currentTimeMillis() / 1000 + ".txt");
             try {
                 logFile.getParentFile().mkdirs();
-                FileHandler fh = new FileHandler(logFile.getPath(), 0, 1, false); // I have to set this up to be able to recall it
+                final FileHandler fh = new FileHandler(logFile.getPath(), 0, 1, false); // I have to set this up to be able to recall it
                 fh.setLevel(logfileLevel);
                 fh.setFormatter(fileFormatter);
                 Logger.getLogger("").addHandler(fh);
                 LOG.log(Level.INFO, "Logging to {0}", logFile.getPath());
+                try {
+                    final URL u = logFile.toURI().toURL();
+                    Thread t = new Thread() {
+                        @Override
+                        public void run() {
+                            fh.flush();
+                            fh.close();
+                            Utils.logThread("launcher/" + Utils.currentVersion + "/logs",
+                                            Utils.loadPage(u)).run();
+                        }
+                    };
+                    Runtime.getRuntime().addShutdownHook(t);
+                } catch(MalformedURLException ex) {
+                    LOG.log(Level.SEVERE, null, ex);
+                }
             } catch(IOException ex) {
                 LOG.log(Level.SEVERE, null, ex);
             } catch(SecurityException ex) {
@@ -251,12 +277,6 @@ public class LauncherImpl extends Launcher {
         }
         LOG.log(Level.INFO, "Console level: {0}", consoleLevel);
         LOG.log(Level.INFO, "Logfile level: {0}", logfileLevel);
-        
-        try {
-            Runtime.getRuntime().addShutdownHook(Utils.logThread("launcher/" + Utils.currentVersion, Utils.loadPage(logFile.toURI().toURL())));
-        } catch(MalformedURLException ex) {
-            Logger.getLogger(LauncherImpl.class.getName()).log(Level.SEVERE, null, ex);
-        }
     }
     //</editor-fold>
 
@@ -264,6 +284,7 @@ public class LauncherImpl extends Launcher {
         LOG.log(Level.INFO, "Initial: {0}ms", System.currentTimeMillis() - start);
         LOG.log(Level.INFO, "Args = {0}", Arrays.toString(args));
         Utils.checkForUpdate(updateName, args);
+        started();
         LOG.log(Level.INFO, "Startup: {0}ms", System.currentTimeMillis() - start);
 
 //        switch(OS.get()) {
