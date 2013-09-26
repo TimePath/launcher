@@ -12,6 +12,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.jar.Attributes;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -249,6 +250,13 @@ public class Utils {
         Class clazz = loader.loadClass(name);
         Method m = clazz.getMethod("main", String[].class);
         m.invoke(clazz.newInstance(), (Object) args);
+    }
+    
+    public String getMainClassName(URL url) throws IOException {
+        URL u = new URL("jar", "", url + "!/");
+        JarURLConnection uc = (JarURLConnection) u.openConnection();
+        Attributes attr = uc.getMainAttributes();
+        return attr != null ? attr.getValue(Attributes.Name.MAIN_CLASS) : null;
     }
 
     /**

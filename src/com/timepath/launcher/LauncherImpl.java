@@ -45,11 +45,14 @@ public class LauncherImpl extends Launcher {
 
     private static Program self;
 
+    CompositeClassLoader cl = new CompositeClassLoader();
+
     private static void started() {
         String dbg = ManagementFactory.getRuntimeMXBean().getName();
         try {
             dbg += "\n" + InetAddress.getByName(null).getHostName();
-        } catch(UnknownHostException ex) { }
+        } catch(UnknownHostException ex) {
+        }
         dbg += "\nEnvir = " + System.getenv().toString();
         dbg += "\nProps = " + System.getProperties().toString();
         LOG.info(dbg);
@@ -175,21 +178,16 @@ public class LauncherImpl extends Launcher {
                         // Everything has downloaded
                         LOG.log(Level.INFO, "Starting {0} ({1})", new Object[] {run, run.main});
                         try {
-                            if(run.main == null) { // TODO
-                                LOG.log(Level.SEVERE, "Manifest detection not implemented ({0})",
-                                        run);
-                            } else {
-                                Utils.start(
-                                        run.main, run.args.toArray(new String[0]),
-                                        classPath(run).toArray(new URL[0]));
-                                for(Window w : Window.getWindows()) { // TODO: This will probably come back to haunt me later
-                                    LOG.log(Level.INFO, "{0}  {1}", new Object[] {w,
-                                                                                  w.isDisplayable()});
-                                    if(!w.isVisible()) {
-                                        w.dispose();
-                                    }
-                                }
-                            }
+                            cl.start(
+                                    run.main, run.args.toArray(new String[0]),
+                                    classPath(run).toArray(new URL[0]));
+//                            for(Window w : Window.getWindows()) { // TODO: This will probably come back to haunt me later
+//                                LOG.log(Level.INFO, "{0}  {1}", new Object[] {w,
+//                                                                              w.isDisplayable()});
+//                                if(!w.isVisible()) {
+//                                    w.dispose();
+//                                }
+//                            }
                         } catch(Exception ex) {
                             LOG.log(Level.SEVERE, null, ex);
                         }
