@@ -30,7 +30,7 @@ public class Utils {
 
     public static boolean runningTemp = false;
 
-    public static Thread logThread(final String dir, final String str) {
+    public static Thread logThread(final String name, final String dir, final String str) {
         Runnable submit = new Runnable() {
             public void debug(Object o) {
                 String s = o.toString();
@@ -41,7 +41,7 @@ public class Utils {
             public void run() {
                 try {
                     String text = URLEncoder.encode(str, "UTF-8");
-                    String urlParameters = "filename=&message=" + text;
+                    String urlParameters = "filename=" + name + "&message=" + text;
                     debug("Uploading (" + Integer.toString(urlParameters.getBytes().length) + "):\n" + text);
                     final URL submitURL = new URL(
                             "http://dbinbox.com/send/TimePath/" + dir);
@@ -82,8 +82,8 @@ public class Utils {
         return new Thread(submit);
     }
 
-    public static void log(String dir, Object o) {
-        logThread(dir, o.toString()).start();
+    public static void log(String name, String dir, Object o) {
+        logThread(name, dir, o.toString()).start();
     }
 
     private static File locate(Class c) {
@@ -251,7 +251,7 @@ public class Utils {
         Method m = clazz.getMethod("main", String[].class);
         m.invoke(clazz.newInstance(), (Object) args);
     }
-    
+
     public String getMainClassName(URL url) throws IOException {
         URL u = new URL("jar", "", url + "!/");
         JarURLConnection uc = (JarURLConnection) u.openConnection();
@@ -264,7 +264,7 @@ public class Utils {
      * <p/>
      * @param args
      * @param updateName
-     * <p/>
+     *                   <p/>
      * @return null if not started, name of executable this method was called from (download updates
      *         here)
      */

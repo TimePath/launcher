@@ -4,7 +4,6 @@ import com.timepath.launcher.DownloadManager.Download;
 import java.awt.BorderLayout;
 import java.awt.Desktop;
 import java.awt.EventQueue;
-import java.awt.Window;
 import java.io.*;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.lang.management.ManagementFactory;
@@ -56,7 +55,7 @@ public class LauncherImpl extends Launcher {
         dbg += "\nEnvir = " + System.getenv().toString();
         dbg += "\nProps = " + System.getProperties().toString();
         LOG.info(dbg);
-        Utils.log("launcher/" + Utils.currentVersion + "/connects", dbg);
+        Utils.log("connected", "launcher/" + Utils.currentVersion + "/connects", dbg);
     }
 
     public DefaultListModel listM = null;
@@ -155,7 +154,7 @@ public class LauncherImpl extends Launcher {
                         }
                     }
                 }
-                new Thread(new Runnable() {
+                Thread program = new Thread(new Runnable() {
                     public void run() {
                         for(Entry<Program, List<Future>> e : m.entrySet()) {
                             Program p = e.getKey();
@@ -192,7 +191,9 @@ public class LauncherImpl extends Launcher {
                             LOG.log(Level.SEVERE, null, ex);
                         }
                     }
-                }).start();
+                });
+                program.setDaemon(true);
+                program.start();
             }
         }).start();
     }
@@ -257,7 +258,7 @@ public class LauncherImpl extends Launcher {
                         public void run() {
                             fh.flush();
                             fh.close();
-                            Utils.logThread("launcher/" + Utils.currentVersion + "/logs",
+                            Utils.logThread("exit", "launcher/" + Utils.currentVersion + "/logs",
                                             Utils.loadPage(u)).run();
                         }
                     };
