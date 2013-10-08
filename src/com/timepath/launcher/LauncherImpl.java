@@ -154,12 +154,18 @@ public class LauncherImpl extends Launcher {
             }).start();
         }
     }
+    
+    /**
+     * Hackish workaround
+     */
+    HashMap<Program, Long> running = new HashMap<Program, Long>();
 
     @Override
     public void start(final Program run) {
-        if(run.active) {
+        if(running.containsKey(run) && System.currentTimeMillis() - running.get(run) < 5000) {
             return;
         }
+        running.put(run, System.currentTimeMillis());
         new Thread(new Runnable() {
             public void run() {
                 HashSet<Program> ps = depends(run);
@@ -202,7 +208,6 @@ public class LauncherImpl extends Launcher {
                         // Everything has downloaded
                         LOG.log(Level.INFO, "Starting {0} ({1})", new Object[] {run, run.main});
                         try {
-                            run.active = true;
                             cl.start(
                                     run.main, run.args.toArray(new String[0]),
                                     classPath(run).toArray(new URL[0]));
@@ -213,7 +218,6 @@ public class LauncherImpl extends Launcher {
 //                                    w.dispose();
 //                                }
 //                            }
-                            run.active = false;
                         } catch(Exception ex) {
                             LOG.log(Level.SEVERE, null, ex);
                         }

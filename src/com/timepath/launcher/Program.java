@@ -37,8 +37,6 @@ public class Program {
 
     String newsfeedType = "text/html";
 
-    boolean active;
-
     @Override
     public String toString() {
         return name; // + (!depends.isEmpty() ? (" " + depends.toString()) : "");
