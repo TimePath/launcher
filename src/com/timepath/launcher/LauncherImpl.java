@@ -8,6 +8,11 @@ import java.io.*;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.lang.management.ManagementFactory;
 import java.net.*;
+import java.security.AllPermission;
+import java.security.CodeSource;
+import java.security.PermissionCollection;
+import java.security.Permissions;
+import java.security.Policy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -29,6 +34,23 @@ import org.w3c.dom.Node;
  * @author TimePath
  */
 public class LauncherImpl extends Launcher {
+
+    static {
+        Policy.setPolicy(new Policy() {
+            @Override
+            public PermissionCollection getPermissions(CodeSource codesource) {
+                Permissions perms = new Permissions();
+                perms.add(new AllPermission());
+                return (perms);
+            }
+
+            @Override
+            public void refresh() {
+            }
+        });
+
+        System.setSecurityManager(null);
+    }
 
     private static long start = ManagementFactory.getRuntimeMXBean().getStartTime();
 
@@ -135,6 +157,9 @@ public class LauncherImpl extends Launcher {
 
     @Override
     public void start(final Program run) {
+        if(run.active) {
+            return;
+        }
         new Thread(new Runnable() {
             public void run() {
                 HashSet<Program> ps = depends(run);
@@ -177,6 +202,7 @@ public class LauncherImpl extends Launcher {
                         // Everything has downloaded
                         LOG.log(Level.INFO, "Starting {0} ({1})", new Object[] {run, run.main});
                         try {
+                            run.active = true;
                             cl.start(
                                     run.main, run.args.toArray(new String[0]),
                                     classPath(run).toArray(new URL[0]));
@@ -187,6 +213,7 @@ public class LauncherImpl extends Launcher {
 //                                    w.dispose();
 //                                }
 //                            }
+                            run.active = false;
                         } catch(Exception ex) {
                             LOG.log(Level.SEVERE, null, ex);
                         }
@@ -279,7 +306,7 @@ public class LauncherImpl extends Launcher {
     }
     //</editor-fold>
 
-    public static void main(String[] args) {
+    public static void main(String... args) {
         LOG.log(Level.INFO, "Initial: {0}ms", System.currentTimeMillis() - start);
         LOG.log(Level.INFO, "Args = {0}", Arrays.toString(args));
         Utils.checkForUpdate(updateName, args);
@@ -421,6 +448,12 @@ public class LauncherImpl extends Launcher {
                                         System.currentTimeMillis() - start);
                             }
                         });
+                        if(!isLatest(self)) {
+                            JOptionPane.showMessageDialog(null, "Please update",
+                                                          "A new version is available",
+                                                          JOptionPane.INFORMATION_MESSAGE,
+                                                          null);
+                        }
                     }
                 }).start();
                 //</editor-fold>
@@ -511,7 +544,7 @@ public class LauncherImpl extends Launcher {
         return h;
     }
 
-    public File getFile(Program p) {
+    public static File getFile(Program p) {
         if(p.self) {
             return new File(updateName);
         }
@@ -540,7 +573,7 @@ public class LauncherImpl extends Launcher {
      *
      * @return false if not up to date, true if up to date or offline
      */
-    boolean isLatest(Program p) {
+    static boolean isLatest(Program p) {
         File f = getFile(p);
         if(p.self) {
             f = Utils.currentFile;
