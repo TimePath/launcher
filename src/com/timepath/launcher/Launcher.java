@@ -26,7 +26,7 @@ public abstract class Launcher extends JFrame {
         newsScroll.setViewportView(c);
     }
 
-    public void setListModel(ListModel m) {
+    public void setListModel(ListModel<Program> m) {
         programList.setModel(m);
     }
 

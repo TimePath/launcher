@@ -20,6 +20,17 @@ public class DownloadManager extends JPanel {
 
     private static final Logger LOG = Logger.getLogger(DownloadManager.class.getName());
 
+    public static class DownloadInfo {
+
+        private final String name, checksum;
+
+        public DownloadInfo(String name, String checksum) {
+            this.name = name;
+            this.checksum = checksum;
+        }
+
+    }
+
     public static class Download {
 
         public Download(String s, URL u, File f) {
@@ -35,6 +46,11 @@ public class DownloadManager extends JPanel {
         final File file;
 
         long progress, size = -1;
+
+        @Override
+        public String toString() {
+            return name + " : " + url + " > " + file;
+        }
 
     }
 
@@ -52,6 +68,9 @@ public class DownloadManager extends JPanel {
         public void run() {
             URL u = d.url;
             File f = d.file;
+            if(f == null) {
+                f = new File(LauncherImpl.progDir, u.getFile().substring(u.getFile().lastIndexOf('/') + 1));
+            }
             InputStream is = null;
             try {
                 URLConnection c = u.openConnection();
@@ -62,7 +81,7 @@ public class DownloadManager extends JPanel {
                 } catch(Exception e) {
                 }
                 d.size = size;
-                LOG.log(Level.INFO, "Downloading {0}", u);
+                LOG.log(Level.INFO, "Downloading {0} > {1}", new Object[] {u, f});
                 f.mkdirs();
                 f.delete();
                 f.createNewFile();
@@ -92,19 +111,21 @@ public class DownloadManager extends JPanel {
                 }
             }
         }
+
     }
-    
+
     public Future<?> submit(Download d) {
+        LOG.log(Level.INFO, "Downloading {0}...", d);
         tableModel.add(d);
         return pool.submit(new DownloadThread(tableModel, d));
     }
-    
+
     public void shutdown() {
         pool.shutdown();
     }
 
     ExecutorService pool = Executors.newCachedThreadPool();
-    
+
     ObjectBasedTableModel<Download> tableModel;
 
     public DownloadManager() {

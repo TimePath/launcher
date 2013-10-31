@@ -1,5 +1,7 @@
 package com.timepath.launcher;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import javax.swing.JEditorPane;
@@ -17,9 +19,9 @@ public class Program {
 
     public String file;
 
-    public String downloadURL;
+    public ArrayList<String> downloadURLs = new ArrayList<String>();
 
-    public String checksumURL;
+    public String checksumURLs;
 
     public boolean self;
 
@@ -34,12 +36,17 @@ public class Program {
     public HashSet<Program> depends = new HashSet<Program>();
 
     public JPanel panel;
+    
+    /**
+     * A map of downloads to checksums
+     */
+    HashMap<String, String> downloads = new HashMap<String, String>();
 
     String newsfeedType = "text/html";
 
     @Override
     public String toString() {
-        return name; // + (!depends.isEmpty() ? (" " + depends.toString()) : "");
+        return name;// + "(" + downloads + ")" + (!depends.isEmpty() ? (" " + depends.toString()) : "");
     }
 
 }
