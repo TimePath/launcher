@@ -136,11 +136,11 @@ public abstract class Launcher extends JFrame {
         aboutPanel.setLayout(aboutPanelLayout);
         aboutPanelLayout.setHorizontalGroup(
             aboutPanelLayout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-            .add(0, 558, Short.MAX_VALUE)
+            .add(0, 635, Short.MAX_VALUE)
         );
         aboutPanelLayout.setVerticalGroup(
             aboutPanelLayout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-            .add(0, 273, Short.MAX_VALUE)
+            .add(0, 454, Short.MAX_VALUE)
         );
 
         tabbedPane.addTab("About", aboutPanel);
@@ -153,14 +153,14 @@ public abstract class Launcher extends JFrame {
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-            .add(org.jdesktop.layout.GroupLayout.TRAILING, tabbedPane, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
+            .add(org.jdesktop.layout.GroupLayout.TRAILING, tabbedPane)
         );
 
-        setBounds(0, 0, 573, 330);
+        setBounds(0, 0, 650, 510);
     }// </editor-fold>//GEN-END:initComponents
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JPanel aboutPanel;
+    protected javax.swing.JPanel aboutPanel;
     private com.timepath.launcher.DownloadManager downloadManager;
     private javax.swing.JScrollPane newsScroll;
     private javax.swing.JButton programLaunch;

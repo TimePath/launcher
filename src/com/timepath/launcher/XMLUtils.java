@@ -1,6 +1,7 @@
 package com.timepath.launcher;
 
 import java.util.ArrayList;
+import java.util.logging.Logger;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
@@ -81,5 +82,7 @@ public class XMLUtils {
         }
         return sb.toString();
     }
+
+    private static final Logger LOG = Logger.getLogger(XMLUtils.class.getName());
     
 }

@@ -11,10 +11,13 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.jar.Attributes;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.prefs.Preferences;
+import javax.swing.UIManager;
 
 /**
  *
@@ -29,6 +32,10 @@ public class Utils {
     public static final File currentFile = locate();
 
     public static boolean runningTemp = false;
+    
+    public static final Preferences settings = Preferences.userRoot().node("timepath");
+    
+    public static final String progDir = settings.get("progStoreDir", "bin");
 
     public static Thread logThread(final String name, final String dir, final String str) {
         Runnable submit = new Runnable() {
@@ -251,6 +258,92 @@ public class Utils {
         Method m = clazz.getMethod("main", String[].class);
         m.invoke(clazz.newInstance(), (Object) args);
     }
+
+    
+    static void lookAndFeel() {
+        //<editor-fold defaultstate="collapsed" desc="Look and feel setting code">
+//        switch(OS.get()) {
+//            case OSX:
+//                UIManager.installLookAndFeel("Quaqua", "ch.randelshofer.quaqua.QuaquaLookAndFeel");
+//                break;
+//            case Linux:
+//                UIManager.installLookAndFeel("GTK extended", "org.gtk.laf.extended.GTKLookAndFeelExtended");
+//                break;
+//        }
+        String envTheme = System.getProperty("swing.defaultlaf");
+        String usrTheme = settings.get("laf", null);
+        //<editor-fold defaultstate="collapsed" desc="Validate user theme">
+        if(usrTheme != null) {
+            try {
+                Class.forName(usrTheme);
+            } catch(ClassNotFoundException ex) {
+                LOG.log(Level.WARNING, "Invalid user theme: {0}", usrTheme);
+                usrTheme = null;
+                settings.remove("laf");
+            }
+        }
+        //</editor-fold>
+        if(usrTheme == null) {
+            //<editor-fold defaultstate="collapsed" desc="Detect a default">
+            HashMap<String, String> laf = new HashMap<String, String>();
+            for(UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+                laf.put(info.getName(), info.getClassName());
+            }
+            // In order of preference
+            String[] test = {
+                "Nimbus",
+                UIManager.getCrossPlatformLookAndFeelClassName(),
+                UIManager.getSystemLookAndFeelClassName(),};
+            for(String s : test) {
+                if(laf.containsKey(s)) {
+                    usrTheme = laf.get(s);
+                    settings.put("laf", usrTheme);
+                    LOG.log(Level.CONFIG, "Set default user theme: {0}", usrTheme);
+                    break;
+                }
+            }
+            //</editor-fold>
+        }
+
+        String theme1 = envTheme != null ? envTheme : usrTheme; // envTheme authorative
+        String theme2 = usrTheme == null ? envTheme : usrTheme; // usrTheme authorative
+        String theme = theme1; // TODO: add preference
+
+        try {
+            UIManager.setLookAndFeel(theme);
+            LOG.log(Level.INFO, "Set theme at {0}ms", System.currentTimeMillis() - LauncherImpl.start);
+        } catch(Exception ex) {
+            LOG.log(Level.SEVERE, null, ex);
+        }
+
+        //<editor-fold defaultstate="collapsed" desc="Improve native LaF">
+//        if(UIManager.getLookAndFeel().isNativeLookAndFeel()) {
+//            try {
+//                LOG.log(Level.INFO, "Adding swing enhancements for {0}", new Object[] {OS.get()});
+//                if(OS.isMac()) {
+//                    UIManager.setLookAndFeel("ch.randelshofer.quaqua.QuaquaLookAndFeel"); // Apply quaqua if available
+//                } else if(OS.isLinux()) {
+//                    if(UIManager.getLookAndFeel().getClass().getName().equals("com.sun.java.swing.plaf.gtk.GTKLookAndFeel")) {
+//                        GtkFixer.installGtkPopupBugWorkaround(); // Apply clearlooks java menu fix if applicable
+//                        UIManager.setLookAndFeel("org.gtk.laf.extended.GTKLookAndFeelExtended"); // Apply extended gtk theme is available. http://danjared.wordpress.com/2012/05/21/mejorando-la-integracion-de-javaswing-con-gtk/
+//                    }
+//                }
+//                LOG.info("All swing enhancements installed");
+//            } catch(InstantiationException ex) {
+//                Logger.getLogger(HUDEditor.class.getName()).log(Level.SEVERE, null, ex);
+//            } catch(IllegalAccessException ex) {
+//                Logger.getLogger(HUDEditor.class.getName()).log(Level.SEVERE, null, ex);
+//            } catch(UnsupportedLookAndFeelException ex) {
+//                Logger.getLogger(HUDEditor.class.getName()).log(Level.SEVERE, null, ex);
+//            } catch(ClassNotFoundException ex) {
+////                Logger.getLogger(EditorFrame.class.getName()).log(Level.INFO, null, ex);
+//                LOG.warning("Unable to load enhanced L&F");
+//            }
+//        }
+        //</editor-fold>
+        //</editor-fold>
+    }
+
 
     public String getMainClassName(URL url) throws IOException {
         URL u = new URL("jar", "", url + "!/");

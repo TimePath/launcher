@@ -69,7 +69,7 @@ public class DownloadManager extends JPanel {
             URL u = d.url;
             File f = d.file;
             if(f == null) {
-                f = new File(LauncherImpl.progDir, u.getFile().substring(u.getFile().lastIndexOf('/') + 1));
+                f = new File(Utils.progDir, u.getFile().substring(u.getFile().lastIndexOf('/') + 1));
             }
             InputStream is = null;
             try {
