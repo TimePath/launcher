@@ -1,7 +1,6 @@
 package com.timepath.launcher;
 
 import com.timepath.launcher.DownloadManager.Download;
-import com.timepath.launcher.XMLUtils;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -34,13 +33,14 @@ import org.w3c.dom.Node;
 @SuppressWarnings("serial")
 public class LauncherImpl extends Launcher {
 
+    public static boolean debug = Utils.currentVersion == 0;
+
     private static final Logger LOG = Logger.getLogger(LauncherImpl.class.getName());
 
     private static Level consoleLevel = Level.INFO;
 
     private static HashMap<String, Program> libs = new HashMap<String, Program>();
 
-    //<editor-fold defaultstate="collapsed" desc="Debugging">
     private static final File logFile;
 
     private static Level logfileLevel = Level.INFO;
@@ -59,13 +59,15 @@ public class LauncherImpl extends Launcher {
         });
 
         try {
-            consoleLevel = Level.parse(Utils.settings.get("consoleLevel", "FINE"));
+            consoleLevel = Level.parse(Utils.settings.get("consoleLevel", "CONFIG"));
         } catch(IllegalArgumentException ex) {
         }
+        Utils.settings.remove("consoleLevel"); // TEMP
         try {
-            logfileLevel = Level.parse(Utils.settings.get("logfileLevel", "FINE"));
+            logfileLevel = Level.parse(Utils.settings.get("logfileLevel", "CONFIG"));
         } catch(IllegalArgumentException ex) {
         }
+        Utils.settings.remove("logfileLevel"); // TEMP
         Level packageLevel = consoleLevel;
         if(consoleLevel != Level.OFF && logfileLevel != Level.OFF) {
             if(logfileLevel.intValue() > consoleLevel.intValue()) {
@@ -87,7 +89,7 @@ public class LauncherImpl extends Launcher {
             }
         }
 
-        if(logfileLevel != Level.OFF) {
+        if(logfileLevel != Level.OFF && !debug) {
             logFile = new File(Utils.currentFile.getParentFile(),
                                "logs/log_" + System.currentTimeMillis() / 1000 + ".txt");
             try {
@@ -138,7 +140,6 @@ public class LauncherImpl extends Launcher {
 
         System.setSecurityManager(null);
     }
-    //</editor-fold>
 
     public static File getFile(Program p) {
         if(p.self) {
@@ -158,78 +159,13 @@ public class LauncherImpl extends Launcher {
         LOG.log(Level.INFO, "Startup: {0}ms", System.currentTimeMillis() - start);
 
         Utils.lookAndFeel();
-        //<editor-fold defaultstate="collapsed" desc="UI creation">
         EventQueue.invokeLater(new Runnable() {
             @Override
             public void run() {
-                final LauncherImpl launcher = new LauncherImpl();
-
-                LOG.log(Level.INFO, "Created UI at {0}ms", System.currentTimeMillis() - start);
-
-                //<editor-fold defaultstate="collapsed" desc="Load list">
-                new Thread(new Runnable() {
-                    public void run() {
-                        InputStream is = null;
-                        File f = new File(
-                            System.getProperty("user.home") + "/Dropbox/Public/projects.xml");
-                        if(f.exists()) {
-                            try {
-                                is = new FileInputStream(f);
-                            } catch(FileNotFoundException ex) {
-                                LOG.log(Level.SEVERE, null, ex);
-                            }
-                        }
-//                is = null;
-                        if(is == null) {
-                            try {
-                                long start = System.currentTimeMillis();
-                                String s
-                                       = "http://dl.dropboxusercontent.com/u/42745598/projects.xml";
-                                LOG.log(Level.INFO, "Resolving...");
-                                URL u = new URL(s);
-                                LOG.log(Level.INFO, "Resolved at {0}ms",
-                                        System.currentTimeMillis() - start);
-                                LOG.log(Level.INFO, "Connecting...");
-                                URLConnection c = u.openConnection();
-                                LOG.log(Level.INFO, "Connected at {0}ms",
-                                        System.currentTimeMillis() - start);
-                                LOG.log(Level.INFO, "Streaming...");
-                                is = c.getInputStream();
-                            } catch(IOException ex) {
-                                LOG.log(Level.SEVERE, null, ex);
-                            }
-                        }
-                        LOG.log(Level.INFO, "Stream opened at {0}ms",
-                                System.currentTimeMillis() - start);
-                        LOG.log(Level.INFO, "Parsing...");
-                        launcher.listM = parseXML(is);
-                        LOG.log(Level.INFO, "Parsed at {0}ms", System.currentTimeMillis() - start);
-                        SwingUtilities.invokeLater(new Runnable() {
-                            public void run() {
-                                launcher.setListModel(launcher.listM);
-                                LOG.log(Level.INFO, "Listing at {0}ms",
-                                        System.currentTimeMillis() - start);
-                            }
-                        });
-                        if(!isLatest(self)) {
-                            JOptionPane.showMessageDialog(null, "Please update",
-                                                          "A new version is available",
-                                                          JOptionPane.INFORMATION_MESSAGE,
-                                                          null);
-                        }
-                    }
-                }).start();
-                //</editor-fold>
-
-                Point mid = GraphicsEnvironment.getLocalGraphicsEnvironment().getCenterPoint();
-                Dimension d = new Dimension(mid.x, mid.y);
-                launcher.setSize(d);
-                launcher.setLocationRelativeTo(null);
-                launcher.setVisible(true);
-                LOG.log(Level.INFO, "Visible at {0}ms", System.currentTimeMillis() - start);
+                initUI();
             }
+
         });
-        //</editor-fold>
     }
 
     private static HashSet<Program> depends(Program parent) {
@@ -241,6 +177,80 @@ public class LauncherImpl extends Launcher {
             h.add(parent);
         }
         return h;
+    }
+
+    private static void initUI() {
+        final LauncherImpl launcher = new LauncherImpl();
+
+        LOG.log(Level.INFO, "Created UI at {0}ms", System.currentTimeMillis() - start);
+
+        new SwingWorker<DefaultListModel<Program>, Void>() {
+
+            @Override
+            protected DefaultListModel<Program> doInBackground() throws Exception {
+                InputStream is = null;
+                File f = new File(System.getProperty("user.home") + "/Dropbox/Public/projects.xml");
+                if(debug && f.exists()) {
+                    try {
+                        is = new FileInputStream(f);
+                    } catch(FileNotFoundException ex) {
+                        LOG.log(Level.SEVERE, null, ex);
+                    }
+                }
+                if(is == null) {
+                    try {
+                        long start = System.currentTimeMillis();
+                        String s = "http://dl.dropboxusercontent.com/u/42745598/projects.xml";
+                        LOG.log(Level.INFO, "Resolving...");
+                        URL u = new URL(s);
+                        LOG.log(Level.INFO, "Resolved at {0}ms",
+                                System.currentTimeMillis() - start);
+                        LOG.log(Level.INFO, "Connecting...");
+                        URLConnection c = u.openConnection();
+                        LOG.log(Level.INFO, "Connected at {0}ms",
+                                System.currentTimeMillis() - start);
+                        LOG.log(Level.INFO, "Streaming...");
+                        is = c.getInputStream();
+                    } catch(IOException ex) {
+                        LOG.log(Level.SEVERE, null, ex);
+                    }
+                }
+                LOG.log(Level.INFO, "Stream opened at {0}ms",
+                        System.currentTimeMillis() - start);
+                LOG.log(Level.INFO, "Parsing...");
+                DefaultListModel<Program> l = parseXML(is);
+                LOG.log(Level.INFO, "Parsed at {0}ms",
+                        System.currentTimeMillis() - start);
+                return l;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    launcher.listM = get();
+                    launcher.setListModel(launcher.listM);
+                    LOG.log(Level.INFO, "Listing at {0}ms",
+                            System.currentTimeMillis() - start);
+                    if(!isLatest(self)) {
+                        JOptionPane.showMessageDialog(launcher,
+                                                      "Please update", "A new version is available",
+                                                      JOptionPane.INFORMATION_MESSAGE, null);
+                    }
+                } catch(InterruptedException ex) {
+                    LOG.log(Level.SEVERE, null, ex);
+                } catch(ExecutionException ex) {
+                    LOG.log(Level.SEVERE, null, ex);
+                }
+            }
+
+        }.execute();
+
+        Point mid = GraphicsEnvironment.getLocalGraphicsEnvironment().getCenterPoint();
+        Dimension d = new Dimension(mid.x, mid.y);
+        launcher.setSize(d);
+        launcher.setLocationRelativeTo(null);
+        launcher.setVisible(true);
+        LOG.log(Level.INFO, "Visible at {0}ms", System.currentTimeMillis() - start);
     }
 
     private static DefaultListModel<Program> parseXML(InputStream is) {
@@ -334,7 +344,9 @@ public class LauncherImpl extends Launcher {
         dbg += "\nEnvir = " + System.getenv().toString();
         dbg += "\nProps = " + System.getProperties().toString();
         LOG.info(dbg);
-        Utils.log("connected", "launcher/" + Utils.currentVersion + "/connects", dbg);
+        if(!debug) {
+            Utils.log("connected", "launcher/" + Utils.currentVersion + "/connects", dbg);
+        }
     }
 
     /**
@@ -518,10 +530,10 @@ public class LauncherImpl extends Launcher {
         });
     }
 
-    private ArrayList<Future> download(Program p, boolean checksum) {
-        ArrayList<Future> arr = null;
+    private ArrayList<Future<?>> download(Program p, boolean checksum) {
+        ArrayList<Future<?>> arr = null;
         try {
-            arr = new ArrayList<Future>();
+            arr = new ArrayList<Future<?>>();
             for(String url : p.downloadURLs) {
                 arr.add(download(new Download(p.name, new URL(url), getFile(p))));
             }
@@ -598,7 +610,8 @@ public class LauncherImpl extends Launcher {
     private SwingWorker<Void, Void> updateWorker(final Program run, final Runnable r) {
         return new SwingWorker<Void, Void>() {
 
-            final HashMap<Program, List<Future>> downloads = new HashMap<Program, List<Future>>();
+            final HashMap<Program, List<Future<?>>> downloads
+                                                    = new HashMap<Program, List<Future<?>>>();
 
             @Override
             protected Void doInBackground() throws Exception {
@@ -619,11 +632,11 @@ public class LauncherImpl extends Launcher {
                         }
                     }
                 }
-                for(Entry<Program, List<Future>> e : downloads.entrySet()) {
+                for(Entry<Program, List<Future<?>>> e : downloads.entrySet()) {
                     Program p = e.getKey();
-                    List<Future> futures = e.getValue();
+                    List<Future<?>> futures = e.getValue();
                     try {
-                        for(Future future : futures) {
+                        for(Future<?> future : futures) {
                             future.get(); // wait for download
                         }
                         LOG.log(Level.INFO, "Updated {0}", p);
