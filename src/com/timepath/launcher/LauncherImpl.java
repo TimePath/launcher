@@ -344,13 +344,12 @@ public class LauncherImpl extends Launcher {
         }
         LOG.log(Level.INFO, "Checking {0} for updates...", p);
         for(Downloadable d : p.downloads) {
-            if(d.versionURL == null) {
-                continue;
-            }
             try {
                 File f = d.file();
                 if(!f.exists()) {
                     return false;
+                } else if(d.versionURL == null) {
+                    continue; // have file, skip
                 }
                 String checksum = Utils.checksum(f, "MD5");
                 BufferedReader br = new BufferedReader(new InputStreamReader(
@@ -514,8 +513,7 @@ public class LauncherImpl extends Launcher {
     }
 
     private ArrayList<Future<?>> download(Program p) {
-        ArrayList<Future<?>> arr = null;
-        arr = new ArrayList<Future<?>>();
+        ArrayList<Future<?>> arr = new ArrayList<Future<?>>();
         for(Downloadable d : p.downloads) {
             arr.add(submitDownload(d));
         }
@@ -631,6 +629,13 @@ public class LauncherImpl extends Launcher {
 
     HashSet<URL> classPath(Program run) {
         HashSet<URL> h = new HashSet<URL>();
+        for(Downloadable d : run.downloads) {
+            try {
+                h.add(d.file().toURI().toURL());
+            } catch(MalformedURLException ex) {
+                LOG.log(Level.SEVERE, null, ex);
+            }
+        }
         for(Program p : run.depends) {
             h.addAll(classPath(p));
         }

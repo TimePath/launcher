@@ -59,17 +59,17 @@ public class Downloadable {
 
     @Override
     public String toString() {
-        return downloadURL + " > " + programDirectory + fileName();
+        return downloadURL + " > " + programDirectory + File.separator + fileName();
     }
 
-        public String versionName() {
-            String n = name(versionURL);
-            if(n.contains(name(downloadURL))) {
-                String[] str = n.split(Pattern.quote(name(downloadURL)));
-                n = str[0] + filename + str[1];
-            }
-            return n;
+    public String versionName() {
+        String n = name(versionURL);
+        if(n.contains(name(downloadURL))) {
+            String[] str = n.split(Pattern.quote(name(downloadURL)));
+            n = str[0] + filename + str[1];
         }
+        return n;
+    }
 
     File file() {
         if(fileName() == null) {
