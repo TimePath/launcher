@@ -11,6 +11,7 @@ import javax.swing.event.ListSelectionListener;
  *
  * @author TimePath
  */
+@SuppressWarnings("serial")
 public abstract class Launcher extends JFrame {
 
     public abstract void news(final Program p);

@@ -87,4 +87,7 @@ public class XMLUtils {
         return sb.toString();
     }
 
+    private XMLUtils() {
+    }
+
 }

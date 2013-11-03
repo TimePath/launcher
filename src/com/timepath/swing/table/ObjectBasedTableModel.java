@@ -8,15 +8,17 @@ import javax.swing.table.AbstractTableModel;
 /**
  *
  * @author TimePath
+ * @param <O>
  */
+@SuppressWarnings("serial")
 public abstract class ObjectBasedTableModel<O> extends AbstractTableModel {
 
-    private List<String> columns = Arrays.asList(columns());
+    private final List<String> columns = Arrays.asList(columns());
 
-    private ArrayList<O> rows = new ArrayList<O>();
+    private final ArrayList<O> rows = new ArrayList<O>();
 
     public ObjectBasedTableModel() {
-        
+
     }
 
     /**
@@ -53,11 +55,11 @@ public abstract class ObjectBasedTableModel<O> extends AbstractTableModel {
         return super.getColumnClass(columnIndex);
     }
 
-        public int getColumnCount() {
-            return columns.size();
-        }
+    public int getColumnCount() {
+        return columns.size();
+    }
 
-        @Override
+    @Override
     public String getColumnName(int column) {
         if(column < columns.size()) {
             String name = columns.get(column);

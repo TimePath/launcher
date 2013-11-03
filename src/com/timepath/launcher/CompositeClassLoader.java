@@ -31,7 +31,7 @@ public class CompositeClassLoader extends ClassLoader {
     private final HashMap<String, Enumeration<URL>> enumerations
                                                     = new HashMap<String, Enumeration<URL>>();
 
-    private HashMap<URL, ClassLoader> jars = new HashMap<URL, ClassLoader>();
+    private final HashMap<URL, ClassLoader> jars = new HashMap<URL, ClassLoader>();
 
     private final HashMap<String, String> libraries = new HashMap<String, String>();
 
@@ -160,7 +160,7 @@ public class CompositeClassLoader extends ClassLoader {
         return super.findLibrary(libname);
     }
     //</editor-fold>
-    
+
     @Override
     protected URL findResource(String name) {
         URL res = reflect(resources, "findResource", name);

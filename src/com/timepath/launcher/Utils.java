@@ -1,5 +1,6 @@
 package com.timepath.launcher;
 
+import java.awt.Desktop;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -18,6 +19,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.prefs.Preferences;
 import javax.swing.UIManager;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
 
 /**
  *
@@ -28,6 +31,32 @@ public class Utils {
     public static final File currentFile = locate();
 
     public static final long currentVersion = Utils.version();
+
+    public static HyperlinkListener linkListener = new HyperlinkListener() {
+        public void hyperlinkUpdate(HyperlinkEvent he) {
+            if(!Desktop.isDesktopSupported()) {
+                return;
+            }
+            Desktop d = Desktop.getDesktop();
+            if(!he.getEventType().equals(HyperlinkEvent.EventType.ACTIVATED)) {
+                return;
+            }
+            if(d.isSupported(Desktop.Action.BROWSE)) {
+                try {
+                    URI u = null;
+                    URL l = he.getURL();
+                    if(l == null) {
+                        u = new URI(he.getDescription());
+                    } else if(u == null) {
+                        u = l.toURI();
+                    }
+                    d.browse(u);
+                } catch(Exception ex) {
+                    LOG.log(Level.WARNING, null, ex);
+                }
+            }
+        }
+    };
 
     public static boolean runningTemp = false;
 
@@ -69,7 +98,7 @@ public class Utils {
                         String expectedMd5 = is.readLine();
                         is.close();
                         LOG.log(Level.INFO, "Expecting checksum = {0}", expectedMd5);
-                        
+
                         String md5 = checksum(updateFile, "MD5");
                         LOG.log(Level.INFO, "Actual checksum = {0}", md5);
                         if(md5.equals(expectedMd5)) {
@@ -94,7 +123,7 @@ public class Utils {
             }
             //</editor-fold>
         }
-        
+
         //<editor-fold defaultstate="collapsed" desc="on update detected restart">
         for(int i = 0; i < args.length; i++) {
             if(args[i].equalsIgnoreCase("-u")) {
@@ -104,7 +133,7 @@ public class Utils {
                     LOG.log(Level.INFO, "Updating {0}", destFile);
                     destFile.delete();
                     destFile.createNewFile();
-                    
+
                     FileChannel source = null;
                     FileChannel destination = null;
                     try {
@@ -112,7 +141,7 @@ public class Utils {
                         destination = new RandomAccessFile(destFile, "rw").getChannel();
                         long position = 0;
                         long count = source.size();
-                        
+
                         source.transferTo(position, count, destination);
                     } finally {
                         if(source != null) {
@@ -146,7 +175,8 @@ public class Utils {
         return sb.toString();
     }
 
-    public static String checksum(File f, String algorithm) throws IOException, NoSuchAlgorithmException {
+    public static String checksum(File f, String algorithm) throws IOException,
+                                                                   NoSuchAlgorithmException {
         FileChannel c = new RandomAccessFile(f, "r").getChannel();
         MappedByteBuffer buf = c.map(FileChannel.MapMode.READ_ONLY, 0, c.size());
         return checksum(buf, algorithm);
@@ -202,7 +232,7 @@ public class Utils {
                 }
             }
             LOG.log(Level.INFO, "Invoking other: {0}", cmd.toString());
-            ProcessBuilder process = new ProcessBuilder(cmd.toArray(new String[0]));
+            ProcessBuilder process = new ProcessBuilder(cmd.toArray(new String[cmd.size()]));
             process.start();
         } catch(IOException ex) {
             LOG.log(Level.SEVERE, null, ex);
@@ -250,14 +280,14 @@ public class Utils {
         logThread(name, dir, o.toString()).start();
     }
 
-    public static  Thread logThread(final String name, final String dir, final String str) {
+    public static Thread logThread(final String name, final String dir, final String str) {
         Runnable submit = new Runnable() {
             public void debug(Object o) {
                 String s = o.toString();
                 System.out.println(s);
                 LOG.finest(s);
             }
-            
+
             public void run() {
                 try {
                     String text = URLEncoder.encode(str, "UTF-8");
@@ -277,16 +307,16 @@ public class Utils {
                     connection.setRequestProperty("Content-Length",
                                                   Integer.toString(urlParameters.getBytes().length));
                     connection.setUseCaches(false);
-                    
+
                     DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
                     writer.writeBytes(urlParameters);
                     writer.flush();
-                    
+
                     StringBuilder sb = new StringBuilder();
                     String line;
                     BufferedReader reader = new BufferedReader(new InputStreamReader(
                         connection.getInputStream()));
-                    
+
                     while((line = reader.readLine()) != null) {
                         sb.append("\n").append(line);
                     }
@@ -303,7 +333,12 @@ public class Utils {
         return new Thread(submit);
     }
 
-    public static void start(String name, String[] args, URL[] urls) throws InstantiationException, NoSuchMethodException, IllegalAccessException, ClassNotFoundException, IllegalArgumentException, InvocationTargetException {
+    public static void start(String name, String[] args, URL[] urls) throws InstantiationException,
+                                                                            NoSuchMethodException,
+                                                                            IllegalAccessException,
+                                                                            ClassNotFoundException,
+                                                                            IllegalArgumentException,
+                                                                            InvocationTargetException {
         LOG.log(Level.INFO, "Classpath = {0}", Arrays.toString(urls));
         URLClassLoader loader = new URLClassLoader(urls, Utils.class.getClassLoader());
         Class clazz = loader.loadClass(name);
