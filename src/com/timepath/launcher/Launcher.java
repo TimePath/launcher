@@ -1,6 +1,5 @@
 package com.timepath.launcher;
 
-import com.timepath.launcher.DownloadManager.Download;
 import java.awt.Component;
 import java.awt.event.*;
 import java.util.concurrent.Future;
@@ -18,7 +17,7 @@ public abstract class Launcher extends JFrame {
 
     public abstract void start(final Program p);
 
-    public Future<?> download(Download d) {
+    public Future<?> submitDownload(Downloadable d) {
         return downloadManager.submit(d);
     }
 

@@ -18,15 +18,27 @@ import java.util.logging.Logger;
 /**
  *
  * Inspired by http://www.jdotsoft.com/JarClassLoader.php
- * 
+ * <p>
  * @author TimePath
  */
 public class CompositeClassLoader extends ClassLoader {
 
     public static final Logger LOG = Logger.getLogger(CompositeClassLoader.class.getName());
 
+    //<editor-fold defaultstate="collapsed" desc="Overriding methods and caches">
+    private final HashMap<String, Class<?>> classes = new HashMap<String, Class<?>>();
+
+    private final HashMap<String, Enumeration<URL>> enumerations
+                                                    = new HashMap<String, Enumeration<URL>>();
+
+    private HashMap<URL, ClassLoader> jars = new HashMap<URL, ClassLoader>();
+
+    private final HashMap<String, String> libraries = new HashMap<String, String>();
+
     private final List<ClassLoader> loaders = Collections.synchronizedList(
-            new ArrayList<ClassLoader>());
+        new ArrayList<ClassLoader>());
+
+    private final HashMap<String, URL> resources = new HashMap<String, URL>();
 
     {
         add(Object.class.getClassLoader()); // bootstrap
@@ -36,8 +48,6 @@ public class CompositeClassLoader extends ClassLoader {
     public void add(ClassLoader loader) {
         loaders.add(0, loader); // newest on top
     }
-
-    private HashMap<URL, ClassLoader> jars = new HashMap<URL, ClassLoader>();
 
     public void add(URL u) {
         if(jars.containsKey(u)) {
@@ -56,8 +66,8 @@ public class CompositeClassLoader extends ClassLoader {
     }
 
     public void invokeMain(String name, String[] args) throws ClassNotFoundException,
-                                                               NoSuchMethodException,
-                                                               InvocationTargetException {
+                                                              NoSuchMethodException,
+                                                              InvocationTargetException {
         Class c = loadClass(name);
         Method m = c.getMethod("main", new Class[] {args.getClass()});
         m.setAccessible(true);
@@ -116,9 +126,6 @@ public class CompositeClassLoader extends ClassLoader {
         return null;
     }
 
-    //<editor-fold defaultstate="collapsed" desc="Overriding methods and caches">
-    private final HashMap<String, Class<?>> classes = new HashMap<String, Class<?>>();
-
     @Override
     protected Class<?> findClass(String name) throws ClassNotFoundException {
         Class<?> res = reflect(classes, "findClass", name);
@@ -127,39 +134,6 @@ public class CompositeClassLoader extends ClassLoader {
         }
         return super.findClass(name);
     }
-
-    private final HashMap<String, URL> resources = new HashMap<String, URL>();
-
-    @Override
-    protected URL findResource(String name) {
-        URL res = reflect(resources, "findResource", name);
-        if(res != null) {
-            return res;
-        }
-        return super.findResource(name);
-    }
-
-    private final HashMap<String, Enumeration<URL>> enumerations = new HashMap<String, Enumeration<URL>>();
-
-    /**
-     * TODO: calling class's jar only
-     * <p/>
-     * @param name
-     *             <p/>
-     * @return
-     *         <p/>
-     * @throws IOException
-     */
-    @Override
-    protected Enumeration<URL> findResources(String name) throws IOException {
-        Enumeration<URL> res = reflect(enumerations, "findResources", name);
-        if(res != null) {
-            return res;
-        }
-        return super.findResources(name);
-    }
-
-    private final HashMap<String, String> libraries = new HashMap<String, String>();
 
     @Override
     protected String findLibrary(String libname) {
@@ -185,6 +159,33 @@ public class CompositeClassLoader extends ClassLoader {
         }
         return super.findLibrary(libname);
     }
-
     //</editor-fold>
+    
+    @Override
+    protected URL findResource(String name) {
+        URL res = reflect(resources, "findResource", name);
+        if(res != null) {
+            return res;
+        }
+        return super.findResource(name);
+    }
+
+    /**
+     * TODO: calling class's jar only
+     * <p/>
+     * @param name
+     *             <p/>
+     * @return
+     *         <p/>
+     * @throws IOException
+     */
+    @Override
+    protected Enumeration<URL> findResources(String name) throws IOException {
+        Enumeration<URL> res = reflect(enumerations, "findResources", name);
+        if(res != null) {
+            return res;
+        }
+        return super.findResources(name);
+    }
+
 }

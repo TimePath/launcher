@@ -4,6 +4,8 @@
     <import file="nbproject/build-impl.xml"/>
     
     <property name="store.dir" value="${user.home}/Dropbox/Public/bin/java"/>
+    <!--<property name="store.dir" value="dist"/>-->
+    
     <property name="compression" value="9"/>
     <!--Set to enable packing-->
     <property name="pack" value="true"/>

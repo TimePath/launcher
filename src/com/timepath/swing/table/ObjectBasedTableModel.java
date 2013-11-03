@@ -11,19 +11,19 @@ import javax.swing.table.AbstractTableModel;
  */
 public abstract class ObjectBasedTableModel<O> extends AbstractTableModel {
 
+    private List<String> columns = Arrays.asList(columns());
+
+    private ArrayList<O> rows = new ArrayList<O>();
+
     public ObjectBasedTableModel() {
         
     }
-    
-    public abstract String[] columns();
-
-    private ArrayList<O> rows = new ArrayList<O>();
-    
-    private List<String> columns = Arrays.asList(columns());
 
     /**
      * Add Object o to the model
+     * <p>
      * @param o the Object
+     * <p>
      * @return true if added
      */
     public boolean add(O o) {
@@ -35,24 +35,52 @@ public abstract class ObjectBasedTableModel<O> extends AbstractTableModel {
         this.fireTableRowsInserted(rows.size() - 1, rows.size() - 1);
         return true;
     }
-    
+
+    public abstract String[] columns();
+
     /**
-     * Fire update for Object o in the model
-     * @param o the Object
-     * @return true if not updated (because the Object isn't in the model)
+     * Gets a property from an Object based on an index
+     * <p>
+     * @param o           the Object
+     * @param columnIndex index to Object property
+     * <p>
+     * @return the property
      */
-    public boolean update(O o) {
-        int idx = rows.indexOf(o);
-        if(idx < 0) {
-            return false;
+    public abstract Object get(O o, int columnIndex);
+
+    @Override
+    public Class<?> getColumnClass(int columnIndex) {
+        return super.getColumnClass(columnIndex);
+    }
+
+        public int getColumnCount() {
+            return columns.size();
         }
-        this.fireTableRowsUpdated(idx, idx);
-        return true;
+
+        @Override
+    public String getColumnName(int column) {
+        if(column < columns.size()) {
+            String name = columns.get(column);
+            if(name != null) {
+                return name;
+            }
+        }
+        return super.getColumnName(column);
+    }
+
+    public int getRowCount() {
+        return rows.size();
+    }
+
+    public Object getValueAt(int rowIndex, int columnIndex) {
+        return get(rows.get(rowIndex), columnIndex);
     }
 
     /**
      * Remove Object o from the model
+     * <p>
      * @param o the Object
+     * <p>
      * @return true if removed
      */
     public boolean remove(O o) {
@@ -65,40 +93,20 @@ public abstract class ObjectBasedTableModel<O> extends AbstractTableModel {
         return true;
     }
 
-    public int getRowCount() {
-        return rows.size();
-    }
-
-    @Override
-    public Class<?> getColumnClass(int columnIndex) {
-        return super.getColumnClass(columnIndex);
-    }
-
-    @Override
-    public String getColumnName(int column) {
-        if(column < columns.size()) {
-            String name = columns.get(column);
-            if(name != null) {
-                return name;
-            }
-        }
-        return super.getColumnName(column);
-    }
-
-    public int getColumnCount() {
-        return columns.size();
-    }
-
-    public Object getValueAt(int rowIndex, int columnIndex) {
-        return get(rows.get(rowIndex), columnIndex);
-    }
-
     /**
-     * Gets a property from an Object based on an index
+     * Fire update for Object o in the model
+     * <p>
      * @param o the Object
-     * @param columnIndex index to Object property
-     * @return the property
+     * <p>
+     * @return true if not updated (because the Object isn't in the model)
      */
-    public abstract Object get(O o, int columnIndex);
+    public boolean update(O o) {
+        int idx = rows.indexOf(o);
+        if(idx < 0) {
+            return false;
+        }
+        this.fireTableRowsUpdated(idx, idx);
+        return true;
+    }
 
 }

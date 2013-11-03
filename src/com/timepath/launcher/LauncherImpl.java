@@ -1,6 +1,6 @@
 package com.timepath.launcher;
 
-import com.timepath.launcher.DownloadManager.Download;
+import com.timepath.launcher.XMLUtils;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -33,17 +33,13 @@ import org.w3c.dom.Node;
 @SuppressWarnings("serial")
 public class LauncherImpl extends Launcher {
 
-    public static boolean debug = Utils.currentVersion == 0;
+    public static final boolean debug = Utils.currentVersion == 0;
 
     private static final Logger LOG = Logger.getLogger(LauncherImpl.class.getName());
-
-    private static Level consoleLevel = Level.INFO;
 
     private static HashMap<String, Program> libs = new HashMap<String, Program>();
 
     private static final File logFile;
-
-    private static Level logfileLevel = Level.INFO;
 
     private static Program self;
 
@@ -58,20 +54,24 @@ public class LauncherImpl extends Launcher {
             }
         });
 
+        Level consoleLevelTmp = Level.INFO;
         try {
-            consoleLevel = Level.parse(Utils.settings.get("consoleLevel", "CONFIG"));
+            consoleLevelTmp = Level.parse(Utils.settings.get("consoleLevel", "CONFIG"));
         } catch(IllegalArgumentException ex) {
         }
         Utils.settings.remove("consoleLevel"); // TEMP
+
+        Level logfileLevelTmp = Level.INFO;
         try {
-            logfileLevel = Level.parse(Utils.settings.get("logfileLevel", "CONFIG"));
+            logfileLevelTmp = Level.parse(Utils.settings.get("logfileLevel", "CONFIG"));
         } catch(IllegalArgumentException ex) {
         }
         Utils.settings.remove("logfileLevel"); // TEMP
-        Level packageLevel = consoleLevel;
-        if(consoleLevel != Level.OFF && logfileLevel != Level.OFF) {
-            if(logfileLevel.intValue() > consoleLevel.intValue()) {
-                packageLevel = logfileLevel;
+
+        Level packageLevel = consoleLevelTmp;
+        if(consoleLevelTmp != Level.OFF && logfileLevelTmp != Level.OFF) {
+            if(logfileLevelTmp.intValue() > consoleLevelTmp.intValue()) {
+                packageLevel = logfileLevelTmp;
             }
         }
         Logger.getLogger("com.timepath").setLevel(packageLevel);
@@ -79,23 +79,23 @@ public class LauncherImpl extends Launcher {
         SimpleFormatter consoleFormatter = new SimpleFormatter();
         SimpleFormatter fileFormatter = new SimpleFormatter();
 
-        if(consoleLevel != Level.OFF) {
+        if(consoleLevelTmp != Level.OFF) {
             Handler[] hs = Logger.getLogger("").getHandlers();
             for(Handler h : hs) {
                 if(h instanceof ConsoleHandler) {
-                    h.setLevel(consoleLevel);
+                    h.setLevel(consoleLevelTmp);
                     h.setFormatter(consoleFormatter);
                 }
             }
         }
 
-        if(logfileLevel != Level.OFF && !debug) {
+        if(logfileLevelTmp != Level.OFF && !debug) {
             logFile = new File(Utils.currentFile.getParentFile(),
                                "logs/log_" + System.currentTimeMillis() / 1000 + ".txt");
             try {
                 logFile.getParentFile().mkdirs();
                 final FileHandler fh = new FileHandler(logFile.getPath(), 0, 1, false); // I have to set this up to be able to recall it
-                fh.setLevel(logfileLevel);
+                fh.setLevel(logfileLevelTmp);
                 fh.setFormatter(fileFormatter);
                 Logger.getLogger("").addHandler(fh);
                 LOG.log(Level.INFO, "Logging to {0}", logFile.getPath());
@@ -122,8 +122,8 @@ public class LauncherImpl extends Launcher {
         } else {
             logFile = null;
         }
-        LOG.log(Level.INFO, "Console level: {0}", consoleLevel);
-        LOG.log(Level.INFO, "Logfile level: {0}", logfileLevel);
+        LOG.log(Level.INFO, "Console level: {0}", consoleLevelTmp);
+        LOG.log(Level.INFO, "Logfile level: {0}", logfileLevelTmp);
 
         Policy.setPolicy(new Policy() {
             @Override
@@ -141,16 +141,6 @@ public class LauncherImpl extends Launcher {
         System.setSecurityManager(null);
     }
 
-    public static File getFile(Program p) {
-        if(p.self) {
-            return new File(updateName);
-        }
-        if(p.file == null) {
-            return null;
-        }
-        return new File(Utils.progDir, p.file);
-    }
-
     public static void main(String... args) {
         LOG.log(Level.INFO, "Initial: {0}ms", System.currentTimeMillis() - start);
         LOG.log(Level.INFO, "Args = {0}", Arrays.toString(args));
@@ -166,17 +156,6 @@ public class LauncherImpl extends Launcher {
             }
 
         });
-    }
-
-    private static HashSet<Program> depends(Program parent) {
-        HashSet<Program> h = new HashSet<Program>();
-        for(Program p : parent.depends) {
-            h.addAll(depends(p));
-        }
-        if(parent.downloadURLs != null) {
-            h.add(parent);
-        }
-        return h;
     }
 
     private static void initUI() {
@@ -231,7 +210,7 @@ public class LauncherImpl extends Launcher {
                     launcher.setListModel(launcher.listM);
                     LOG.log(Level.INFO, "Listing at {0}ms",
                             System.currentTimeMillis() - start);
-                    if(!isLatest(self)) {
+                    if(!debug && !isLatest(self)) {
                         JOptionPane.showMessageDialog(launcher,
                                                       "Please update", "A new version is available",
                                                       JOptionPane.INFORMATION_MESSAGE, null);
@@ -269,17 +248,17 @@ public class LauncherImpl extends Launcher {
                     //<editor-fold defaultstate="collapsed" desc="Parse">
                     Program p = new Program();
 
-                    p.name = XMLUtils.getAttribute(entry, "name");
+                    p.title = XMLUtils.getAttribute(entry, "name");
 
                     String depends = XMLUtils.getAttribute(entry, "depends");
                     if(depends != null) {
                         String[] dependencies = depends.split(",");
                         for(String s : dependencies) {
-                            p.depends.add(libs.get(s));
+                            p.depends.add(libs.get(s.trim()));
                         }
                     }
 
-                    p.file = XMLUtils.getAttribute(entry, "file");
+                    p.filename = XMLUtils.getAttribute(entry, "file");
 
                     Node java = Utils.last(XMLUtils.getElements("java", entry));
                     if(java != null) {
@@ -293,17 +272,7 @@ public class LauncherImpl extends Launcher {
                     }
 
                     ArrayList<Node> downloads = XMLUtils.getElements("download", entry);
-
-                    Node mainDL = Utils.last(downloads);
-                    if(mainDL != null) {
-                        p.downloadURLs.add(XMLUtils.getAttribute(mainDL, "url"));
-                    }
-
-                    Node mainCheck = Utils.last(XMLUtils.getElements("checksum", entry));
-                    if(mainCheck != null) {
-                        p.checksumURLs = XMLUtils.getAttribute(mainCheck, "url");
-                    }
-
+                    // downloadURL
                     for(Node download : downloads) {
                         Node checksum = Utils.last(XMLUtils.getElements("checksum", entry));
                         String dlu = XMLUtils.getAttribute(download, "url");
@@ -314,16 +283,19 @@ public class LauncherImpl extends Launcher {
                         if(checksum != null) {
                             csu = XMLUtils.getAttribute(checksum, "url");
                         }
-                        p.downloads.put(dlu, csu);
+                        p.downloads.add(new Downloadable(dlu, csu));
                     }
 
                     //</editor-fold>
                     if(n.equals(nodes[0])) {
-                        p.self = true;
+                        for(Downloadable d : p.downloads) {
+                            d.filename = updateName;
+                        }
+                        p.setSelf(true);
                         self = p;
                         listM.addElement(p);
                     } else if(n.equals(nodes[1])) {
-                        libs.put(p.name, p);
+                        libs.put(p.title, p);
                     } else if(n.equals(nodes[2])) {
                         listM.addElement(p);
                     }
@@ -333,6 +305,19 @@ public class LauncherImpl extends Launcher {
             LOG.log(Level.SEVERE, null, ex);
         }
         return listM;
+    }
+
+    private static HashSet<Program> rdepends(Program program) {
+        HashSet<Program> h = new HashSet<Program>();
+        // Add all parent dependencies first
+        for(Program p : program.depends) {
+            h.addAll(rdepends(p));
+        }
+        // Not just a run configuration
+        if(!program.downloads.isEmpty()) {
+            h.add(program);
+        }
+        return h;
     }
 
     private static void started() {
@@ -354,24 +339,22 @@ public class LauncherImpl extends Launcher {
      * @return false if not up to date, true if up to date or offline
      */
     static boolean isLatest(Program p) {
-        File f = getFile(p);
-        if(p.self) {
-            f = Utils.currentFile;
+        if(debug && p == self) {
+            return true;
         }
-        if(f == null) {
-            return false;
-        }
-        if(f.isDirectory()) {
-            return true; // Development
-        }
-        if(!f.exists()) {
-            return false;
-        } else {
-            LOG.log(Level.INFO, "Checking {0} for updates...", p);
+        LOG.log(Level.INFO, "Checking {0} for updates...", p);
+        for(Downloadable d : p.downloads) {
+            if(d.versionURL == null) {
+                continue;
+            }
             try {
+                File f = d.file();
+                if(!f.exists()) {
+                    return false;
+                }
                 String checksum = Utils.checksum(f, "MD5");
                 BufferedReader br = new BufferedReader(new InputStreamReader(
-                    new URL(p.checksumURLs).openStream()));
+                    new URL(d.versionURL).openStream()));
                 String expected = br.readLine();
                 if(!checksum.equals(expected)) {
                     return false;
@@ -530,19 +513,11 @@ public class LauncherImpl extends Launcher {
         });
     }
 
-    private ArrayList<Future<?>> download(Program p, boolean checksum) {
+    private ArrayList<Future<?>> download(Program p) {
         ArrayList<Future<?>> arr = null;
-        try {
-            arr = new ArrayList<Future<?>>();
-            for(String url : p.downloadURLs) {
-                arr.add(download(new Download(p.name, new URL(url), getFile(p))));
-            }
-            if(checksum) {
-                arr.add(download(new Download(p.name, new URL(p.checksumURLs), new File(
-                    getFile(p) + ".MD5"))));
-            }
-        } catch(MalformedURLException ex) {
-            LOG.log(Level.SEVERE, null, ex);
+        arr = new ArrayList<Future<?>>();
+        for(Downloadable d : p.downloads) {
+            arr.add(submitDownload(d));
         }
         return arr;
     }
@@ -615,13 +590,12 @@ public class LauncherImpl extends Launcher {
 
             @Override
             protected Void doInBackground() throws Exception {
-                HashSet<Program> ps = depends(run);
+                HashSet<Program> ps = rdepends(run);
                 LOG.log(Level.INFO, "Download list: {0}", ps.toString());
                 for(Program p : ps) {
-                    LOG.log(Level.INFO, "Checking for {0} updates...", p);
                     if(!isLatest(p)) {
-                        LOG.log(Level.INFO, "Fetching {0}...", p);
-                        downloads.put(p, download(p, (p.self && !Utils.runningTemp)));
+                        LOG.log(Level.INFO, "{0} is outdated", p);
+                        downloads.put(p, download(p));
                     } else {
                         LOG.log(Level.INFO, "{0} is up to date", p);
                         if(p.self) {
@@ -660,7 +634,7 @@ public class LauncherImpl extends Launcher {
         for(Program p : run.depends) {
             h.addAll(classPath(p));
         }
-        File f = getFile(run);
+        File f = run.file();
         if(f != null) {
             try {
                 URL u = f.toURI().toURL();

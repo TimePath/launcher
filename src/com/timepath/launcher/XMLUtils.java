@@ -12,18 +12,8 @@ import org.w3c.dom.NodeList;
  * @author TimePath
  */
 public class XMLUtils {
-    
-    public static String getAttribute(Node n, String key) {
-        Element e = (Element) n;
-        Node child = Utils.last(getElements(key, n));
-        if(child != null) {
-            return child.getNodeValue();
-        } else if(e.getAttributeNode(key) != null) {
-            return e.getAttributeNode(key).getValue();
-        } else {
-            return null;
-        }
-    }
+
+    private static final Logger LOG = Logger.getLogger(XMLUtils.class.getName());
 
     public static ArrayList<Node> get(Node parent, short nodeType) {
         ArrayList<Node> al = new ArrayList<Node>();
@@ -37,6 +27,18 @@ public class XMLUtils {
             }
         }
         return al;
+    }
+
+    public static String getAttribute(Node n, String key) {
+        Element e = (Element) n;
+        Node child = Utils.last(getElements(key, n));
+        if(child != null) {
+            return child.getNodeValue();
+        } else if(e.getAttributeNode(key) != null) {
+            return e.getAttributeNode(key).getValue();
+        } else {
+            return null;
+        }
     }
 
     public static ArrayList<Node> getElements(String eval, Node root) {
@@ -67,22 +69,22 @@ public class XMLUtils {
         if(root.hasAttributes()) {
             NamedNodeMap attribs = root.getAttributes();
             for(int i = attribs.getLength() - 1; i >= 0; i--) {
-                str += " " + attribs.item(i).getNodeName() + "=\"" + attribs.item(i).getNodeValue() + "\"";
+                str += " " + attribs.item(i).getNodeName() + "=\"" + attribs.item(i).getNodeValue()
+                       + "\"";
             }
         }
         ArrayList<Node> elements = get(root, Node.ELEMENT_NODE);
         sb.append(depth).append(": ").append(spacing).append("<").append(str).append(
-                elements.isEmpty() ? "/" : "").append(">\n");
+            elements.isEmpty() ? "/" : "").append(">\n");
         for(Node n : elements) {
             sb.append(printTree(n, depth + 1));
         }
         if(!elements.isEmpty()) {
-            sb.append(depth).append(": ").append(spacing).append("</").append(root.getNodeName()).append(
+            sb.append(depth).append(": ").append(spacing).append("</").append(root.getNodeName())
+                .append(
                     ">\n");
         }
         return sb.toString();
     }
 
-    private static final Logger LOG = Logger.getLogger(XMLUtils.class.getName());
-    
 }

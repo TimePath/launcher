@@ -1,9 +1,9 @@
 package com.timepath.launcher;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.logging.Logger;
 import javax.swing.JEditorPane;
 import javax.swing.JPanel;
 
@@ -11,42 +11,46 @@ import javax.swing.JPanel;
  *
  * @author TimePath
  */
-public class Program {
+public class Program extends Downloadable {
 
-    public String name;
-
-    public String newsfeedURL;
-
-    public String file;
-
-    public ArrayList<String> downloadURLs = new ArrayList<String>();
-
-    public String checksumURLs;
-
-    public boolean self;
+    private static final Logger LOG = Logger.getLogger(Program.class.getName());
 
     public List<String> args;
 
-    public String main;
-
     public String changelogData;
-
-    public JEditorPane jEditorPane;
 
     public HashSet<Program> depends = new HashSet<Program>();
 
+    public JEditorPane jEditorPane;
+
+    public String main;
+
+    public String newsfeedURL;
+
     public JPanel panel;
-    
+
+    public boolean self;
+
+    public String title;
+
     /**
-     * A map of downloads to checksums
+     * A map of downloads to checksums. TODO: allow for versions
      */
-    HashMap<String, String> downloads = new HashMap<String, String>();
+    ArrayList<Downloadable> downloads = new ArrayList<Downloadable>();
 
     String newsfeedType = "text/html";
 
     @Override
     public String toString() {
-        return name;// + "(" + downloads + ")" + (!depends.isEmpty() ? (" " + depends.toString()) : "");
+        return title;// + "(" + downloads + ")" + (!depends.isEmpty() ? (" " + depends.toString()) : "");
+    }
+
+    void setSelf(boolean b) {
+        self = b;
+        programDirectory = null;
+        for(Downloadable d : downloads) {
+            d.programDirectory = null;
+        }
     }
 
 }

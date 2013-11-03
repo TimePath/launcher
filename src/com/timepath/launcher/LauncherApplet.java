@@ -12,5 +12,5 @@ public class LauncherApplet extends JApplet {
     public void init() {
         LauncherImpl.main("");
     }
-    
+
 }
