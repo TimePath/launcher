@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
  */
 public class Downloadable {
 
-    public static final String PROGRAM_DIRECTORY = Utils.settings.get("progStoreDir", "bin");
+    public static final String PROGRAM_DIRECTORY = Utils.settings.get("progStoreDir", new File(Utils.currentFile.getParentFile(), "bin").getPath());
 
     private static final Logger LOG = Logger.getLogger(Downloadable.class.getName());
 
