@@ -1,5 +1,6 @@
 package com.timepath.launcher;
 
+import com.timepath.launcher.XMLUtils;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -248,11 +249,18 @@ public class LauncherImpl extends Launcher {
         LOG.log(Level.INFO, "Checking {0} for updates...", p);
         for(Downloadable d : p.downloads) {
             try {
+                LOG.log(Level.INFO, "Version file: {0}", d.file());
+                LOG.log(Level.INFO, "Version url: {0}", d.versionURL);
+                
                 File f = d.file();
+                if(f.getName().equals(updateName)) { // edge case for current file
+                    f = Utils.currentFile;
+                }
+                
                 if(!f.exists()) {
                     return false;
                 } else if(d.versionURL == null) {
-                    continue; // have file, skip
+                    continue; // have unversioned file, skip check
                 }
                 String checksum = Utils.checksum(f, "MD5");
                 BufferedReader br = new BufferedReader(new InputStreamReader(
