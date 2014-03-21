@@ -1,5 +1,6 @@
-package com.timepath.launcher;
+package com.timepath.launcher.util;
 
+import com.timepath.launcher.Utils;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 import org.w3c.dom.Element;

@@ -284,7 +284,6 @@ public class Utils {
         Runnable submit = new Runnable() {
             public void debug(Object o) {
                 String s = o.toString();
-                System.out.println(s);
                 LOG.finest(s);
             }
 

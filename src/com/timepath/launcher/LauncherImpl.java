@@ -1,6 +1,7 @@
 package com.timepath.launcher;
 
-import com.timepath.launcher.XMLUtils;
+import com.timepath.launcher.logging.LogAggregator;
+import com.timepath.launcher.util.XMLUtils;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -73,7 +74,6 @@ public class LauncherImpl extends Launcher {
         Logger.getLogger("com.timepath").setLevel(packageLevel);
 
         SimpleFormatter consoleFormatter = new SimpleFormatter();
-        SimpleFormatter fileFormatter = new SimpleFormatter();
 
         if(consoleLevelTmp != Level.OFF) {
             Handler[] hs = Logger.getLogger("").getHandlers();
@@ -85,36 +85,11 @@ public class LauncherImpl extends Launcher {
             }
         }
 
-        if(logfileLevelTmp != Level.OFF && !debug) {
-            File logFile = new File(Utils.currentFile.getParentFile(),
-                                    "logs/log_" + System.currentTimeMillis() / 1000 + ".txt");
-            try {
-                logFile.getParentFile().mkdirs();
-                final FileHandler fh = new FileHandler(logFile.getPath(), 0, 1, false); // I have to set this up to be able to recall it
-                fh.setLevel(logfileLevelTmp);
-                fh.setFormatter(fileFormatter);
-                Logger.getLogger("").addHandler(fh);
-                LOG.log(Level.INFO, "Logging to {0}", logFile.getPath());
-                try {
-                    final URL u = logFile.toURI().toURL();
-                    Thread t = new Thread() {
-                        @Override
-                        public void run() {
-                            fh.flush();
-                            fh.close();
-                            Utils.logThread("exit", "launcher/" + Utils.currentVersion + "/logs",
-                                            Utils.loadPage(u)).run();
-                        }
-                    };
-                    Runtime.getRuntime().addShutdownHook(t);
-                } catch(MalformedURLException ex) {
-                    LOG.log(Level.SEVERE, null, ex);
-                }
-            } catch(IOException ex) {
-                LOG.log(Level.SEVERE, null, ex);
-            } catch(SecurityException ex) {
-                LOG.log(Level.SEVERE, null, ex);
-            }
+        if(logfileLevelTmp != Level.OFF) {
+            LogAggregator lh = new LogAggregator();
+            lh.setLevel(logfileLevelTmp);
+            Logger.getLogger("").addHandler(lh);
+            LOG.log(Level.INFO, "Logger: {0}", lh);
         }
         LOG.log(Level.INFO, "Console level: {0}", consoleLevelTmp);
         LOG.log(Level.INFO, "Logfile level: {0}", logfileLevelTmp);
