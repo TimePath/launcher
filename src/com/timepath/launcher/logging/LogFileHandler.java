@@ -5,15 +5,35 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.logging.FileHandler;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
 import java.util.logging.SimpleFormatter;
 
 /**
  *
+ * Delegates to a FileHandler and allows us to keep track of the specified file
+ * 
  * @author TimePath
  */
-public class LogFileHandler extends FileHandler {
+public class LogFileHandler extends Handler {
 
+    @Override
+    public void close() throws SecurityException {
+        fh.close();
+    }
+
+    @Override
+    public void flush() {
+        fh.flush();
+    }
+
+    public File getLogFile() {
+        return logFile;
+    }
+    
     private final File logFile;
+    
+    private final FileHandler fh;
 
     public LogFileHandler() throws IOException, SecurityException {
         // I have to set this up to be able to recall it
@@ -21,7 +41,9 @@ public class LogFileHandler extends FileHandler {
             .currentTimeMillis() / 1000 + ".txt");
         logFile.getParentFile().mkdirs();
 
-        final FileHandler fh = new FileHandler(logFile.getPath(), 0, 1, false);
+        SimpleFormatter fileFormatter = new SimpleFormatter();
+        fh = new FileHandler(logFile.getPath(), 0, 1, false);
+        fh.setFormatter(fileFormatter);
         final URL u = logFile.toURI().toURL();
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
@@ -32,9 +54,11 @@ public class LogFileHandler extends FileHandler {
                                         Utils.loadPage(u)).run();
             }
         });
+    }
 
-        SimpleFormatter fileFormatter = new SimpleFormatter();
-        this.setFormatter(fileFormatter);
+    @Override
+    public void publish(LogRecord lr) {
+        fh.publish(lr);
     }
 
     @Override
