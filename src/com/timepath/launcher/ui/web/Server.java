@@ -39,18 +39,13 @@ public class Server {
             public void run() {
                 server.start();
                 LOG.log(Level.INFO, "Server up on port {0}", PORT);
-                try {
-                    String s = "http://127.0.0.1";
-                    if(PORT != 80) {
-                        s += ":" + PORT;
-                    }
-                    HyperlinkEvent e = new HyperlinkEvent(this, HyperlinkEvent.EventType.ACTIVATED,
-                                                          new URL(s));
-                    Utils.linkListener.hyperlinkUpdate(e);
-                } catch(MalformedURLException ex) {
-                    LOG.log(Level.SEVERE, null, ex);
+                String s = "http://127.0.0.1";
+                if(PORT != 80) {
+                    s += ":" + PORT;
                 }
-
+                HyperlinkEvent e = new HyperlinkEvent(this, HyperlinkEvent.EventType.ACTIVATED,
+                                                      null, s);
+                Utils.linkListener.hyperlinkUpdate(e);
             }
 
         }));
