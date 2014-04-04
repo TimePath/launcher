@@ -80,7 +80,7 @@ public class DownloadManager extends JPanel {
             } catch(IOException ex) {
                 LOG.log(Level.SEVERE, null, ex);
             } catch(URISyntaxException ex) {
-                Logger.getLogger(DownloadManager.class.getName()).log(Level.SEVERE, null, ex);
+                LOG.log(Level.SEVERE, null, ex);
             } finally {
                 if(is != null) {
                     try {

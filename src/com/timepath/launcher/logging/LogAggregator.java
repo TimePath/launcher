@@ -5,11 +5,9 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.logging.*;
 
-/**
- *
- * @author TimePath
- */
 public class LogAggregator extends Handler {
+
+    private static final Logger LOG = Logger.getLogger(LogAggregator.class.getName());
 
     private final LinkedList<Handler> handlers = new LinkedList<Handler>();
 
@@ -18,9 +16,9 @@ public class LogAggregator extends Handler {
             try {
                 handlers.add(new LogFileHandler());
             } catch(IOException ex) {
-                Logger.getLogger(LogAggregator.class.getName()).log(Level.SEVERE, null, ex);
+                LOG.log(Level.SEVERE, null, ex);
             } catch(SecurityException ex) {
-                Logger.getLogger(LogAggregator.class.getName()).log(Level.SEVERE, null, ex);
+                LOG.log(Level.SEVERE, null, ex);
             }
         }
         handlers.add(new LogIOHandler().connect("5.175.143.139", 28777));
@@ -46,5 +44,6 @@ public class LogAggregator extends Handler {
             h.publish(lr);
         }
     }
+
 
 }

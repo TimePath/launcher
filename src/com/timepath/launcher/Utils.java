@@ -261,12 +261,12 @@ public class Utils {
             }
             str = sb.toString();
         } catch(IOException ex) {
-            Logger.getLogger(Utils.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.SEVERE, null, ex);
         } finally {
             try {
                 is.close();
             } catch(IOException ex) {
-                Logger.getLogger(Utils.class.getName()).log(Level.SEVERE, null, ex);
+                LOG.log(Level.SEVERE, null, ex);
             }
         }
         return str;
@@ -450,13 +450,13 @@ public class Utils {
 //                }
 //                LOG.info("All swing enhancements installed");
 //            } catch(InstantiationException ex) {
-//                Logger.getLogger(HUDEditor.class.getName()).log(Level.SEVERE, null, ex);
+//                LOG.log(Level.SEVERE, null, ex);
 //            } catch(IllegalAccessException ex) {
-//                Logger.getLogger(HUDEditor.class.getName()).log(Level.SEVERE, null, ex);
+//                LOG.log(Level.SEVERE, null, ex);
 //            } catch(UnsupportedLookAndFeelException ex) {
-//                Logger.getLogger(HUDEditor.class.getName()).log(Level.SEVERE, null, ex);
+//                LOG.log(Level.SEVERE, null, ex);
 //            } catch(ClassNotFoundException ex) {
-////                Logger.getLogger(EditorFrame.class.getName()).log(Level.INFO, null, ex);
+////                LOG.log(Level.INFO, null, ex);
 //                LOG.warning("Unable to load enhanced L&F");
 //            }
 //        }

@@ -9,11 +9,9 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.logging.*;
 
-/**
- *
- * @author TimePath
- */
 public class LogIOHandler extends StreamHandler {
+
+    private static final Logger LOG = Logger.getLogger(LogIOHandler.class.getName());
 
     private final LinkedList<LogRecord> ll = new LinkedList<LogRecord>();
 
@@ -38,7 +36,7 @@ public class LogIOHandler extends StreamHandler {
             pw = new PrintWriter(sock.getOutputStream(), true);
             send("+node|" + node);
         } catch(IOException ex) {
-            Logger.getLogger(LogAggregator.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.SEVERE, null, ex);
         }
         return this;
     }
@@ -74,9 +72,10 @@ public class LogIOHandler extends StreamHandler {
 
             String level = lr.getLevel().getName().toLowerCase();
             String message = dateFormat.format(new Date(lr.getMillis())) + ": "
-//                             + lr.getLoggerName() + " => "
-                             + "<" + lr.getSourceClassName() + "::" + lr.getSourceMethodName() + "> "
-                             + lr.getLevel() + ": " + formatMessage(lr);
+                                 //                             + lr.getLoggerName() + " => "
+                                 + "<" + lr.getSourceClassName() + "::" + lr.getSourceMethodName()
+                             + "> "
+                                 + lr.getLevel() + ": " + formatMessage(lr);
             return "+log||" + node + "|" + level + "|" + message;
         }
 

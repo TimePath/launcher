@@ -155,7 +155,7 @@ public class CompositeClassLoader extends ClassLoader {
             }
             return f.getAbsolutePath();
         } catch(IOException ex) {
-            Logger.getLogger(CompositeClassLoader.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.SEVERE, null, ex);
         }
         return super.findLibrary(libname);
     }
