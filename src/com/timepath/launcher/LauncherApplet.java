@@ -13,7 +13,7 @@ public class LauncherApplet extends JApplet {
 
     @Override
     public void init() {
-        LauncherImpl.main("");
+        LauncherMain.main("");
     }
 
 }

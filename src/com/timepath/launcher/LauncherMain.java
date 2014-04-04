@@ -1,5 +1,6 @@
 package com.timepath.launcher;
 
+import com.timepath.launcher.ui.swing.Launcher;
 import com.timepath.launcher.logging.LogAggregator;
 import com.timepath.launcher.util.XMLUtils;
 import java.awt.*;
@@ -30,11 +31,11 @@ import org.w3c.dom.Node;
  * @author TimePath
  */
 @SuppressWarnings("serial")
-public class LauncherImpl extends Launcher {
+public class LauncherMain extends Launcher {
 
     public static final boolean debug = Utils.currentVersion == 0;
 
-    private static final Logger LOG = Logger.getLogger(LauncherImpl.class.getName());
+    private static final Logger LOG = Logger.getLogger(LauncherMain.class.getName());
 
     private static HashMap<String, Program> libs = new HashMap<String, Program>();
 
@@ -131,7 +132,7 @@ public class LauncherImpl extends Launcher {
         EventQueue.invokeLater(new Runnable() {
             @Override
             public void run() {
-                new LauncherImpl().setVisible(true);
+                new LauncherMain().setVisible(true);
                 LOG.log(Level.INFO, "Visible at {0}ms", System.currentTimeMillis() - start);
             }
 
@@ -255,7 +256,7 @@ public class LauncherImpl extends Launcher {
 
     private final HashMap<Program, Long> running = new HashMap<Program, Long>();
 
-    public LauncherImpl() {
+    public LauncherMain() {
         super();
         initComponents();
         initAboutPanel();
@@ -399,7 +400,7 @@ public class LauncherImpl extends Launcher {
 
             public void hierarchyChanged(HierarchyEvent e) {
                 if((e.getChangeFlags() & HierarchyEvent.DISPLAYABILITY_CHANGED) > 0) {
-                    if(LauncherImpl.this.isDisplayable()) {
+                    if(LauncherMain.this.isDisplayable()) {
                         t.start();
                     } else {
                         t.stop();
@@ -463,7 +464,7 @@ public class LauncherImpl extends Launcher {
                     setListModel(listM);
                     LOG.log(Level.INFO, "Listing at {0}ms", System.currentTimeMillis() - start);
                     if(!debug && !isLatest(self)) {
-                        JOptionPane.showMessageDialog(LauncherImpl.this,
+                        JOptionPane.showMessageDialog(LauncherMain.this,
                                                       "Please update", "A new version is available",
                                                       JOptionPane.INFORMATION_MESSAGE, null);
                     }

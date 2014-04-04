@@ -1,5 +1,6 @@
-package com.timepath.launcher;
+package com.timepath.launcher.ui.swing;
 
+import com.timepath.launcher.*;
 import java.awt.Component;
 import java.awt.event.*;
 import java.util.concurrent.Future;
@@ -13,6 +14,8 @@ import javax.swing.event.ListSelectionListener;
  */
 @SuppressWarnings("serial")
 public abstract class Launcher extends JFrame {
+
+    private DownloadManager downloadManager;
 
     public abstract void news(final Program p);
 
@@ -32,7 +35,7 @@ public abstract class Launcher extends JFrame {
 
     public Launcher() {
         initComponents();
-
+        downloadManager = new DownloadManager(this.downloadPanel.tableModel);
         this.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
@@ -108,7 +111,7 @@ public abstract class Launcher extends JFrame {
         programPanel = new javax.swing.JPanel();
         newsScroll = new javax.swing.JScrollPane();
         programLaunch = new javax.swing.JButton();
-        downloadManager = new com.timepath.launcher.DownloadManager();
+        downloadPanel = new com.timepath.launcher.ui.swing.DownloadPanel();
         aboutPanel = new javax.swing.JPanel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
@@ -130,7 +133,7 @@ public abstract class Launcher extends JFrame {
         programSplit.setRightComponent(programPanel);
 
         tabbedPane.addTab("Programs", programSplit);
-        tabbedPane.addTab("Downloads", downloadManager);
+        tabbedPane.addTab("Downloads", downloadPanel);
 
         org.jdesktop.layout.GroupLayout aboutPanelLayout = new org.jdesktop.layout.GroupLayout(aboutPanel);
         aboutPanel.setLayout(aboutPanelLayout);
@@ -161,7 +164,7 @@ public abstract class Launcher extends JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     protected javax.swing.JPanel aboutPanel;
-    private com.timepath.launcher.DownloadManager downloadManager;
+    private com.timepath.launcher.ui.swing.DownloadPanel downloadPanel;
     private javax.swing.JScrollPane newsScroll;
     private javax.swing.JButton programLaunch;
     private javax.swing.JList programList;

@@ -431,7 +431,7 @@ public class Utils {
         try {
             UIManager.setLookAndFeel(theme);
             LOG.log(Level.INFO, "Set theme at {0}ms", System.currentTimeMillis()
-                                                      - LauncherImpl.start);
+                                                      - LauncherMain.start);
         } catch(Exception ex) {
             LOG.log(Level.SEVERE, null, ex);
         }

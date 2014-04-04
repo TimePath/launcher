@@ -107,7 +107,7 @@ public class Program extends Downloadable {
 
     @Override
     public String toString() {
-        return title + (LauncherImpl.debug ? ("(" + downloads + ")" + (!depends.isEmpty() ? (" "
+        return title + (LauncherMain.debug ? ("(" + downloads + ")" + (!depends.isEmpty() ? (" "
                                                                                              + depends
                                                                                              .toString())
                                                                        : "")) : "");
