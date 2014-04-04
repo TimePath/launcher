@@ -369,7 +369,7 @@
 						
 						<ul class="nav navbar-nav navbar-right">
 							<li>
-								<a id="shutdown" href="#" data-placement="bottom" data-original-title="Shutdown">
+								<a id="shutdown" href="/shutdown" data-placement="bottom" data-original-title="Shutdown">
 									<span class="glyphicon glyphicon-off"/>
 								</a>
 							</li>

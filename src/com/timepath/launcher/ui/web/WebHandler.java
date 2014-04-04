@@ -23,11 +23,10 @@ class WebHandler implements HttpHandler {
 
     private static final URL cwd = Server.class.getResource("");
 
-    WebHandler(final Runnable done) {
+    WebHandler() {
         LOG.log(Level.INFO, "cwd: {0}", cwd);
 
-        new Timer().scheduleAtFixedRate(new TimerTask() {
-            private boolean init = false;
+        TimerTask task = new TimerTask() {
 
             @Override
             public void run() {
@@ -44,13 +43,11 @@ class WebHandler implements HttpHandler {
                 } catch(IOException ex) {
                     LOG.log(Level.SEVERE, null, ex);
                 }
-                if(!init) {
-                    done.run();
-                    init = true;
-                }
             }
-        }, 0, EXPIRES_INDEX * 1000);
-
+        };
+        long period = EXPIRES_INDEX * 1000;
+        task.run(); // Ensure synchronous first call
+        new Timer("page-rebuild-timer", true).scheduleAtFixedRate(task, period, period);
     }
 
     public void handle(HttpExchange t) throws IOException {
@@ -159,7 +156,8 @@ class WebHandler implements HttpHandler {
                     os.write(raw);
                     break;
                 case 3:
-                    LOG.log(Level.INFO, "{0} -> {1}", new Object[] {code, conn.getHeaderField("Location")});
+                    LOG.log(Level.INFO, "{0} -> {1}", new Object[] {code, conn.getHeaderField(
+                                                                    "Location")});
                     t.sendResponseHeaders(code, 0); // TODO: redirect
                     break;
                 case 4:
