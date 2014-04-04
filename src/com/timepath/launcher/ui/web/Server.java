@@ -33,7 +33,6 @@ public class Server {
         server.setExecutor(Executors.newCachedThreadPool());
         server.createContext(ENDPOINT_LAUNCH, new LaunchHandler());
         server.createContext(ENDPOINT_SSE, new SSEHandler());
-        server.createContext(ENDPOINT_PROXY, new ProxyHandler());
         server.createContext("/", new WebHandler(new Runnable() {
 
             public void run() {

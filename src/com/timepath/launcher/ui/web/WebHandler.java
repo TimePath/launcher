@@ -33,7 +33,9 @@ class WebHandler implements HttpHandler {
             public void run() {
                 try {
                     Page p = new Page();
-                    String s = transform(getStream("projects.xsl"), new URL("http://dl.dropboxusercontent.com/u/42745598/projects.xml").openStream());
+                    String s = transform(getStream("projects.xsl"), new URL(
+                                         "http://dl.dropboxusercontent.com/u/42745598/projects.xml")
+                                         .openStream());
                     p.data = s.getBytes();
                     p.expires = System.currentTimeMillis() + EXPIRES_INDEX * 1000;
                     cache.put("", p);
@@ -52,8 +54,29 @@ class WebHandler implements HttpHandler {
     }
 
     public void handle(HttpExchange t) throws IOException {
-        LOG.log(Level.INFO, "{0} {1}: {2}", new Object[]{t.getProtocol(), t.getRequestMethod(), t.getRequestURI()});
+
+        LOG.log(Level.INFO, "{0} {1}: {2}", new Object[] {t.getProtocol(), t.getRequestMethod(), t
+                                                          .getRequestURI()});
+        LOG.log(Level.FINE, "{0}", Arrays.toString(t.getRequestHeaders().entrySet().toArray()));
         String request = t.getRequestURI().toString();
+
+        String proxyRequest = null;
+        LOG.fine(Arrays.toString(t.getRequestHeaders().entrySet().toArray()));
+        String ref = t.getRequestHeaders().getFirst("Referer");
+        LOG.log(Level.FINE, "Has referer {0}", ref);
+        if(request.startsWith(Server.ENDPOINT_PROXY)) {
+            proxyRequest = request;
+        } else if(ref != null) {
+            String path = new URL(ref + '/' + request).getPath();
+            if(path.startsWith(Server.ENDPOINT_PROXY)) {
+                proxyRequest = path;
+            }
+        }
+        if(proxyRequest != null) {
+            handleProxy(t, proxyRequest.substring(Server.ENDPOINT_PROXY.length() + 1)); // remove leading '/proxy/'
+            return;
+        }
+
         byte[] bytes = get(request.substring(1));
         Headers headers = t.getResponseHeaders();
         if(request.equals("/")) {
@@ -68,7 +91,7 @@ class WebHandler implements HttpHandler {
         } else {
             headers.set("Content-type", "text/html");
         }
-        
+
         OutputStream os = t.getResponseBody();
         if(bytes != null) {
             t.sendResponseHeaders(HttpURLConnection.HTTP_OK, bytes.length);
@@ -76,6 +99,82 @@ class WebHandler implements HttpHandler {
             os.flush();
         }
         os.close();
+    }
+
+    /**
+     * Handles page requests of the form: 'http://www.something.com'
+     * <p>
+     * @param t
+     * @param loc
+     */
+    public void handleProxy(HttpExchange t, String loc) {
+        LOG.log(Level.INFO, "Proxy: {0}", loc);
+
+        URL url;
+        try {
+            url = new URL(loc);
+        } catch(MalformedURLException ex) {
+            LOG.log(Level.SEVERE, null, ex);
+            return;
+        }
+
+        Headers headIn = t.getRequestHeaders();
+        HttpURLConnection conn;
+        try {
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestProperty("User-Agent", headIn.get("User-Agent").get(0));
+            conn.setRequestMethod(t.getRequestMethod());
+            conn.connect();
+        } catch(IOException ex) {
+            LOG.log(Level.SEVERE, null, ex);
+            return;
+        }
+
+        try {
+            OutputStream os = t.getResponseBody();
+            int code = conn.getResponseCode();
+            int broad = code / 100;
+            switch(broad) {
+                case 2:
+                    String len = conn.getHeaderField("Content-Length");
+                    long size = 0;
+                    try {
+                        size = Long.parseLong(len);
+                    } catch(NumberFormatException e) {
+                    }
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream((int) size);
+                    byte[] buffer = new byte[8192];
+                    InputStream is = new BufferedInputStream(conn.getInputStream(), buffer.length);
+                    int read;
+                    while((read = is.read(buffer)) > -1) {
+                        baos.write(buffer, 0, read);
+                    }
+                    String doc = new String(baos.toByteArray());
+                    String cType = conn.getContentType();
+
+                    byte[] raw = doc.getBytes();
+                    Headers responseHeaders = t.getResponseHeaders();
+                    responseHeaders.set("Content-Type", cType);
+                    t.sendResponseHeaders(code, raw.length); // TODO: proper return code handling
+                    os.write(raw);
+                    break;
+                case 3:
+                    LOG.log(Level.INFO, "{0} -> {1}", new Object[] {code, conn.getHeaderField("Location")});
+                    t.sendResponseHeaders(code, 0); // TODO: redirect
+                    break;
+                case 4:
+                    LOG.log(Level.INFO, "{0}: {1}", new Object[] {code, loc});
+                    t.sendResponseHeaders(code, 0);
+                    break;
+                default:
+                    LOG.log(Level.INFO, "{0}: {1}", new Object[] {code, loc});
+                    t.sendResponseHeaders(code, 0);
+                    break;
+            }
+            os.close();
+        } catch(IOException ex) {
+            LOG.log(Level.SEVERE, null, ex);
+        }
     }
 
     private byte[] get(String request) throws MalformedURLException, IOException {
