@@ -76,8 +76,12 @@ public class Program extends Downloadable {
                 }
                 LOG.log(Level.INFO, "Starting {0} ({1})", new Object[] {this, main});
                 try {
-                    cl.start(main, args.toArray(new String[args.size()]),
-                             classPath().toArray(new URL[0]));
+                    String[] argv = null;
+                    if(args != null) {
+                        argv = args.toArray(new String[args.size()]);
+                    }
+                    Set<URL> cp = classPath();
+                    cl.start(main, argv, cp.toArray(new URL[cp.size()]));
 //                    for(Window w : Window.getWindows()) { // TODO: This will probably come back to haunt me later
 //                        LOG.log(Level.INFO, "{0}  {1}", new Object[] {w, w.isDisplayable()});
 //                        if(!w.isVisible()) {

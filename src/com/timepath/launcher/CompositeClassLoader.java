@@ -29,7 +29,7 @@ public class CompositeClassLoader extends ClassLoader {
     private final HashMap<String, Class<?>> classes = new HashMap<String, Class<?>>();
 
     private final HashMap<String, Enumeration<URL>> enumerations
-                                                    = new HashMap<String, Enumeration<URL>>();
+                                                        = new HashMap<String, Enumeration<URL>>();
 
     private final HashMap<URL, ClassLoader> jars = new HashMap<URL, ClassLoader>();
 
@@ -65,18 +65,23 @@ public class CompositeClassLoader extends ClassLoader {
         }
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public void invokeMain(String name, String[] args) throws ClassNotFoundException,
                                                               NoSuchMethodException,
                                                               InvocationTargetException {
         Class c = loadClass(name);
-        Method m = c.getMethod("main", new Class[] {args.getClass()});
+        Method m = c.getMethod("main", String[].class);
         m.setAccessible(true);
         int mods = m.getModifiers();
         if(m.getReturnType() != void.class || !Modifier.isStatic(mods) || !Modifier.isPublic(mods)) {
             throw new NoSuchMethodException("main");
         }
         try {
-            m.invoke(null, new Object[] {args});
+            String[] argv = args;
+            if(args == null) {
+                argv = new String[0];
+            }
+            m.invoke(null, new Object[] {argv});
         } catch(IllegalAccessException e) {
         }
     }
