@@ -142,19 +142,7 @@ public class Launcher {
         if(!canStart(program)) {
             return;
         }
-        Runnable done = new Runnable() {
-            public void run() {
-                if(program.main == null) {
-                    JOptionPane.showMessageDialog(null, "Restart to apply", "Update downloaded",
-                                                  JOptionPane.INFORMATION_MESSAGE, null);
-                } else {
-                    Thread t = program.createThread(cl);
-                    t.setDaemon(true);
-                    t.start();
-                }
-            }
-        };
-        updateWorker(program, done).execute();
+        update(program);
     }
 
     public Future<?> submitDownload(Downloadable d) {
@@ -244,20 +232,26 @@ public class Launcher {
         return listM;
     }
 
-    private SwingWorker<Void, Void> updateWorker(final Program run, final Runnable r) {
-        return new SwingWorker<Void, Void>() {
+    private void update(final Program run) {
+        new SwingWorker<Boolean, Void>() {
 
             final HashMap<Program, List<Future<?>>> downloads
                                                         = new HashMap<Program, List<Future<?>>>();
 
+            /**
+             * 
+             * @return true if something updated
+             */
             @Override
-            protected Void doInBackground() throws Exception {
+            protected Boolean doInBackground() {
+                boolean updated = false;
                 Set<Program> ps = run.rdepends();
                 LOG.log(Level.INFO, "Download list: {0}", ps.toString());
                 for(Program p : ps) {
                     if(!isLatest(p)) {
                         LOG.log(Level.INFO, "{0} is outdated", p);
                         downloads.put(p, download(p));
+                        updated = true;
                     } else {
                         LOG.log(Level.INFO, "{0} is up to date", p);
                         if(p.self) {
@@ -280,15 +274,27 @@ public class Launcher {
                         LOG.log(Level.SEVERE, null, ex);
                     }
                 }
-                return null;
+                return updated;
             }
 
             @Override
             protected void done() {
-                r.run();
+                boolean updated = false;
+                try {
+                    updated = get();
+                } catch(Exception ignore) {
+                }
+                if(run.main == null && updated) {
+                    JOptionPane.showMessageDialog(null, "Restart to apply", "Update downloaded",
+                                                  JOptionPane.INFORMATION_MESSAGE, null);
+                } else {
+                    Thread t = run.createThread(cl);
+                    t.setDaemon(true);
+                    t.start();
+                }
             }
 
-        };
+        }.execute();
     }
 
 }
