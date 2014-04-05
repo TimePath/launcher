@@ -3,14 +3,13 @@ package com.timepath.launcher;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JEditorPane;
 import javax.swing.JPanel;
+
+import static com.timepath.launcher.Utils.debug;
 
 /**
  *
@@ -43,7 +42,7 @@ public class Program extends Downloadable {
      */
     ArrayList<Downloadable> downloads = new ArrayList<Downloadable>();
 
-    String newsfeedType = "text/html";
+    public String newsfeedType = "text/html";
 
     public HashSet<URL> classPath() {
         HashSet<URL> h = new HashSet<URL>();
@@ -107,10 +106,9 @@ public class Program extends Downloadable {
 
     @Override
     public String toString() {
-        return title + (LauncherMain.debug ? ("(" + downloads + ")" + (!depends.isEmpty() ? (" "
-                                                                                             + depends
-                                                                                             .toString())
-                                                                       : "")) : "");
+        return title + (debug ? ("(" + downloads + ")" + (!depends.isEmpty() ? (" " + depends
+                                                                                .toString()) : ""))
+                        : "");
     }
 
     void setSelf(boolean b) {

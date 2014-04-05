@@ -1,14 +1,9 @@
 package com.timepath.launcher;
 
-import com.timepath.swing.table.ObjectBasedTableModel;
 import java.io.*;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.net.*;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -16,12 +11,20 @@ public class DownloadManager {
 
     private static final Logger LOG = Logger.getLogger(DownloadManager.class.getName());
 
+    private final List<DownloadMonitor> monitors = Collections.synchronizedList(
+        new LinkedList<DownloadMonitor>());
+
     private final ExecutorService pool = Executors.newCachedThreadPool();
 
-    private final ObjectBasedTableModel<Downloadable> tableModel;
+    public DownloadManager() {
+    }
 
-    public DownloadManager(ObjectBasedTableModel<Downloadable> tm) {
-        this.tableModel = tm;
+    public void addListener(DownloadMonitor downloadMonitor) {
+        monitors.add(downloadMonitor);
+    }
+    
+    public void removeListener(DownloadMonitor downloadMonitor) {
+        monitors.remove(downloadMonitor);
     }
 
     public void shutdown() {
@@ -29,18 +32,28 @@ public class DownloadManager {
     }
 
     public Future<?> submit(Downloadable d) {
-        tableModel.add(d);
-        return pool.submit(new DownloadThread(tableModel, d));
+        synchronized(monitors) {
+            Iterator<DownloadMonitor> i = monitors.iterator();
+            while(i.hasNext()) {
+                i.next().submit(d);
+            }
+        }
+        return pool.submit(new DownloadThread(d));
     }
 
-    private static class DownloadThread implements Runnable {
+    public interface DownloadMonitor {
+
+        public void submit(Downloadable d);
+
+        public void update(Downloadable d);
+
+    }
+
+    private class DownloadThread implements Runnable {
 
         private final Downloadable d;
 
-        private final ObjectBasedTableModel<Downloadable> m;
-
-        private DownloadThread(ObjectBasedTableModel<Downloadable> m, Downloadable d) {
-            this.m = m;
+        private DownloadThread(Downloadable d) {
             this.d = d;
         }
 
@@ -49,6 +62,9 @@ public class DownloadManager {
             String[] dl = {d.downloadURL, d.versionURL};
             try {
                 for(String s : dl) {
+                    if(s == null) {
+                        continue;
+                    }
                     URL u = new URI(s).toURL();
                     File f;
                     if(s == dl[0]) {
@@ -82,7 +98,12 @@ public class DownloadManager {
                         fos.write(buffer, 0, read);
                         total += read;
                         d.progress = total;
-                        m.update(d);
+                        synchronized(monitors) {
+                            Iterator<DownloadMonitor> i = monitors.iterator();
+                            while(i.hasNext()) {
+                                i.next().update(d);
+                            }
+                        }
                     }
                     fos.flush();
                     fos.close();

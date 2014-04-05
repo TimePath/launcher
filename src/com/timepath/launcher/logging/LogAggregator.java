@@ -1,9 +1,10 @@
 package com.timepath.launcher.logging;
 
-import com.timepath.launcher.LauncherMain;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.logging.*;
+
+import static com.timepath.launcher.Utils.debug;
 
 public class LogAggregator extends Handler {
 
@@ -12,7 +13,7 @@ public class LogAggregator extends Handler {
     private final LinkedList<Handler> handlers = new LinkedList<Handler>();
 
     public LogAggregator() {
-        if(!LauncherMain.debug) {
+        if(!debug) {
             try {
                 handlers.add(new LogFileHandler());
             } catch(IOException ex) {
@@ -44,6 +45,5 @@ public class LogAggregator extends Handler {
             h.publish(lr);
         }
     }
-
 
 }

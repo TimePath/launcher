@@ -93,7 +93,7 @@ public class CompositeClassLoader extends ClassLoader {
     }
 
     private <A, B> B reflect(Map<A, B> cache, String method, A key) {
-        LOG.log(Level.INFO, "{0}: {1}", new Object[] {method, key});
+        LOG.log(Level.FINE, "{0}: {1}", new Object[] {method, key});
         B ret = cache.get(key);
         if(cache.containsKey(key)) {
             return ret;

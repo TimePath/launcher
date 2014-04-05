@@ -2,6 +2,7 @@ package com.timepath.launcher;
 
 import java.awt.Desktop;
 import java.io.*;
+import java.lang.management.ManagementFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.*;
@@ -61,6 +62,8 @@ public class Utils {
     public static boolean runningTemp = false;
 
     public static final Preferences settings = Preferences.userRoot().node("timepath");
+
+    public static long start = ManagementFactory.getRuntimeMXBean().getStartTime();
 
     private static final Logger LOG = Logger.getLogger(Utils.class.getName());
 
@@ -218,7 +221,7 @@ public class Utils {
     public static void fork(File mainJar, List<String> args, String main) {
         try {
             String jreBin = System.getProperty("java.home") + File.separator + "bin"
-                            + File.separator + "java";
+                                + File.separator + "java";
             ArrayList<String> cmd = new ArrayList<String>();
             cmd.add(jreBin);
             if(args != null) {
@@ -292,7 +295,7 @@ public class Utils {
                     String text = URLEncoder.encode(str, "UTF-8");
                     String urlParameters = "filename=" + name + "&message=" + text;
                     debug("Uploading (" + Integer.toString(urlParameters.getBytes().length) + "):\n"
-                          + text);
+                              + text);
                     final URL submitURL = new URL(
                         "http://dbinbox.com/send/TimePath/" + dir);
                     HttpURLConnection connection = (HttpURLConnection) submitURL.openConnection();
@@ -430,8 +433,7 @@ public class Utils {
 
         try {
             UIManager.setLookAndFeel(theme);
-            LOG.log(Level.INFO, "Set theme at {0}ms", System.currentTimeMillis()
-                                                      - LauncherMain.start);
+            LOG.log(Level.INFO, "Set theme at {0}ms", System.currentTimeMillis() - start);
         } catch(Exception ex) {
             LOG.log(Level.SEVERE, null, ex);
         }
@@ -463,6 +465,8 @@ public class Utils {
         //</editor-fold>
         //</editor-fold>
     }
+
+    public static final boolean debug = currentVersion == 0;
 
     public String getMainClassName(URL url) throws IOException {
         URL u = new URL("jar", "", url + "!/");
