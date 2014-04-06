@@ -26,10 +26,14 @@ import static com.timepath.launcher.Utils.start;
 @SuppressWarnings("serial")
 public class LauncherFrame extends JFrame {
 
-    Launcher launcher;
-
     private static final Logger LOG = Logger.getLogger(LauncherFrame.class.getName());
 
+    private Launcher launcher;
+
+    public void display(Component c) {
+        newsScroll.setViewportView(c);
+    }
+    
     public void news(final Program p) {
         if(p.panel != null) {
             display(p.panel);
@@ -77,20 +81,18 @@ public class LauncherFrame extends JFrame {
         }
     }
 
+    public void setListModel(ListModel<Program> m) {
+        programList.setModel(m);
+    }
+    
     public void start(final Program program) {
         launcher.start(program);
     }
 
-    public void display(Component c) {
-        newsScroll.setViewportView(c);
-    }
-
-    public void setListModel(ListModel<Program> m) {
-        programList.setModel(m);
-    }
-
     public LauncherFrame(final Launcher launcher) {
         initComponents();
+        this.newsScroll.getVerticalScrollBar().setUnitIncrement(16);
+        
         initAboutPanel();
         LOG.log(Level.INFO, "Created UI at {0}ms", System.currentTimeMillis() - start);
 
