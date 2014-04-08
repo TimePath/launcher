@@ -12,6 +12,7 @@ class LaunchHandler implements HttpHandler {
 
     private static final Logger LOG = Logger.getLogger(LaunchHandler.class.getName());
 
+    @Override
     public void handle(HttpExchange t) throws IOException {
         Runtime.getRuntime().exec("konsole");
     }

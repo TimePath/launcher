@@ -5,19 +5,20 @@ import java.io.PrintWriter;
 import java.lang.management.ManagementFactory;
 import java.net.Socket;
 import java.text.DateFormat;
-import java.util.Date;
-import java.util.LinkedList;
+import java.text.MessageFormat;
+import java.util.*;
 import java.util.logging.*;
+import java.util.logging.Formatter;
 
 public class LogIOHandler extends StreamHandler {
 
     private static final Logger LOG = Logger.getLogger(LogIOHandler.class.getName());
 
-    private final LinkedList<LogRecord> ll = new LinkedList<LogRecord>();
-
-    private final String node = ManagementFactory.getRuntimeMXBean().getName(); // unique
+    private final LinkedList<LogRecord> ll = new LinkedList<>();
 
     private PrintWriter pw;
+
+    protected final String node = ManagementFactory.getRuntimeMXBean().getName(); // unique
 
     public LogIOHandler() {
         this.setFormatter(new LogIOFormatter());
@@ -71,11 +72,11 @@ public class LogIOHandler extends StreamHandler {
             }
 
             String level = lr.getLevel().getName().toLowerCase();
-            String message = dateFormat.format(new Date(lr.getMillis())) + ": "
-                                 //                             + lr.getLoggerName() + " => "
-                                 + "<" + lr.getSourceClassName() + "::" + lr.getSourceMethodName()
-                             + "> "
-                                 + lr.getLevel() + ": " + formatMessage(lr);
+            String message = MessageFormat.format("{0}: <{2}::{3}> {4}: {5}",
+                                                  dateFormat.format(new Date(lr.getMillis())),
+                                                  lr.getLoggerName(), lr.getSourceClassName(),
+                                                  lr.getSourceMethodName(), lr.getLevel(),
+                                                  formatMessage(lr));
             return "+log||" + node + "|" + level + "|" + message;
         }
 

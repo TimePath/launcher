@@ -1,7 +1,7 @@
 package com.timepath.launcher.ui.web;
 
 import com.sun.net.httpserver.*;
-import com.timepath.launcher.Utils;
+import com.timepath.launcher.util.Utils;
 import java.io.IOException;
 import java.net.*;
 import java.util.concurrent.*;
@@ -11,7 +11,7 @@ import javax.swing.event.HyperlinkEvent;
 
 /**
  * http://grepcode.com/file/repository.grepcode.com/java/root/jdk/openjdk/6-b14/com/sun/net/httpserver/HttpServer.java
- * <p>
+ * <p/>
  * @author TimePath
  */
 public class Server extends Thread {
@@ -51,14 +51,7 @@ public class Server extends Thread {
 
         final CountDownLatch latch = new CountDownLatch(1);
 
-        ExecutorService threadPool = Executors.newCachedThreadPool(new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable runnable) {
-                Thread thread = Executors.defaultThreadFactory().newThread(runnable);
-                thread.setDaemon(true);
-                return thread;
-            }
-        });
+        ExecutorService threadPool = Executors.newCachedThreadPool(new DaemonThreadFactory());
         server.setExecutor(threadPool);
 
         server.createContext("/", new WebHandler());
@@ -66,6 +59,7 @@ public class Server extends Thread {
         server.createContext(ENDPOINT_SSE, new SSEHandler());
         server.createContext(ENDPOINT_SHUTDOWN, new HttpHandler() {
 
+            @Override
             public void handle(HttpExchange exchange) throws IOException {
                 LOG.log(Level.INFO, "Shutting down");
                 server.stop(0);
@@ -91,6 +85,17 @@ public class Server extends Thread {
         } catch(InterruptedException ignore) {
         }
         LOG.log(Level.INFO, "Exiting");
+    }
+
+    private static class DaemonThreadFactory implements ThreadFactory {
+
+        @Override
+        public Thread newThread(Runnable runnable) {
+            Thread thread = Executors.defaultThreadFactory().newThread(runnable);
+            thread.setDaemon(true);
+            return thread;
+        }
+
     }
 
 }

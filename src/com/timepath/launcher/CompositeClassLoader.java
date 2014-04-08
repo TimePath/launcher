@@ -1,16 +1,11 @@
 package com.timepath.launcher;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.nio.channels.Channels;
-import java.nio.channels.FileChannel;
-import java.nio.channels.ReadableByteChannel;
+import java.io.*;
+import java.lang.reflect.*;
+import java.net.*;
+import java.nio.channels.*;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -25,20 +20,18 @@ public class CompositeClassLoader extends ClassLoader {
 
     public static final Logger LOG = Logger.getLogger(CompositeClassLoader.class.getName());
 
-    //<editor-fold defaultstate="collapsed" desc="Overriding methods and caches">
-    private final HashMap<String, Class<?>> classes = new HashMap<String, Class<?>>();
+    private final Map<String, Class<?>> classes = new HashMap<>();
 
-    private final HashMap<String, Enumeration<URL>> enumerations
-                                                        = new HashMap<String, Enumeration<URL>>();
+    private final Map<String, Enumeration<URL>> enumerations = new HashMap<>();
 
-    private final HashMap<URL, ClassLoader> jars = new HashMap<URL, ClassLoader>();
+    private final Map<URI, ClassLoader> jars = new HashMap<>();
 
-    private final HashMap<String, String> libraries = new HashMap<String, String>();
+    private final Map<String, String> libraries = new HashMap<>();
 
     private final List<ClassLoader> loaders = Collections.synchronizedList(
-        new ArrayList<ClassLoader>());
+        new LinkedList<ClassLoader>());
 
-    private final HashMap<String, URL> resources = new HashMap<String, URL>();
+    private final Map<String, URL> resources = new HashMap<>();
 
     {
         add(Object.class.getClassLoader()); // bootstrap
@@ -49,18 +42,30 @@ public class CompositeClassLoader extends ClassLoader {
         loaders.add(0, loader); // newest on top
     }
 
-    public void add(URL u) {
-        if(jars.containsKey(u)) {
+    public void add(URI uri) {
+        if(jars.containsKey(uri)) {
             return;
         }
-        URLClassLoader ucl = URLClassLoader.newInstance(new URL[] {u}, this);
+        final URL url;
+        try {
+            url = uri.toURL();
+        } catch(MalformedURLException ex) {
+            LOG.log(Level.SEVERE, null, ex);
+            return;
+        }
+        URLClassLoader ucl = AccessController.doPrivileged(new PrivilegedAction<URLClassLoader>() {
+            @Override
+            public URLClassLoader run() {
+                return URLClassLoader.newInstance(new URL[] {url}, CompositeClassLoader.this);
+            }
+        });
         ClassLoader cl = ucl;
-        jars.put(u, cl);
+        jars.put(uri, cl);
         add(cl);
     }
 
-    public void add(URL[] urls) {
-        for(URL u : urls) {
+    public void add(URI[] urls) {
+        for(URI u : urls) {
             add(u);
         }
     }
@@ -71,7 +76,6 @@ public class CompositeClassLoader extends ClassLoader {
                                                               InvocationTargetException {
         Class c = loadClass(name);
         Method m = c.getMethod("main", String[].class);
-        m.setAccessible(true);
         int mods = m.getModifiers();
         if(m.getReturnType() != void.class || !Modifier.isStatic(mods) || !Modifier.isPublic(mods)) {
             throw new NoSuchMethodException("main");
@@ -86,7 +90,7 @@ public class CompositeClassLoader extends ClassLoader {
         }
     }
 
-    public void start(String name, String[] args, URL[] urls) {
+    public void start(String name, String[] args, URI[] urls) {
         LOG.log(Level.INFO, "{0} {1} {2}", new Object[] {name, Arrays.toString(args),
                                                          Arrays.toString(urls)});
         add(urls);
@@ -164,7 +168,6 @@ public class CompositeClassLoader extends ClassLoader {
         }
         return super.findLibrary(libname);
     }
-    //</editor-fold>
 
     @Override
     protected URL findResource(String name) {

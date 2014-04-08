@@ -2,6 +2,7 @@ package com.timepath.launcher;
 
 import com.timepath.launcher.logging.LogAggregator;
 import com.timepath.launcher.ui.swing.LauncherFrame;
+import com.timepath.launcher.util.Utils;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.lang.management.ManagementFactory;
 import java.security.*;
@@ -10,8 +11,8 @@ import java.util.logging.*;
 import javax.swing.JApplet;
 import javax.swing.SwingUtilities;
 
-import static com.timepath.launcher.Utils.debug;
-import static com.timepath.launcher.Utils.start;
+import static com.timepath.launcher.util.Utils.debug;
+import static com.timepath.launcher.util.Utils.start;
 
 /**
  *

@@ -1,7 +1,7 @@
 package com.timepath.launcher.ui.swing;
 
 import com.timepath.launcher.*;
-import com.timepath.launcher.DownloadManager.DownloadMonitor;
+import com.timepath.launcher.util.Utils;
 import java.awt.*;
 import java.awt.event.*;
 import java.net.URL;
@@ -16,8 +16,8 @@ import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-import static com.timepath.launcher.Utils.debug;
-import static com.timepath.launcher.Utils.start;
+import static com.timepath.launcher.util.Utils.debug;
+import static com.timepath.launcher.util.Utils.start;
 
 /**
  *
@@ -70,9 +70,7 @@ public class LauncherFrame extends JFrame {
                     try {
                         p.panel.remove(initial);
                         p.panel.add(get());
-                    } catch(InterruptedException ex) {
-                        LOG.log(Level.SEVERE, null, ex);
-                    } catch(ExecutionException ex) {
+                    } catch(InterruptedException | ExecutionException ex) {
                         LOG.log(Level.SEVERE, null, ex);
                     }
                 }
@@ -99,10 +97,12 @@ public class LauncherFrame extends JFrame {
         this.launcher = launcher;
         launcher.downloadManager.addListener(new DownloadMonitor() {
 
+            @Override
             public void submit(Downloadable d) {
                 LauncherFrame.this.downloadPanel.tableModel.add(d);
             }
 
+            @Override
             public void update(Downloadable d) {
                 LauncherFrame.this.downloadPanel.tableModel.update(d);
             }
@@ -132,6 +132,7 @@ public class LauncherFrame extends JFrame {
         });
 
         programLaunch.addActionListener(new ActionListener() {
+            @Override
             public void actionPerformed(ActionEvent e) {
                 Program p = (Program) programList.getSelectedValue();
                 if(p == null) {
@@ -191,9 +192,7 @@ public class LauncherFrame extends JFrame {
                                                       "Please update", "A new version is available",
                                                       JOptionPane.INFORMATION_MESSAGE, null);
                     }
-                } catch(InterruptedException ex) {
-                    LOG.log(Level.SEVERE, null, ex);
-                } catch(ExecutionException ex) {
+                } catch(InterruptedException | ExecutionException ex) {
                     LOG.log(Level.SEVERE, null, ex);
                 }
             }
@@ -245,6 +244,7 @@ public class LauncherFrame extends JFrame {
         t.setInitialDelay(0);
         this.addHierarchyListener(new HierarchyListener() {
 
+            @Override
             public void hierarchyChanged(HierarchyEvent e) {
                 if((e.getChangeFlags() & HierarchyEvent.DISPLAYABILITY_CHANGED) > 0) {
                     if(LauncherFrame.this.isDisplayable()) {

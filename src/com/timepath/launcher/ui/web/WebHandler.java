@@ -38,9 +38,7 @@ class WebHandler implements HttpHandler {
                     p.data = s.getBytes();
                     p.expires = System.currentTimeMillis() + EXPIRES_INDEX * 1000;
                     cache.put("", p);
-                } catch(TransformerException ex) {
-                    LOG.log(Level.SEVERE, null, ex);
-                } catch(IOException ex) {
+                } catch(TransformerException | IOException ex) {
                     LOG.log(Level.SEVERE, null, ex);
                 }
             }
@@ -50,10 +48,11 @@ class WebHandler implements HttpHandler {
         new Timer("page-rebuild-timer", true).scheduleAtFixedRate(task, period, period);
     }
 
+    @Override
     public void handle(HttpExchange t) throws IOException {
 
-        LOG.log(Level.INFO, "{0} {1}: {2}", new Object[] {t.getProtocol(), t.getRequestMethod(), t
-                                                          .getRequestURI()});
+        LOG.log(Level.INFO, "{0} {1}: {2}", new Object[] {t.getProtocol(), t.getRequestMethod(),
+                                                          t.getRequestURI()});
         LOG.log(Level.FINE, "{0}", Arrays.toString(t.getRequestHeaders().entrySet().toArray()));
         String request = t.getRequestURI().toString();
 
@@ -89,18 +88,18 @@ class WebHandler implements HttpHandler {
             headers.set("Content-type", "text/html");
         }
 
-        OutputStream os = t.getResponseBody();
-        if(bytes != null) {
-            t.sendResponseHeaders(HttpURLConnection.HTTP_OK, bytes.length);
-            os.write(bytes);
-            os.flush();
+        try(OutputStream os = t.getResponseBody()) {
+            if(bytes != null) {
+                t.sendResponseHeaders(HttpURLConnection.HTTP_OK, bytes.length);
+                os.write(bytes);
+                os.flush();
+            }
         }
-        os.close();
     }
 
     /**
      * Handles page requests of the form: 'http://www.something.com'
-     * <p>
+     * <p/>
      * @param t
      * @param loc
      */
@@ -127,18 +126,12 @@ class WebHandler implements HttpHandler {
             return;
         }
 
-        try {
-            OutputStream os = t.getResponseBody();
+        try(OutputStream os = t.getResponseBody()) {
             int code = conn.getResponseCode();
             int broad = code / 100;
             switch(broad) {
                 case 2:
-                    String len = conn.getHeaderField("Content-Length");
-                    long size = 0;
-                    try {
-                        size = Long.parseLong(len);
-                    } catch(NumberFormatException e) {
-                    }
+                    long size = conn.getContentLengthLong();
                     ByteArrayOutputStream baos = new ByteArrayOutputStream((int) size);
                     byte[] buffer = new byte[8192];
                     InputStream is = new BufferedInputStream(conn.getInputStream(), buffer.length);
@@ -156,20 +149,15 @@ class WebHandler implements HttpHandler {
                     os.write(raw);
                     break;
                 case 3:
-                    LOG.log(Level.INFO, "{0} -> {1}", new Object[] {code, conn.getHeaderField(
-                                                                    "Location")});
+                    LOG.log(Level.INFO, "{0} -> {1}", new Object[] {code,
+                                                                    conn.getHeaderField("Location")});
                     t.sendResponseHeaders(code, 0); // TODO: redirect
-                    break;
-                case 4:
-                    LOG.log(Level.INFO, "{0}: {1}", new Object[] {code, loc});
-                    t.sendResponseHeaders(code, 0);
                     break;
                 default:
                     LOG.log(Level.INFO, "{0}: {1}", new Object[] {code, loc});
                     t.sendResponseHeaders(code, 0);
                     break;
             }
-            os.close();
         } catch(IOException ex) {
             LOG.log(Level.SEVERE, null, ex);
         }
@@ -226,7 +214,7 @@ class WebHandler implements HttpHandler {
         return byteArray.toString();
     }
 
-    private class Page {
+    private static class Page {
 
         byte[] data;
 

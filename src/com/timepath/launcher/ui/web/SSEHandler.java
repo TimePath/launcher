@@ -17,6 +17,7 @@ class SSEHandler implements HttpHandler {
 
     private static final Logger LOG = Logger.getLogger(SSEHandler.class.getName());
 
+    @Override
     public void handle(HttpExchange t) throws IOException {
         final String response = "Ping";
         Headers head = t.getResponseHeaders();
@@ -34,18 +35,14 @@ class SSEHandler implements HttpHandler {
                         os.flush();
                         Thread.sleep(10000);
                     }
-                } catch(Exception e) {
+                } catch(IOException | InterruptedException ex) {
                     try {
                         os.close();
-                    } catch(Exception e2) {
+                    } catch(IOException ex2) {
                     }
                 }
             }
         }.start();
-    }
-
-    private String event(String message) {
-        return event(message, null);
     }
 
     private String event(String message, String type) {
@@ -57,25 +54,30 @@ class SSEHandler implements HttpHandler {
         if(message == null) {
             return type;
         }
-        
+
         String[] lines = message.split("\n");
-        
-        int size = (1 + message.length() + (lines.length * 6)) + (type != null ? 7 + type.length() : 0) + 1;
+
+        int size = (1 + message.length() + (lines.length * 6))
+                       + (type != null ? 7 + type.length() : 0) + 1;
         StringBuilder sb = new StringBuilder(size);
-        
+
         // Named event
         if(type != null) {
             sb.append("event: ").append(type).append('\n');
         }
-        
+
         // \n handling
         for(String line : lines) {
             sb.append("data: ").append(line).append('\n');
         }
-        
+
         sb.append('\n');
-        
+
         return sb.toString();
+    }
+
+    protected String event(String message) {
+        return event(message, null);
     }
 
 }

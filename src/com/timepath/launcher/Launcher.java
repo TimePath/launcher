@@ -1,19 +1,23 @@
 package com.timepath.launcher;
 
+import com.timepath.launcher.util.Utils;
 import com.timepath.launcher.util.XMLUtils;
 import java.io.*;
 import java.net.*;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.logging.*;
 import javax.swing.*;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.*;
 import org.w3c.dom.Node;
+import org.xml.sax.SAXException;
 
-import static com.timepath.launcher.Utils.debug;
-import static com.timepath.launcher.Utils.start;
+import static com.timepath.launcher.util.Utils.debug;
+import static com.timepath.launcher.util.Utils.start;
 
 public class Launcher {
 
@@ -21,15 +25,24 @@ public class Launcher {
 
     public DownloadManager downloadManager = new DownloadManager();
 
-    private final CompositeClassLoader cl = new CompositeClassLoader();
+    private final CompositeClassLoader cl;
 
-    private final HashMap<String, Program> libs = new HashMap<String, Program>();
+    private final Map<String, Program> libs = new HashMap<>();
 
-    private final HashMap<Program, Long> running = new HashMap<Program, Long>();
+    private final Map<Program, Long> running = new HashMap<>();
 
     private Program self;
 
     private final String updateName = "update.tmp";
+
+    public Launcher() {
+        cl = AccessController.doPrivileged(new PrivilegedAction<CompositeClassLoader>() {
+            @Override
+            public CompositeClassLoader run() {
+                return new CompositeClassLoader();
+            }
+        });
+    }
 
     /**
      * Prevent running multiple times within a few seconds
@@ -149,8 +162,8 @@ public class Launcher {
         return downloadManager.submit(d);
     }
 
-    private ArrayList<Future<?>> download(Program p) {
-        ArrayList<Future<?>> arr = new ArrayList<Future<?>>();
+    private List<Future<?>> download(Program p) {
+        List<Future<?>> arr = new LinkedList<>();
         for(Downloadable d : p.downloads) {
             arr.add(submitDownload(d));
         }
@@ -158,7 +171,7 @@ public class Launcher {
     }
 
     private ListModel<Program> parseXML(InputStream is) {
-        DefaultListModel<Program> listM = new DefaultListModel<Program>();
+        DefaultListModel<Program> listM = new DefaultListModel<>();
         try {
             DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
@@ -168,7 +181,7 @@ public class Launcher {
 
             String[] nodes = {"self", "libs", "programs"};
             for(String n : nodes) {
-                ArrayList<Node> programs = XMLUtils.getElements("root/" + n + "/entry", root);
+                List<Node> programs = XMLUtils.getElements("root/" + n + "/entry", root);
                 for(Node entry : programs) {
                     //<editor-fold defaultstate="collapsed" desc="Parse">
                     Program p = new Program();
@@ -196,7 +209,7 @@ public class Launcher {
                         p.newsfeedURL = XMLUtils.getAttribute(news, "url");
                     }
 
-                    ArrayList<Node> downloads = XMLUtils.getElements("download", entry);
+                    List<Node> downloads = XMLUtils.getElements("download", entry);
                     // downloadURL
                     for(Node download : downloads) {
                         Node checksum = Utils.last(XMLUtils.getElements("checksum", entry));
@@ -226,7 +239,7 @@ public class Launcher {
                     }
                 }
             }
-        } catch(Exception ex) {
+        } catch(IOException | ParserConfigurationException | SAXException ex) {
             LOG.log(Level.SEVERE, null, ex);
         }
         return listM;
@@ -235,11 +248,10 @@ public class Launcher {
     private void update(final Program run) {
         new SwingWorker<Boolean, Void>() {
 
-            final HashMap<Program, List<Future<?>>> downloads
-                                                        = new HashMap<Program, List<Future<?>>>();
+            final Map<Program, List<Future<?>>> downloads = new HashMap<>();
 
             /**
-             * 
+             *
              * @return true if something updated
              */
             @Override
@@ -270,7 +282,7 @@ public class Launcher {
                             future.get(); // wait for download
                         }
                         LOG.log(Level.INFO, "Updated {0}", p);
-                    } catch(Exception ex) {
+                    } catch(InterruptedException | ExecutionException ex) {
                         LOG.log(Level.SEVERE, null, ex);
                     }
                 }
@@ -282,7 +294,7 @@ public class Launcher {
                 boolean updated = false;
                 try {
                     updated = get();
-                } catch(Exception ignore) {
+                } catch(InterruptedException | ExecutionException ignore) {
                 }
                 if(run.main == null && updated) {
                     JOptionPane.showMessageDialog(null, "Restart to apply", "Update downloaded",

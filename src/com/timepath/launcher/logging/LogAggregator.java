@@ -2,23 +2,22 @@ package com.timepath.launcher.logging;
 
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.logging.*;
 
-import static com.timepath.launcher.Utils.debug;
+import static com.timepath.launcher.util.Utils.debug;
 
 public class LogAggregator extends Handler {
 
     private static final Logger LOG = Logger.getLogger(LogAggregator.class.getName());
 
-    private final LinkedList<Handler> handlers = new LinkedList<Handler>();
+    private final List<Handler> handlers = new LinkedList<>();
 
     public LogAggregator() {
         if(!debug) {
             try {
                 handlers.add(new LogFileHandler());
-            } catch(IOException ex) {
-                LOG.log(Level.SEVERE, null, ex);
-            } catch(SecurityException ex) {
+            } catch(IOException | SecurityException ex) {
                 LOG.log(Level.SEVERE, null, ex);
             }
         }

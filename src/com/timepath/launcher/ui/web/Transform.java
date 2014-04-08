@@ -11,7 +11,7 @@ import javax.xml.transform.stream.StreamSource;
 
 /**
  * Uses JAXP to transform xml with xsl
- * <p>
+ * <p/>
  * @author TimePath
  */
 public class Transform {

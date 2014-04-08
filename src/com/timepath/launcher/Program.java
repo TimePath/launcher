@@ -1,15 +1,14 @@
 package com.timepath.launcher;
 
 import java.io.File;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.*;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JEditorPane;
 import javax.swing.JPanel;
 
-import static com.timepath.launcher.Utils.debug;
+import static com.timepath.launcher.util.Utils.debug;
 
 /**
  *
@@ -23,11 +22,18 @@ public class Program extends Downloadable {
 
     public String changelogData;
 
-    public HashSet<Program> depends = new HashSet<Program>();
+    public Set<Program> depends = new HashSet<>();
+
+    /**
+     * A map of downloads to checksums. TODO: allow for versions
+     */
+    public List<Downloadable> downloads = new LinkedList<>();
 
     public JEditorPane jEditorPane;
 
     public String main;
+
+    public String newsfeedType = "text/html";
 
     public String newsfeedURL;
 
@@ -37,39 +43,24 @@ public class Program extends Downloadable {
 
     public String title;
 
-    /**
-     * A map of downloads to checksums. TODO: allow for versions
-     */
-    ArrayList<Downloadable> downloads = new ArrayList<Downloadable>();
-
-    public String newsfeedType = "text/html";
-
-    public HashSet<URL> classPath() {
-        HashSet<URL> h = new HashSet<URL>();
+    public Set<URI> classPath() {
+        Set<URI> h = new HashSet<>();
         for(Downloadable d : downloads) {
-            try {
-                h.add(d.file().toURI().toURL());
-            } catch(MalformedURLException ex) {
-                LOG.log(Level.SEVERE, null, ex);
-            }
+            h.add(d.file().toURI());
         }
         for(Program p : depends) {
             h.addAll(p.classPath());
         }
         File f = file();
         if(f != null) {
-            try {
-                URL u = f.toURI().toURL();
-                h.add(u);
-            } catch(MalformedURLException ex) {
-                LOG.log(Level.SEVERE, null, ex);
-            }
+            h.add(f.toURI());
         }
         return h;
     }
 
     public Thread createThread(final CompositeClassLoader cl) {
         return new Thread(new Runnable() {
+            @Override
             public void run() {
                 if(main == null) {
                     return; // Not executable
@@ -80,8 +71,8 @@ public class Program extends Downloadable {
                     if(args != null) {
                         argv = args.toArray(new String[args.size()]);
                     }
-                    Set<URL> cp = classPath();
-                    cl.start(main, argv, cp.toArray(new URL[cp.size()]));
+                    Set<URI> cp = classPath();
+                    cl.start(main, argv, cp.toArray(new URI[cp.size()]));
 //                    for(Window w : Window.getWindows()) { // TODO: This will probably come back to haunt me later
 //                        LOG.log(Level.INFO, "{0}  {1}", new Object[] {w, w.isDisplayable()});
 //                        if(!w.isVisible()) {
@@ -95,8 +86,16 @@ public class Program extends Downloadable {
         });
     }
 
+    public void setSelf(boolean b) {
+        self = b;
+        programDirectory = null;
+        for(Downloadable d : downloads) {
+            d.programDirectory = null;
+        }
+    }
+
     public Set<Program> rdepends() {
-        HashSet<Program> h = new HashSet<Program>();
+        Set<Program> h = new HashSet<>();
         // Add all parent dependencies first
         for(Program p : depends) {
             h.addAll(p.rdepends());
@@ -113,14 +112,6 @@ public class Program extends Downloadable {
         return title + (debug ? ("(" + downloads + ")" + (!depends.isEmpty() ? (" " + depends
                                                                                 .toString()) : ""))
                         : "");
-    }
-
-    void setSelf(boolean b) {
-        self = b;
-        programDirectory = null;
-        for(Downloadable d : downloads) {
-            d.programDirectory = null;
-        }
     }
 
 }

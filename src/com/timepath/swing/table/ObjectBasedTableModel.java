@@ -1,21 +1,19 @@
 package com.timepath.swing.table;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import javax.swing.table.AbstractTableModel;
 
 /**
  *
  * @author TimePath
- * @param <O>
+ * @param <E>
  */
 @SuppressWarnings("serial")
-public abstract class ObjectBasedTableModel<O> extends AbstractTableModel {
+public abstract class ObjectBasedTableModel<E> extends AbstractTableModel {
 
     private final List<String> columns = Arrays.asList(columns());
 
-    private final ArrayList<O> rows = new ArrayList<O>();
+    private final List<E> rows = new LinkedList<>();
 
     public ObjectBasedTableModel() {
 
@@ -28,7 +26,7 @@ public abstract class ObjectBasedTableModel<O> extends AbstractTableModel {
      * <p>
      * @return true if added
      */
-    public boolean add(O o) {
+    public boolean add(E o) {
         int idx = rows.indexOf(o);
         if(idx >= 0) {
             return false;
@@ -48,13 +46,9 @@ public abstract class ObjectBasedTableModel<O> extends AbstractTableModel {
      * <p>
      * @return the property
      */
-    public abstract Object get(O o, int columnIndex);
+    public abstract Object get(E o, int columnIndex);
 
     @Override
-    public Class<?> getColumnClass(int columnIndex) {
-        return super.getColumnClass(columnIndex);
-    }
-
     public int getColumnCount() {
         return columns.size();
     }
@@ -70,10 +64,12 @@ public abstract class ObjectBasedTableModel<O> extends AbstractTableModel {
         return super.getColumnName(column);
     }
 
+    @Override
     public int getRowCount() {
         return rows.size();
     }
 
+    @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         return get(rows.get(rowIndex), columnIndex);
     }
@@ -85,7 +81,7 @@ public abstract class ObjectBasedTableModel<O> extends AbstractTableModel {
      * <p>
      * @return true if removed
      */
-    public boolean remove(O o) {
+    public boolean remove(E o) {
         int idx = rows.indexOf(o);
         if(idx < 0) {
             return false;
@@ -102,7 +98,7 @@ public abstract class ObjectBasedTableModel<O> extends AbstractTableModel {
      * <p>
      * @return true if not updated (because the Object isn't in the model)
      */
-    public boolean update(O o) {
+    public boolean update(E o) {
         int idx = rows.indexOf(o);
         if(idx < 0) {
             return false;

@@ -1,4 +1,4 @@
-package com.timepath.launcher;
+package com.timepath.launcher.util;
 
 import java.awt.Desktop;
 import java.io.*;
@@ -11,15 +11,14 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.text.MessageFormat;
+import java.util.*;
 import java.util.jar.Attributes;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.prefs.Preferences;
 import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 
@@ -33,7 +32,10 @@ public class Utils {
 
     public static final long currentVersion = Utils.version();
 
-    public static HyperlinkListener linkListener = new HyperlinkListener() {
+    public static final boolean debug = currentVersion == 0;
+
+    public static final HyperlinkListener linkListener = new HyperlinkListener() {
+        @Override
         public void hyperlinkUpdate(HyperlinkEvent he) {
             if(!Desktop.isDesktopSupported()) {
                 return;
@@ -44,26 +46,24 @@ public class Utils {
             }
             if(d.isSupported(Desktop.Action.BROWSE)) {
                 try {
-                    URI u = null;
+                    URI u;
                     URL l = he.getURL();
-                    if(l == null) {
-                        u = new URI(he.getDescription());
-                    } else if(u == null) {
+                    if(l != null) {
                         u = l.toURI();
+                    } else {
+                        u = new URI(he.getDescription());
                     }
                     d.browse(u);
-                } catch(Exception ex) {
+                } catch(IOException | URISyntaxException ex) {
                     LOG.log(Level.WARNING, null, ex);
                 }
             }
         }
     };
 
-    public static boolean runningTemp = false;
-
     public static final Preferences settings = Preferences.userRoot().node("timepath");
 
-    public static long start = ManagementFactory.getRuntimeMXBean().getStartTime();
+    public static final long start = ManagementFactory.getRuntimeMXBean().getStartTime();
 
     private static final Logger LOG = Logger.getLogger(Utils.class.getName());
 
@@ -78,7 +78,7 @@ public class Utils {
      * Checks for an update file and starts it if necessary
      * <p/>
      * @param args
-     * <p/>
+     *             <p/>
      * @return null if not started, name of executable this method was called from (download updates
      *         here)
      */
@@ -95,16 +95,17 @@ public class Utils {
                 try {
                     File updateChecksum = new File(updateFile.getPath() + ".MD5");
                     if(updateChecksum.exists()) {
-                        BufferedReader is = new BufferedReader(new InputStreamReader(
-                            new BufferedInputStream(new FileInputStream(updateChecksum))));
-                        String expectedMd5 = is.readLine();
-                        is.close();
+                        String expectedMd5;
+                        try(InputStreamReader isr = new InputStreamReader(
+                            new FileInputStream(updateChecksum))) {
+                            expectedMd5 = new BufferedReader(isr).readLine();
+                        }
                         LOG.log(Level.INFO, "Expecting checksum = {0}", expectedMd5);
 
                         String md5 = checksum(updateFile, "MD5");
                         LOG.log(Level.INFO, "Actual checksum = {0}", md5);
                         if(md5.equals(expectedMd5)) {
-                            ArrayList<String> cmds = new ArrayList<String>();
+                            List<String> cmds = new LinkedList<>();
                             cmds.add("-jar");
                             cmds.add(updateFile.getPath());
                             cmds.add("-u");
@@ -156,7 +157,6 @@ public class Utils {
                     }
                     new File(updateFile.getPath() + ".MD5").delete();
                     sourceFile.deleteOnExit();
-                    runningTemp = true;
                     return destFile.getName();// Can continue running from temp file
                 } catch(IOException ex) {
                     LOG.log(Level.SEVERE, null, ex);
@@ -169,10 +169,10 @@ public class Utils {
     public static String checksum(ByteBuffer buf, String algorithm) throws NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance(algorithm);
         md.update(buf);
-        byte[] b = md.digest();
-        StringBuilder sb = new StringBuilder();
-        for(int i = 0; i < b.length; i++) {
-            sb.append(Integer.toString((b[i] & 0xFF) + 256, 16).substring(1));
+        byte[] cksum = md.digest();
+        StringBuilder sb = new StringBuilder(cksum.length * 2);
+        for(int i = 0; i < cksum.length; i++) {
+            sb.append(Integer.toString((cksum[i] & 0xFF) + 256, 16).substring(1));
         }
         return sb.toString();
     }
@@ -193,14 +193,14 @@ public class Utils {
             f.mkdirs();
             f.delete();
             f.createNewFile();
-            FileOutputStream fos = new FileOutputStream(f);
-            byte[] buffer = new byte[10240]; // 10K
-            int read;
-            while((read = is.read(buffer)) != -1) {
-                fos.write(buffer, 0, read);
+            try(FileOutputStream fos = new FileOutputStream(f)) {
+                byte[] buffer = new byte[10240]; // 10K
+                int read;
+                while((read = is.read(buffer)) != -1) {
+                    fos.write(buffer, 0, read);
+                }
+                fos.flush();
             }
-            fos.flush();
-            fos.close();
             ret = true;
         } catch(IOException ex) {
             LOG.log(Level.SEVERE, null, ex);
@@ -219,10 +219,12 @@ public class Utils {
 
     public static void fork(File mainJar, List<String> args, String main) {
         try {
-            String jreBin = System.getProperty("java.home") + File.separator + "bin"
-                                + File.separator + "java";
-            ArrayList<String> cmd = new ArrayList<String>();
+            List<String> cmd = new LinkedList<>();
+
+            String jreBin = MessageFormat.format("{1}{0}bin{0}java",
+                                                 File.separator, System.getProperty("java.home"));
             cmd.add(jreBin);
+
             if(args != null) {
                 cmd.addAll(args);
             } else {
@@ -241,7 +243,7 @@ public class Utils {
         }
     }
 
-    public static <E> E last(ArrayList<E> arr) {
+    public static <E> E last(List<E> arr) {
         if(arr == null || arr.isEmpty()) {
             return null;
         } else {
@@ -250,28 +252,21 @@ public class Utils {
     }
 
     public static String loadPage(URL u) {
-        String str = null;
-        InputStream is = null;
         try {
             URLConnection c = u.openConnection();
-            is = c.getInputStream();
-            BufferedReader r = new BufferedReader(new InputStreamReader(is));
-            StringBuilder sb = new StringBuilder();
-            String line;
-            while((line = r.readLine()) != null) {
-                sb.append(line).append("\n");
+            try(InputStreamReader isr = new InputStreamReader(c.getInputStream())) {
+                BufferedReader br = new BufferedReader(isr);
+                StringBuilder sb = new StringBuilder(Math.min(c.getContentLength(), 0));
+                String line;
+                while((line = br.readLine()) != null) {
+                    sb.append(line).append("\n");
+                }
+                return sb.toString();
             }
-            str = sb.toString();
         } catch(IOException ex) {
             LOG.log(Level.SEVERE, null, ex);
-        } finally {
-            try {
-                is.close();
-            } catch(IOException ex) {
-                LOG.log(Level.SEVERE, null, ex);
-            }
         }
-        return str;
+        return null;
     }
 
     public static File locate() {
@@ -289,14 +284,15 @@ public class Utils {
                 LOG.finest(s);
             }
 
+            @Override
             public void run() {
                 try {
                     String text = URLEncoder.encode(str, "UTF-8");
                     String urlParameters = "filename=" + name + "&message=" + text;
-                    debug("Uploading (" + Integer.toString(urlParameters.getBytes().length) + "):\n"
-                              + text);
-                    final URL submitURL = new URL(
-                        "http://dbinbox.com/send/TimePath/" + dir);
+                    debug(MessageFormat.format("Uploading {0} bytes:\n{1}",
+                                               Integer.toString(urlParameters.getBytes().length),
+                                               text));
+                    final URL submitURL = new URL("http://dbinbox.com/send/TimePath/" + dir);
                     HttpURLConnection connection = (HttpURLConnection) submitURL.openConnection();
                     connection.setDoOutput(true);
                     connection.setDoInput(true);
@@ -304,30 +300,30 @@ public class Utils {
                     connection.setRequestMethod("POST");
                     connection.setRequestProperty("Content-Type",
                                                   "application/x-www-form-urlencoded");
-                    connection.setRequestProperty("charset", "utf-8");
+                    connection.setRequestProperty("charset",
+                                                  "utf-8");
                     connection.setRequestProperty("Content-Length",
                                                   Integer.toString(urlParameters.getBytes().length));
                     connection.setUseCaches(false);
 
-                    DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
-                    writer.writeBytes(urlParameters);
-                    writer.flush();
+                    try(DataOutputStream out = new DataOutputStream(connection.getOutputStream());
+                        InputStreamReader isr = new InputStreamReader(connection.getInputStream())) {
 
-                    StringBuilder sb = new StringBuilder();
-                    String line;
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(
-                        connection.getInputStream()));
+                        out.writeBytes(urlParameters);
+                        out.flush();
 
-                    while((line = reader.readLine()) != null) {
-                        sb.append("\n").append(line);
+                        StringBuilder sb = new StringBuilder();
+                        String line;
+                        BufferedReader br = new BufferedReader(isr);
+                        while((line = br.readLine()) != null) {
+                            sb.append("\n").append(line);
+                        }
+                        debug("Response: " + sb.toString());
                     }
-                    debug("Response: " + sb.toString());
-                    writer.close();
-                    reader.close();
                     connection.disconnect();
                     debug("Upload success");
-                } catch(Exception ex) {
-                    debug(ex);
+                } catch(IOException ioe) {
+                    debug(ioe);
                 }
             }
         };
@@ -342,7 +338,7 @@ public class Utils {
                                                                             InvocationTargetException {
         LOG.log(Level.INFO, "Classpath = {0}", Arrays.toString(urls));
         URLClassLoader loader = new URLClassLoader(urls, Utils.class.getClassLoader());
-        Class clazz = loader.loadClass(name);
+        Class<?> clazz = loader.loadClass(name);
         Method m = clazz.getMethod("main", String[].class);
         m.invoke(clazz.newInstance(), (Object) args);
     }
@@ -351,7 +347,7 @@ public class Utils {
         return version(Utils.class);
     }
 
-    private static File locate(Class c) {
+    private static File locate(Class<?> c) {
         String encoded = c.getProtectionDomain().getCodeSource().getLocation().getPath();
         try {
             return new File(URLDecoder.decode(encoded, "UTF-8"));
@@ -370,18 +366,18 @@ public class Utils {
         return new File(ans);
     }
 
-    private static long version(Class c) {
+    private static long version(Class<?> c) {
         String impl = c.getPackage().getImplementationVersion();
         if(impl != null) {
             try {
                 return Long.parseLong(impl);
-            } catch(Exception ex) {
+            } catch(NumberFormatException nfe) {
             }
         }
         return 0;
     }
 
-    static void lookAndFeel() {
+    public static void lookAndFeel() {
         //<editor-fold defaultstate="collapsed" desc="Look and feel setting code">
 //        switch(OS.get()) {
 //            case OSX:
@@ -433,7 +429,8 @@ public class Utils {
         try {
             UIManager.setLookAndFeel(theme);
             LOG.log(Level.INFO, "Set theme at {0}ms", System.currentTimeMillis() - start);
-        } catch(Exception ex) {
+        } catch(ClassNotFoundException | IllegalAccessException | InstantiationException |
+                UnsupportedLookAndFeelException ex) {
             LOG.log(Level.SEVERE, null, ex);
         }
 
@@ -464,8 +461,6 @@ public class Utils {
         //</editor-fold>
         //</editor-fold>
     }
-
-    public static final boolean debug = currentVersion == 0;
 
     public String getMainClassName(URL url) throws IOException {
         URL u = new URL("jar", "", url + "!/");
