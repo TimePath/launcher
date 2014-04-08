@@ -2,14 +2,13 @@ package com.timepath.launcher;
 
 import com.timepath.launcher.logging.LogAggregator;
 import com.timepath.launcher.ui.swing.LauncherFrame;
-import java.awt.*;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.lang.management.ManagementFactory;
-import java.net.*;
 import java.security.*;
 import java.util.*;
 import java.util.logging.*;
 import javax.swing.JApplet;
+import javax.swing.SwingUtilities;
 
 import static com.timepath.launcher.Utils.debug;
 import static com.timepath.launcher.Utils.start;
@@ -23,57 +22,53 @@ public class Main extends JApplet {
 
     private static final Logger LOG = Logger.getLogger(Main.class.getName());
 
-    private static String updateName = "update.tmp";
-
     static {
         Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
+            @Override
             public void uncaughtException(Thread t, Throwable e) {
                 Logger.getLogger(t.getName()).log(Level.SEVERE, "Uncaught Exception", e);
             }
         });
 
-        Level consoleLevelTmp = Level.INFO;
+        Level consoleLevel = Level.CONFIG;
         try {
-            consoleLevelTmp = Level.parse(Utils.settings.get("consoleLevel", "CONFIG"));
-        } catch(IllegalArgumentException ex) {
+            consoleLevel = Level.parse(Utils.settings.get("consoleLevel", consoleLevel.getName()));
+        } catch(IllegalArgumentException | NullPointerException ignore) {
         }
-        Utils.settings.remove("consoleLevel"); // TEMP
 
-        Level logfileLevelTmp = Level.INFO;
+        Level logfileLevel = Level.CONFIG;
         try {
-            logfileLevelTmp = Level.parse(Utils.settings.get("logfileLevel", "CONFIG"));
-        } catch(IllegalArgumentException ex) {
+            logfileLevel = Level.parse(Utils.settings.get("logfileLevel", logfileLevel.getName()));
+        } catch(IllegalArgumentException | NullPointerException ignore) {
         }
-        Utils.settings.remove("logfileLevel"); // TEMP
 
-        Level packageLevel = consoleLevelTmp;
-        if(consoleLevelTmp != Level.OFF && logfileLevelTmp != Level.OFF) {
-            if(logfileLevelTmp.intValue() > consoleLevelTmp.intValue()) {
-                packageLevel = logfileLevelTmp;
-            }
-        }
+        // Choose finest level
+        Level packageLevel = Level.parse(Integer.toString(Math.min(logfileLevel.intValue(),
+                                                                   consoleLevel.intValue())));
         Logger.getLogger("com.timepath").setLevel(packageLevel);
 
-        SimpleFormatter consoleFormatter = new SimpleFormatter();
+        Logger globalLogger = Logger.getLogger("");
 
-        if(consoleLevelTmp != Level.OFF) {
-            Handler[] hs = Logger.getLogger("").getHandlers();
-            for(Handler h : hs) {
+        SimpleFormatter consoleFormatter = new SimpleFormatter();
+        if(consoleLevel != Level.OFF) {
+            for(Handler h : globalLogger.getHandlers()) {
                 if(h instanceof ConsoleHandler) {
-                    h.setLevel(consoleLevelTmp);
+                    h.setLevel(consoleLevel);
                     h.setFormatter(consoleFormatter);
                 }
             }
         }
 
-        if(logfileLevelTmp != Level.OFF) {
+        if(logfileLevel != Level.OFF) {
             LogAggregator lh = new LogAggregator();
-            lh.setLevel(logfileLevelTmp);
-            Logger.getLogger("").addHandler(lh);
+            lh.setLevel(logfileLevel);
+            globalLogger.addHandler(lh);
             LOG.log(Level.INFO, "Logger: {0}", lh);
         }
-        LOG.log(Level.INFO, "Console level: {0}", consoleLevelTmp);
-        LOG.log(Level.INFO, "Logfile level: {0}", logfileLevelTmp);
+
+        LOG.log(Level.INFO, "Console level: {0}", consoleLevel);
+        LOG.log(Level.INFO, "Logfile level: {0}", logfileLevel);
+        LOG.log(Level.INFO, "Package level: {0}", packageLevel);
 
         Policy.setPolicy(new Policy() {
             @Override
@@ -91,24 +86,22 @@ public class Main extends JApplet {
         System.setSecurityManager(null);
     }
 
-    public static void main(String... args) {
+    public static void main(String[] args) {
         LOG.log(Level.INFO, "Initial: {0}ms", System.currentTimeMillis() - start);
         LOG.log(Level.INFO, "Args = {0}", Arrays.toString(args));
-        Utils.checkForUpdate(updateName, args);
+        Utils.checkForUpdate(args);
         String dbg = ManagementFactory.getRuntimeMXBean().getName();
-        try {
-            dbg += "\n" + InetAddress.getByName(null).getHostName();
-        } catch(UnknownHostException ex) {
-        }
-        dbg += "\nEnvir = " + System.getenv().toString();
-        dbg += "\nProps = " + System.getProperties().toString();
+        dbg += "\n{Envir=" + System.getenv().toString();
+        dbg += ",\nProps=" + System.getProperties().toString() + "}";
         LOG.info(dbg);
+
         if(!debug) {
             Utils.log("connected", "launcher/" + Utils.currentVersion + "/connects", dbg);
         }
+
         LOG.log(Level.INFO, "Startup: {0}ms", System.currentTimeMillis() - start);
 
-        EventQueue.invokeLater(new Runnable() {
+        SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
                 Utils.lookAndFeel();
@@ -121,7 +114,7 @@ public class Main extends JApplet {
 
     @Override
     public void init() {
-        main("");
+        main(new String[0]);
     }
 
 }
