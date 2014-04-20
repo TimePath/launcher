@@ -2,29 +2,25 @@ package com.timepath.launcher;
 
 import com.timepath.launcher.util.Utils;
 import java.io.File;
-import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
+import static com.timepath.launcher.util.Utils.name;
+
 /**
  *
  * @author TimePath
  */
-public class Downloadable {
+public class PackageFile {
 
-    public static final String PROGRAM_DIRECTORY = Utils.settings.get("progStoreDir", new File(Utils.currentFile.getParentFile(), "bin").getPath());
+    public static final String PROGRAM_DIRECTORY = Utils.settings.get("progStoreDir", new File(
+                                                                      Utils.currentFile
+                                                                      .getParentFile(), "bin")
+                                                                      .getPath());
 
-    private static final Logger LOG = Logger.getLogger(Downloadable.class.getName());
-
-    static String name(URL u) {
-        return u.getFile().substring(u.getFile().lastIndexOf('/') + 1);
-    }
-
-    static String name(String s) {
-        return s.substring(s.lastIndexOf('/') + 1);
-    }
+    private static final Logger LOG = Logger.getLogger(PackageFile.class.getName());
 
     public String downloadURL;
 
@@ -36,19 +32,19 @@ public class Downloadable {
 
     public String programDirectory = PROGRAM_DIRECTORY;
 
-    public List<Downloadable> nested = new LinkedList<Downloadable>();
+    public List<PackageFile> nested = new LinkedList<>();
 
-    public Downloadable(String dlu, String csu, String name) {
+    public PackageFile(String dlu, String csu, String name) {
         this.downloadURL = dlu;
         this.versionURL = csu;
         this.filename = name;
     }
 
-    public Downloadable(String dlu, String csu) {
+    public PackageFile(String dlu, String csu) {
         this(dlu, csu, name(dlu));
     }
 
-    public Downloadable() {
+    public PackageFile() {
 
     }
 
@@ -76,7 +72,7 @@ public class Downloadable {
         return n;
     }
 
-    File file() {
+    File getFile() {
         if(fileName() == null) {
             return null;
         }

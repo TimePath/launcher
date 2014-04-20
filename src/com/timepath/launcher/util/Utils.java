@@ -13,6 +13,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.MessageFormat;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.jar.Attributes;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -27,6 +29,18 @@ import javax.swing.event.HyperlinkListener;
  * @author TimePath
  */
 public class Utils {
+
+    public static class DaemonThreadFactory implements ThreadFactory {
+
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread t = Executors.defaultThreadFactory().newThread(r);
+                t.setDaemon(true);
+                return t;
+            }
+        };
+
+    public static final String UPDATE_NAME = "update.tmp";
 
     public static final File currentFile = locate();
 
@@ -347,53 +361,6 @@ public class Utils {
         return new Thread(submit);
     }
 
-    public static void start(String name, String[] args, URL[] urls) throws InstantiationException,
-                                                                            NoSuchMethodException,
-                                                                            IllegalAccessException,
-                                                                            ClassNotFoundException,
-                                                                            IllegalArgumentException,
-                                                                            InvocationTargetException {
-        LOG.log(Level.INFO, "Classpath = {0}", Arrays.toString(urls));
-        URLClassLoader loader = new URLClassLoader(urls, Utils.class.getClassLoader());
-        Class<?> clazz = loader.loadClass(name);
-        Method m = clazz.getMethod("main", String[].class);
-        m.invoke(clazz.newInstance(), (Object) args);
-    }
-
-    public static long version() {
-        return version(Utils.class);
-    }
-
-    private static File locate(Class<?> c) {
-        String encoded = c.getProtectionDomain().getCodeSource().getLocation().getPath();
-        try {
-            return new File(URLDecoder.decode(encoded, "UTF-8"));
-        } catch(UnsupportedEncodingException ex) {
-            LOG.log(Level.WARNING, null, ex);
-        }
-        String ans = System.getProperty("user.dir") + File.separator;
-        String cmd = System.getProperty("sun.java.command");
-        int idx = cmd.lastIndexOf(File.separator);
-        if(idx != -1) {
-            cmd = cmd.substring(0, idx + 1);
-        } else {
-            cmd = "";
-        }
-        ans += cmd;
-        return new File(ans);
-    }
-
-    private static long version(Class<?> c) {
-        String impl = c.getPackage().getImplementationVersion();
-        if(impl != null) {
-            try {
-                return Long.parseLong(impl);
-            } catch(NumberFormatException nfe) {
-            }
-        }
-        return 0;
-    }
-
     public static void lookAndFeel() {
         //<editor-fold defaultstate="collapsed" desc="Look and feel setting code">
 //        switch(OS.get()) {
@@ -477,6 +444,61 @@ public class Utils {
 //        }
         //</editor-fold>
         //</editor-fold>
+    }
+
+    public static String name(URL u) {
+        return name(u.getFile());
+    }
+
+    public static String name(String s) {
+        return s.substring(s.lastIndexOf('/') + 1);
+    }
+
+    public static void start(String name, String[] args, URL[] urls) throws InstantiationException,
+                                                                            NoSuchMethodException,
+                                                                            IllegalAccessException,
+                                                                            ClassNotFoundException,
+                                                                            IllegalArgumentException,
+                                                                            InvocationTargetException {
+        LOG.log(Level.INFO, "Classpath = {0}", Arrays.toString(urls));
+        URLClassLoader loader = new URLClassLoader(urls, Utils.class.getClassLoader());
+        Class<?> clazz = loader.loadClass(name);
+        Method m = clazz.getMethod("main", String[].class);
+        m.invoke(clazz.newInstance(), (Object) args);
+    }
+
+    public static long version() {
+        return version(Utils.class);
+    }
+
+    private static File locate(Class<?> c) {
+        String encoded = c.getProtectionDomain().getCodeSource().getLocation().getPath();
+        try {
+            return new File(URLDecoder.decode(encoded, "UTF-8"));
+        } catch(UnsupportedEncodingException ex) {
+            LOG.log(Level.WARNING, null, ex);
+        }
+        String ans = System.getProperty("user.dir") + File.separator;
+        String cmd = System.getProperty("sun.java.command");
+        int idx = cmd.lastIndexOf(File.separator);
+        if(idx != -1) {
+            cmd = cmd.substring(0, idx + 1);
+        } else {
+            cmd = "";
+        }
+        ans += cmd;
+        return new File(ans);
+    }
+
+    private static long version(Class<?> c) {
+        String impl = c.getPackage().getImplementationVersion();
+        if(impl != null) {
+            try {
+                return Long.parseLong(impl);
+            } catch(NumberFormatException nfe) {
+            }
+        }
+        return 0;
     }
 
     public String getMainClassName(URL url) throws IOException {

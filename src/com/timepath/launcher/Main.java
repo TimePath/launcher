@@ -102,11 +102,11 @@ public class Main extends JApplet {
 
         LOG.log(Level.INFO, "Startup: {0}ms", System.currentTimeMillis() - start);
 
+        final Launcher l = new Launcher();
+        
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                Utils.lookAndFeel();
-                Launcher l = new Launcher();
                 new LauncherFrame(l).setVisible(true);
                 LOG.log(Level.INFO, "Visible at {0}ms", System.currentTimeMillis() - start);
             }

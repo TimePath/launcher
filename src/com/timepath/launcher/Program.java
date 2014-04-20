@@ -1,24 +1,23 @@
 package com.timepath.launcher;
 
 import com.timepath.launcher.util.Utils;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.*;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JEditorPane;
 import javax.swing.JPanel;
 
+import static com.timepath.launcher.util.Utils.UPDATE_NAME;
 import static com.timepath.launcher.util.Utils.debug;
 
 /**
  *
  * @author TimePath
  */
-public class Program extends Downloadable {
+public class Program extends PackageFile {
 
     private static final Logger LOG = Logger.getLogger(Program.class.getName());
 
@@ -26,12 +25,12 @@ public class Program extends Downloadable {
 
     public String changelogData;
 
-    public Set<Program> depends = new HashSet<>();
+    public Set<Program> depends = new HashSet<>(0);
 
     /**
      * A map of downloads to checksums. TODO: allow for versions
      */
-    public List<Downloadable> downloads = new LinkedList<>();
+    public List<PackageFile> downloads = new LinkedList<>();
 
     public JEditorPane jEditorPane;
 
@@ -51,15 +50,15 @@ public class Program extends Downloadable {
 
     public boolean lock;
 
-    public Set<URI> classPath() {
+    public Set<URI> calculateClassPath() {
         Set<URI> h = new HashSet<>(downloads.size() * depends.size());
-        for(Downloadable d : downloads) {
-            h.add(d.file().toURI());
-            for(Downloadable n : d.nested) {
+        for(PackageFile d : downloads) {
+            h.add(d.getFile().toURI());
+            for(PackageFile n : d.nested) {
                 try {
-                    URL u = new URL("jar", "", d.file().toURI() + "!/" + n.downloadURL);
-                    Utils.extract(u, n.file());
-                    h.add(n.file().toURI());
+                    URL u = new URL("jar", "", d.getFile().toURI() + "!/" + n.downloadURL);
+                    Utils.extract(u, n.getFile());
+                    h.add(n.getFile().toURI());
                 } catch(IOException ex) {
                     LOG.log(Level.SEVERE, null, ex);
                 }
@@ -69,9 +68,9 @@ public class Program extends Downloadable {
             if(p == null) {
                 continue;
             }
-            h.addAll(p.classPath());
+            h.addAll(p.calculateClassPath());
         }
-        File f = file();
+        File f = getFile();
         if(f != null) {
             h.add(f.toURI());
         }
@@ -81,8 +80,6 @@ public class Program extends Downloadable {
     /**
      * Check a program for updates
      * <p/>
-     * @param p The program
-     * <p/>
      * @return false if not up to date, true if up to date or working offline
      */
     public boolean isLatest() {
@@ -90,20 +87,20 @@ public class Program extends Downloadable {
             return true;
         }
         LOG.log(Level.INFO, "Checking {0} for updates...", this);
-        for(Downloadable d : downloads) {
+        for(PackageFile d : downloads) {
             try {
-                LOG.log(Level.INFO, "Version file: {0}", d.file());
+                LOG.log(Level.INFO, "Version file: {0}", d.getFile());
                 LOG.log(Level.INFO, "Version url: {0}", d.versionURL);
 
-                File f = d.file();
-                if(f.getName().equals(Launcher.updateName)) { // edge case for current file
+                File f = d.getFile();
+                if(UPDATE_NAME.equals(f.getName())) { // Edge case for current file
                     f = Utils.currentFile;
                 }
 
                 if(!f.exists()) {
                     return false;
                 } else if(d.versionURL == null) {
-                    continue; // have unversioned file, skip check
+                    continue; // Eave unversioned file, skip check
                 }
                 String checksum = Utils.checksum(f, "MD5");
                 BufferedReader br = new BufferedReader(new InputStreamReader(
@@ -112,18 +109,25 @@ public class Program extends Downloadable {
                 if(!checksum.equals(expected)) {
                     return false;
                 }
-            } catch(Exception ex) {
+            } catch(IOException | NoSuchAlgorithmException ex) {
                 LOG.log(Level.SEVERE, null, ex);
             }
         }
         return true;
     }
-    
-    public List<Program> updates() {
+
+    /**
+     *
+     * @return A list of updates for this program
+     */
+    public List<Program> getUpdates() {
         List<Program> outdated = new LinkedList<>();
-        Set<Program> ps = rdepends();
+        Set<Program> ps = getDependencies();
         LOG.log(Level.INFO, "Download list: {0}", ps.toString());
         for(Program p : ps) {
+            if(p == null) {
+                continue;
+            }
             if(!p.isLatest()) {
                 LOG.log(Level.INFO, "{0} is outdated", p);
                 outdated.add(p);
@@ -133,7 +137,7 @@ public class Program extends Downloadable {
         }
         return outdated;
     }
-    
+
     public Thread createThread(final CompositeClassLoader cl) {
         return new Thread() {
 
@@ -143,8 +147,8 @@ public class Program extends Downloadable {
 
             @Override
             public void run() {
-                if(main == null) {
-                    return; // Not executable
+                if(main == null) { // Not executable
+                    return;
                 }
                 LOG.log(Level.INFO, "Starting {0} ({1})", new Object[] {this, main});
                 try {
@@ -152,14 +156,8 @@ public class Program extends Downloadable {
                     if(args != null) {
                         argv = args.toArray(new String[args.size()]);
                     }
-                    Set<URI> cp = classPath();
+                    Set<URI> cp = calculateClassPath();
                     cl.start(main, argv, cp.toArray(new URI[cp.size()]));
-//                    for(Window w : Window.getWindows()) { // TODO: This will probably come back to haunt me later
-//                        LOG.log(Level.INFO, "{0}  {1}", new Object[] {w, w.isDisplayable()});
-//                        if(!w.isVisible()) {
-//                            w.dispose();
-//                        }
-//                    }
                 } catch(Exception ex) {
                     LOG.log(Level.SEVERE, null, ex);
                 }
@@ -170,22 +168,24 @@ public class Program extends Downloadable {
     public void setSelf(boolean b) {
         self = b;
         programDirectory = null;
-        for(Downloadable d : downloads) {
+        for(PackageFile d : downloads) {
             d.programDirectory = null;
         }
     }
 
-    public Set<Program> rdepends() {
-        Set<Program> h = new HashSet<>();
-        // Add all parent dependencies first
-        for(Program p : depends) {
+    /**
+     *
+     * @return A flattened list of dependencies
+     */
+    public Set<Program> getDependencies() {
+        Set<Program> h = new HashSet<>(0);
+        for(Program p : depends) { // Add all parent dependencies first
             if(p == null) {
                 continue;
             }
-            h.addAll(p.rdepends());
+            h.addAll(p.getDependencies());
         }
-        // Not just a run configuration
-        if(!downloads.isEmpty()) {
+        if(!downloads.isEmpty()) { // Not just a run configuration
             h.add(this);
         }
         h.remove(null);
@@ -194,9 +194,14 @@ public class Program extends Downloadable {
 
     @Override
     public String toString() {
-        return title + (debug ? ("(" + downloads + ")" + (!depends.isEmpty() ? (" " + depends
-                                                                                .toString()) : ""))
-                        : "");
+        StringBuilder sb = new StringBuilder(title);
+        if(debug) {
+            sb.append(" ").append("(").append(downloads).append(")");
+            if(!depends.isEmpty()) {
+                sb.append(" ").append(depends);
+            }
+        }
+        return sb.toString();
     }
 
 }

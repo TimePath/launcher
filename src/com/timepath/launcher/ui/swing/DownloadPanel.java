@@ -1,6 +1,6 @@
 package com.timepath.launcher.ui.swing;
 
-import com.timepath.launcher.Downloadable;
+import com.timepath.launcher.PackageFile;
 import com.timepath.swing.table.ObjectBasedTableModel;
 import java.util.logging.Logger;
 import javax.swing.*;
@@ -15,19 +15,19 @@ public class DownloadPanel extends JPanel {
 
     private static final Logger LOG = Logger.getLogger(DownloadPanel.class.getName());
 
-    ObjectBasedTableModel<Downloadable> tableModel;
+    ObjectBasedTableModel<PackageFile> tableModel;
 
     public DownloadPanel() {
         initComponents();
         DefaultTableModel m;
-        tableModel = new ObjectBasedTableModel<Downloadable>() {
+        tableModel = new ObjectBasedTableModel<PackageFile>() {
             @Override
             public String[] columns() {
                 return new String[] {"Name", "Progress"};
             }
 
             @Override
-            public Object get(Downloadable o, int columnIndex) {
+            public Object get(PackageFile o, int columnIndex) {
                 switch(columnIndex) {
                     case 0:
                         return o.fileName();

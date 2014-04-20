@@ -6,8 +6,8 @@ package com.timepath.launcher;
  */
 public interface DownloadMonitor {
 
-    void submit(Downloadable d);
+    void submit(PackageFile d);
 
-    void update(Downloadable d);
+    void update(PackageFile d);
     
 }

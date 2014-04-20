@@ -1,11 +1,14 @@
 package com.timepath.launcher;
 
+import com.timepath.launcher.util.Utils.DaemonThreadFactory;
 import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static com.timepath.launcher.util.Utils.name;
 
 public class DownloadManager {
 
@@ -14,15 +17,7 @@ public class DownloadManager {
     private final List<DownloadMonitor> monitors = Collections.synchronizedList(
         new LinkedList<DownloadMonitor>());
 
-    private final ExecutorService pool = Executors.newCachedThreadPool(new ThreadFactory() {
-
-        @Override
-        public Thread newThread(Runnable r) {
-            Thread t = Executors.defaultThreadFactory().newThread(r);
-            t.setDaemon(true);
-            return t;
-        }
-    });
+    private final ExecutorService pool = Executors.newCachedThreadPool(new DaemonThreadFactory());
 
     public DownloadManager() {
     }
@@ -39,21 +34,20 @@ public class DownloadManager {
         pool.shutdown();
     }
 
-    public Future<?> submit(Downloadable d) {
+    public Future<?> submit(PackageFile d) {
         synchronized(monitors) {
-            Iterator<DownloadMonitor> i = monitors.iterator();
-            while(i.hasNext()) {
+            for(Iterator<DownloadMonitor> i = monitors.iterator(); i.hasNext();) {
                 i.next().submit(d);
             }
         }
-        return pool.submit(new DownloadThread(d));
+        return pool.submit(new DownloadTask(d));
     }
 
-    private class DownloadThread implements Runnable {
+    private class DownloadTask implements Runnable {
 
-        private final Downloadable d;
+        private final PackageFile d;
 
-        private DownloadThread(Downloadable d) {
+        private DownloadTask(PackageFile d) {
             this.d = d;
         }
 
@@ -68,12 +62,12 @@ public class DownloadManager {
                     URL u = new URI(s).toURL();
                     File f;
                     if(s == dl[0]) {
-                        f = d.file();
+                        f = d.getFile();
                     } else {
                         f = d.versionFile();
                     }
                     if(f == null) {
-                        f = new File(Downloadable.PROGRAM_DIRECTORY, Downloadable.name(u));
+                        f = new File(PackageFile.PROGRAM_DIRECTORY, name(u));
                     }
                     download(u, f);
                 }

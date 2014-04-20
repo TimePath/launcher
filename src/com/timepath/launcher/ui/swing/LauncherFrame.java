@@ -1,14 +1,17 @@
 package com.timepath.launcher.ui.swing;
 
-import com.timepath.launcher.*;
+import com.timepath.launcher.DownloadMonitor;
+import com.timepath.launcher.Launcher;
+import com.timepath.launcher.PackageFile;
+import com.timepath.launcher.Program;
 import com.timepath.launcher.util.Utils;
 import java.awt.*;
 import java.awt.event.*;
 import java.net.URL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.TimeZone;
+import java.util.*;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -33,7 +36,7 @@ public class LauncherFrame extends JFrame {
     public void display(Component c) {
         newsScroll.setViewportView(c);
     }
-    
+
     public void news(final Program p) {
         if(p.panel != null) {
             display(p.panel);
@@ -79,10 +82,11 @@ public class LauncherFrame extends JFrame {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public void setListModel(ListModel<Program> m) {
         programList.setModel(m);
     }
-    
+
     public void start(final Program program) {
         new SwingWorker<Void, Void>() {
 
@@ -97,28 +101,29 @@ public class LauncherFrame extends JFrame {
             protected void done() {
                 LauncherFrame.this.launchButton.setEnabled(true);
             }
-            
+
         }.execute();
-        
+
     }
 
     public LauncherFrame(final Launcher launcher) {
+        Utils.lookAndFeel();
         initComponents();
         this.newsScroll.getVerticalScrollBar().setUnitIncrement(16);
-        
+
         initAboutPanel();
         LOG.log(Level.INFO, "Created UI at {0}ms", System.currentTimeMillis() - start);
 
         this.launcher = launcher;
-        launcher.downloadManager.addListener(new DownloadMonitor() {
+        launcher.getDownloadManager().addListener(new DownloadMonitor() {
 
             @Override
-            public void submit(Downloadable d) {
+            public void submit(PackageFile d) {
                 LauncherFrame.this.downloadPanel.tableModel.add(d);
             }
 
             @Override
-            public void update(Downloadable d) {
+            public void update(PackageFile d) {
                 LauncherFrame.this.downloadPanel.tableModel.update(d);
             }
         });
@@ -190,17 +195,23 @@ public class LauncherFrame extends JFrame {
     }
 
     private void updateList() {
-        new SwingWorker<ListModel<Program>, Void>() {
+        new SwingWorker<List<List<Program>>, Void>() {
 
             @Override
-            protected ListModel<Program> doInBackground() throws Exception {
-                return launcher.getListing();
+            protected List<List<Program>> doInBackground() throws Exception {
+                return launcher.getListings();
             }
 
             @Override
             protected void done() {
                 try {
-                    setListModel(get());
+                    DefaultListModel<Program> listM = new DefaultListModel<>();
+                    for(List<Program> repo : get()) {
+                        for(Program p : repo) {
+                            listM.addElement(p);
+                        }
+                    }
+                    setListModel(listM);
                     LOG.log(Level.INFO, "Listing at {0}ms", System.currentTimeMillis() - start);
                     if(!debug && !launcher.selfCheck()) {
                         JOptionPane.showMessageDialog(LauncherFrame.this,
