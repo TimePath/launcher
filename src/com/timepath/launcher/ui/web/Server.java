@@ -34,10 +34,6 @@ public class Server extends Thread {
         new Server().start();
     }
 
-    Server() {
-        this.setDaemon(false);
-    }
-
     @Override
     public void run() {
         LOG.log(Level.INFO, "Starting server on port {0}", PORT);

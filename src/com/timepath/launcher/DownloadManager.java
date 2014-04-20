@@ -14,7 +14,15 @@ public class DownloadManager {
     private final List<DownloadMonitor> monitors = Collections.synchronizedList(
         new LinkedList<DownloadMonitor>());
 
-    private final ExecutorService pool = Executors.newCachedThreadPool();
+    private final ExecutorService pool = Executors.newCachedThreadPool(new ThreadFactory() {
+
+        @Override
+        public Thread newThread(Runnable r) {
+            Thread t = Executors.defaultThreadFactory().newThread(r);
+            t.setDaemon(true);
+            return t;
+        }
+    });
 
     public DownloadManager() {
     }

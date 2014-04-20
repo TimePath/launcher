@@ -222,6 +222,10 @@ public class Launcher {
                     if(java != null) {
                         p.main = XMLUtils.getAttribute(java, "main");
                         p.args = Utils.argParse(XMLUtils.getAttribute(java, "args"));
+                        String daemon = XMLUtils.getAttribute(java, "daemon");
+                        if(daemon != null) {
+                            p.daemon = Boolean.parseBoolean(daemon);
+                        }
                     }
 
                     Node news = Utils.last(XMLUtils.getElements("newsfeed", entry));
@@ -308,9 +312,7 @@ public class Launcher {
                     JOptionPane.showMessageDialog(null, "Restart to apply", "Update downloaded",
                                                   JOptionPane.INFORMATION_MESSAGE, null);
                 } else {
-                    Thread t = run.createThread(cl);
-                    t.setDaemon(true);
-                    t.start();
+                    run.createThread(cl).start();
                 }
             }
 

@@ -45,6 +45,8 @@ public class Program extends Downloadable {
 
     public String title;
 
+    public boolean daemon;
+
     public Set<URI> classPath() {
         Set<URI> h = new HashSet<>(downloads.size() * depends.size());
         for(Downloadable d : downloads) {
@@ -70,7 +72,12 @@ public class Program extends Downloadable {
     }
 
     public Thread createThread(final CompositeClassLoader cl) {
-        return new Thread(new Runnable() {
+        return new Thread() {
+
+            {
+                setDaemon(Program.this.daemon);
+            }
+
             @Override
             public void run() {
                 if(main == null) {
@@ -94,7 +101,7 @@ public class Program extends Downloadable {
                     LOG.log(Level.SEVERE, null, ex);
                 }
             }
-        });
+        };
     }
 
     public void setSelf(boolean b) {
