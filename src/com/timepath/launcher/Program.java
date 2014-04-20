@@ -1,8 +1,10 @@
 package com.timepath.launcher;
 
 import com.timepath.launcher.util.Utils;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.*;
 import java.util.*;
 import java.util.logging.Level;
@@ -47,6 +49,8 @@ public class Program extends Downloadable {
 
     public boolean daemon;
 
+    public boolean lock;
+
     public Set<URI> classPath() {
         Set<URI> h = new HashSet<>(downloads.size() * depends.size());
         for(Downloadable d : downloads) {
@@ -62,6 +66,9 @@ public class Program extends Downloadable {
             }
         }
         for(Program p : depends) {
+            if(p == null) {
+                continue;
+            }
             h.addAll(p.classPath());
         }
         File f = file();
@@ -71,6 +78,62 @@ public class Program extends Downloadable {
         return h;
     }
 
+    /**
+     * Check a program for updates
+     * <p/>
+     * @param p The program
+     * <p/>
+     * @return false if not up to date, true if up to date or working offline
+     */
+    public boolean isLatest() {
+        if(debug && self) {
+            return true;
+        }
+        LOG.log(Level.INFO, "Checking {0} for updates...", this);
+        for(Downloadable d : downloads) {
+            try {
+                LOG.log(Level.INFO, "Version file: {0}", d.file());
+                LOG.log(Level.INFO, "Version url: {0}", d.versionURL);
+
+                File f = d.file();
+                if(f.getName().equals(Launcher.updateName)) { // edge case for current file
+                    f = Utils.currentFile;
+                }
+
+                if(!f.exists()) {
+                    return false;
+                } else if(d.versionURL == null) {
+                    continue; // have unversioned file, skip check
+                }
+                String checksum = Utils.checksum(f, "MD5");
+                BufferedReader br = new BufferedReader(new InputStreamReader(
+                    new URL(d.versionURL).openStream()));
+                String expected = br.readLine();
+                if(!checksum.equals(expected)) {
+                    return false;
+                }
+            } catch(Exception ex) {
+                LOG.log(Level.SEVERE, null, ex);
+            }
+        }
+        return true;
+    }
+    
+    public List<Program> updates() {
+        List<Program> outdated = new LinkedList<>();
+        Set<Program> ps = rdepends();
+        LOG.log(Level.INFO, "Download list: {0}", ps.toString());
+        for(Program p : ps) {
+            if(!p.isLatest()) {
+                LOG.log(Level.INFO, "{0} is outdated", p);
+                outdated.add(p);
+            } else {
+                LOG.log(Level.INFO, "{0} is up to date", p);
+            }
+        }
+        return outdated;
+    }
+    
     public Thread createThread(final CompositeClassLoader cl) {
         return new Thread() {
 
@@ -116,12 +179,16 @@ public class Program extends Downloadable {
         Set<Program> h = new HashSet<>();
         // Add all parent dependencies first
         for(Program p : depends) {
+            if(p == null) {
+                continue;
+            }
             h.addAll(p.rdepends());
         }
         // Not just a run configuration
         if(!downloads.isEmpty()) {
             h.add(this);
         }
+        h.remove(null);
         return h;
     }
 

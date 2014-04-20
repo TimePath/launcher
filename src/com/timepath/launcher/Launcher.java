@@ -29,11 +29,9 @@ public class Launcher {
 
     private final Map<String, Program> libs = new HashMap<>();
 
-    private final Map<Program, Long> running = new HashMap<>();
-
     private Program self;
 
-    private final String updateName = "update.tmp";
+    public static final String updateName = "update.tmp";
 
     public Launcher() {
         cl = AccessController.doPrivileged(new PrivilegedAction<CompositeClassLoader>() {
@@ -42,24 +40,6 @@ public class Launcher {
                 return new CompositeClassLoader();
             }
         });
-    }
-
-    /**
-     * Prevent running multiple times within a few seconds
-     * <p/>
-     * @param p The program
-     * <p/>
-     * @return true if not started recently
-     */
-    public boolean canStart(Program p) {
-        if(running.containsKey(p)) {
-            long c = running.get(p);
-            if(System.currentTimeMillis() - c < 10000) {
-                return false;
-            }
-            running.put(p, System.currentTimeMillis());
-        }
-        return true;
     }
 
     public ListModel<Program> getListing() {
@@ -96,52 +76,11 @@ public class Launcher {
     }
 
     /**
-     * Check a program for updates
-     * <p/>
-     * @param p The program
-     * <p/>
-     * @return false if not up to date, true if up to date or working offline
-     */
-    public boolean isLatest(Program p) {
-        if(debug && p == self) {
-            return true;
-        }
-        LOG.log(Level.INFO, "Checking {0} for updates...", p);
-        for(Downloadable d : p.downloads) {
-            try {
-                LOG.log(Level.INFO, "Version file: {0}", d.file());
-                LOG.log(Level.INFO, "Version url: {0}", d.versionURL);
-
-                File f = d.file();
-                if(f.getName().equals(updateName)) { // edge case for current file
-                    f = Utils.currentFile;
-                }
-
-                if(!f.exists()) {
-                    return false;
-                } else if(d.versionURL == null) {
-                    continue; // have unversioned file, skip check
-                }
-                String checksum = Utils.checksum(f, "MD5");
-                BufferedReader br = new BufferedReader(new InputStreamReader(
-                    new URL(d.versionURL).openStream()));
-                String expected = br.readLine();
-                if(!checksum.equals(expected)) {
-                    return false;
-                }
-            } catch(Exception ex) {
-                LOG.log(Level.SEVERE, null, ex);
-            }
-        }
-        return true;
-    }
-
-    /**
      *
      * @return true if self is up to date
      */
     public boolean selfCheck() {
-        return isLatest(self);
+        return self.isLatest();
     }
 
     public void shutdown() {
@@ -152,10 +91,50 @@ public class Launcher {
         if(program == null) {
             return;
         }
-        if(!canStart(program)) {
+        if(program.lock) {
+            LOG.log(Level.INFO, "Program locked, aborting: {0}", program);
             return;
+        } else {
+            LOG.log(Level.INFO, "Locking {0}", program);
+            program.lock = true;
         }
-        update(program);
+        
+        List<Program> updates = program.updates();
+        
+        if(program.self && !updates.contains(program)) {
+            JOptionPane.showMessageDialog(null, "Launcher is up to date",
+                                          "Launcher is up to date",
+                                          JOptionPane.INFORMATION_MESSAGE,
+                                          null);
+        }
+        
+        Map<Program, List<Future<?>>> downloads = new HashMap<>(updates.size());
+        for(Program p : updates) {
+            downloads.put(p, download(p));
+        }
+        boolean selfupdated = false;
+        for(Entry<Program, List<Future<?>>> e : downloads.entrySet()) {
+            Program p = e.getKey();
+            List<Future<?>> futures = e.getValue();
+            try {
+                for(Future<?> future : futures) {
+                    future.get(); // Wait for download
+                }
+                LOG.log(Level.INFO, "Updated {0}", p);
+                if(p.self) {
+                    selfupdated = true;
+                }
+            } catch(InterruptedException | ExecutionException ex) {
+                LOG.log(Level.SEVERE, null, ex);
+            }
+        }
+        if(program.main == null && selfupdated) {
+            JOptionPane.showMessageDialog(null, "Restart to apply", "Update downloaded",
+                                          JOptionPane.INFORMATION_MESSAGE, null);
+        } else {
+            program.createThread(cl).start();
+            program.lock = false;
+        }
     }
 
     public Future<?> submitDownload(Downloadable d) {
@@ -254,69 +233,6 @@ public class Launcher {
             LOG.log(Level.SEVERE, null, ex);
         }
         return listM;
-    }
-
-    private void update(final Program run) {
-        new SwingWorker<Boolean, Void>() {
-
-            Map<Program, List<Future<?>>> downloads;
-
-            /**
-             *
-             * @return true if something updated
-             */
-            @Override
-            protected Boolean doInBackground() {
-                boolean updated = false;
-                Set<Program> ps = run.rdepends();
-                downloads = new HashMap<>(ps.size());
-                LOG.log(Level.INFO, "Download list: {0}", ps.toString());
-                for(Program p : ps) {
-                    if(!isLatest(p)) {
-                        LOG.log(Level.INFO, "{0} is outdated", p);
-                        downloads.put(p, download(p));
-                        updated = true;
-                    } else {
-                        LOG.log(Level.INFO, "{0} is up to date", p);
-                        if(p.self) {
-                            JOptionPane.showMessageDialog(null, "Launcher is up to date",
-                                                          "Launcher is up to date",
-                                                          JOptionPane.INFORMATION_MESSAGE,
-                                                          null);
-                        }
-                    }
-                }
-                for(Entry<Program, List<Future<?>>> e : downloads.entrySet()) {
-                    Program p = e.getKey();
-                    List<Future<?>> futures = e.getValue();
-                    try {
-                        for(Future<?> future : futures) {
-                            future.get(); // wait for download
-                        }
-                        LOG.log(Level.INFO, "Updated {0}", p);
-                    } catch(InterruptedException | ExecutionException ex) {
-                        LOG.log(Level.SEVERE, null, ex);
-                    }
-                }
-                return updated;
-            }
-
-            @Override
-            protected void done() {
-                boolean updated = false;
-                try {
-                    updated = get();
-                } catch(InterruptedException | ExecutionException ignore) {
-                }
-                if(run.main == null && updated) {
-                    JOptionPane.showMessageDialog(null, "Restart to apply", "Update downloaded",
-                                                  JOptionPane.INFORMATION_MESSAGE, null);
-                } else {
-                    run.createThread(cl).start();
-                }
-            }
-
-        }.execute();
     }
 
 }

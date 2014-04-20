@@ -102,7 +102,7 @@
 
                   <Layout class="org.netbeans.modules.form.compat2.layouts.support.JScrollPaneSupportLayout"/>
                 </Container>
-                <Component class="javax.swing.JButton" name="programLaunch">
+                <Component class="javax.swing.JButton" name="launchButton">
                   <Properties>
                     <Property name="text" type="java.lang.String" value="Launch"/>
                   </Properties>

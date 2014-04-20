@@ -84,7 +84,22 @@ public class LauncherFrame extends JFrame {
     }
     
     public void start(final Program program) {
-        launcher.start(program);
+        new SwingWorker<Void, Void>() {
+
+            @Override
+            protected Void doInBackground() throws Exception {
+                LauncherFrame.this.launchButton.setEnabled(false);
+                launcher.start(program);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                LauncherFrame.this.launchButton.setEnabled(true);
+            }
+            
+        }.execute();
+        
     }
 
     public LauncherFrame(final Launcher launcher) {
@@ -131,7 +146,7 @@ public class LauncherFrame extends JFrame {
             }
         });
 
-        programLaunch.addActionListener(new ActionListener() {
+        launchButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 Program p = (Program) programList.getSelectedValue();
@@ -276,7 +291,7 @@ public class LauncherFrame extends JFrame {
         programList = new javax.swing.JList();
         programPanel = new javax.swing.JPanel();
         newsScroll = new javax.swing.JScrollPane();
-        programLaunch = new javax.swing.JButton();
+        launchButton = new javax.swing.JButton();
         downloadPanel = new com.timepath.launcher.ui.swing.DownloadPanel();
         aboutPanel = new javax.swing.JPanel();
 
@@ -293,8 +308,8 @@ public class LauncherFrame extends JFrame {
         programPanel.setLayout(new java.awt.BorderLayout());
         programPanel.add(newsScroll, java.awt.BorderLayout.CENTER);
 
-        programLaunch.setText("Launch");
-        programPanel.add(programLaunch, java.awt.BorderLayout.SOUTH);
+        launchButton.setText("Launch");
+        programPanel.add(launchButton, java.awt.BorderLayout.SOUTH);
 
         programSplit.setRightComponent(programPanel);
 
@@ -331,8 +346,8 @@ public class LauncherFrame extends JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     protected javax.swing.JPanel aboutPanel;
     private com.timepath.launcher.ui.swing.DownloadPanel downloadPanel;
+    private javax.swing.JButton launchButton;
     private javax.swing.JScrollPane newsScroll;
-    private javax.swing.JButton programLaunch;
     private javax.swing.JList programList;
     private javax.swing.JPanel programPanel;
     private javax.swing.JScrollPane programScroll;
