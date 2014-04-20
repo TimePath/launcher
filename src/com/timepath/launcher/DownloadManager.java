@@ -67,36 +67,40 @@ public class DownloadManager {
                     if(f == null) {
                         f = new File(Downloadable.PROGRAM_DIRECTORY, Downloadable.name(u));
                     }
-                    URLConnection c = u.openConnection();
-                    long size = c.getContentLengthLong();
-                    d.size = size;
-                    LOG.log(Level.INFO, "Downloading {0} > {1}", new Object[] {u, f});
-                    f.mkdirs();
-                    f.delete();
-                    f.createNewFile();
-                    byte[] buffer = new byte[8192];
-
-                    try(InputStream is = new BufferedInputStream(c.getInputStream(), buffer.length);
-                        OutputStream fos = new BufferedOutputStream(new FileOutputStream(f),
-                                                                    buffer.length)) {
-                        int read;
-                        long total = 0;
-                        while((read = is.read(buffer)) > -1) {
-                            fos.write(buffer, 0, read);
-                            total += read;
-                            d.progress = total;
-                            synchronized(monitors) {
-                                Iterator<DownloadMonitor> i = monitors.iterator();
-                                while(i.hasNext()) {
-                                    i.next().update(d);
-                                }
-                            }
-                        }
-                        fos.flush();
-                    }
+                    download(u, f);
                 }
             } catch(IOException | URISyntaxException ex) {
                 LOG.log(Level.SEVERE, null, ex);
+            }
+        }
+
+        private void download(URL u, File f) throws IOException {
+            URLConnection c = u.openConnection();
+            long size = c.getContentLengthLong();
+            d.size = size;
+            LOG.log(Level.INFO, "Downloading {0} > {1}", new Object[] {u, f});
+            f.mkdirs();
+            f.delete();
+            f.createNewFile();
+            byte[] buffer = new byte[8192];
+
+            try(InputStream is = new BufferedInputStream(c.getInputStream(), buffer.length);
+                OutputStream fos = new BufferedOutputStream(new FileOutputStream(f),
+                                                            buffer.length)) {
+                int read;
+                long total = 0;
+                while((read = is.read(buffer)) > -1) {
+                    fos.write(buffer, 0, read);
+                    total += read;
+                    d.progress = total;
+                    synchronized(monitors) {
+                        Iterator<DownloadMonitor> i = monitors.iterator();
+                        while(i.hasNext()) {
+                            i.next().update(d);
+                        }
+                    }
+                }
+                fos.flush();
             }
         }
 

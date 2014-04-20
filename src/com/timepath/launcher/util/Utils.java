@@ -217,6 +217,23 @@ public class Utils {
         return ret;
     }
 
+    public static void extract(URL u, File f) throws IOException {
+        LOG.log(Level.INFO, "Extracting {0} > {1}", new Object[] {u, f});
+        f.mkdirs();
+        f.delete();
+        f.createNewFile();
+        byte[] buffer = new byte[8192];
+
+        try(InputStream is = new BufferedInputStream(u.openStream(), buffer.length);
+            OutputStream fos = new BufferedOutputStream(new FileOutputStream(f),
+                                                        buffer.length)) {
+            for(int read; (read = is.read(buffer)) > -1;) {
+                fos.write(buffer, 0, read);
+            }
+            fos.flush();
+        }
+    }
+
     public static void fork(File mainJar, List<String> args, String main) {
         try {
             List<String> cmd = new LinkedList<>();

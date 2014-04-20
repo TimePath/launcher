@@ -3,6 +3,8 @@ package com.timepath.launcher;
 import com.timepath.launcher.util.Utils;
 import java.io.File;
 import java.net.URL;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
@@ -33,6 +35,8 @@ public class Downloadable {
     public String versionURL;
 
     public String programDirectory = PROGRAM_DIRECTORY;
+
+    public List<Downloadable> nested = new LinkedList<Downloadable>();
 
     public Downloadable(String dlu, String csu, String name) {
         this.downloadURL = dlu;

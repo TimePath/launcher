@@ -170,6 +170,26 @@ public class Launcher {
         return arr;
     }
 
+    private List<Downloadable> getDownloads(Node entry) {
+        List<Downloadable> downloads = new LinkedList<>();
+        // downloadURL
+        for(Node n : XMLUtils.getElements("download", entry)) {
+            Node checksum = Utils.last(XMLUtils.getElements("checksum", entry));
+            String dlu = XMLUtils.getAttribute(n, "url");
+            if(dlu == null) {
+                continue;
+            }
+            String csu = null;
+            if(checksum != null) {
+                csu = XMLUtils.getAttribute(checksum, "url");
+            }
+            Downloadable d = new Downloadable(dlu, csu);
+            d.nested = getDownloads(n);
+            downloads.add(d);
+        }
+        return downloads;
+    }
+
     private ListModel<Program> parseXML(InputStream is) {
         DefaultListModel<Program> listM = new DefaultListModel<>();
         try {
@@ -209,20 +229,7 @@ public class Launcher {
                         p.newsfeedURL = XMLUtils.getAttribute(news, "url");
                     }
 
-                    List<Node> downloads = XMLUtils.getElements("download", entry);
-                    // downloadURL
-                    for(Node download : downloads) {
-                        Node checksum = Utils.last(XMLUtils.getElements("checksum", entry));
-                        String dlu = XMLUtils.getAttribute(download, "url");
-                        if(dlu == null) {
-                            continue;
-                        }
-                        String csu = null;
-                        if(checksum != null) {
-                            csu = XMLUtils.getAttribute(checksum, "url");
-                        }
-                        p.downloads.add(new Downloadable(dlu, csu));
-                    }
+                    p.downloads = getDownloads(entry);
 
                     //</editor-fold>
                     if(n.equals(nodes[0])) {
@@ -248,7 +255,7 @@ public class Launcher {
     private void update(final Program run) {
         new SwingWorker<Boolean, Void>() {
 
-            final Map<Program, List<Future<?>>> downloads = new HashMap<>();
+            Map<Program, List<Future<?>>> downloads;
 
             /**
              *
@@ -258,6 +265,7 @@ public class Launcher {
             protected Boolean doInBackground() {
                 boolean updated = false;
                 Set<Program> ps = run.rdepends();
+                downloads = new HashMap<>(ps.size());
                 LOG.log(Level.INFO, "Download list: {0}", ps.toString());
                 for(Program p : ps) {
                     if(!isLatest(p)) {

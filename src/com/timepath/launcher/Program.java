@@ -1,6 +1,8 @@
 package com.timepath.launcher;
 
+import com.timepath.launcher.util.Utils;
 import java.io.File;
+import java.io.IOException;
 import java.net.*;
 import java.util.*;
 import java.util.logging.Level;
@@ -44,9 +46,18 @@ public class Program extends Downloadable {
     public String title;
 
     public Set<URI> classPath() {
-        Set<URI> h = new HashSet<>();
+        Set<URI> h = new HashSet<>(downloads.size() * depends.size());
         for(Downloadable d : downloads) {
             h.add(d.file().toURI());
+            for(Downloadable n : d.nested) {
+                try {
+                    URL u = new URL("jar", "", d.file().toURI() + "!/" + n.downloadURL);
+                    Utils.extract(u, n.file());
+                    h.add(n.file().toURI());
+                } catch(IOException ex) {
+                    LOG.log(Level.SEVERE, null, ex);
+                }
+            }
         }
         for(Program p : depends) {
             h.addAll(p.classPath());
