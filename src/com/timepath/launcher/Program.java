@@ -139,11 +139,7 @@ public class Program extends PackageFile {
     }
 
     public Thread createThread(final CompositeClassLoader cl) {
-        return new Thread() {
-
-            {
-                setDaemon(Program.this.daemon);
-            }
+        Thread t = new Thread() {
 
             @Override
             public void run() {
@@ -163,6 +159,9 @@ public class Program extends PackageFile {
                 }
             }
         };
+        t.setContextClassLoader(cl);
+        t.setDaemon(daemon);
+        return t;
     }
 
     public void setSelf(boolean b) {

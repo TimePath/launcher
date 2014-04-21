@@ -13,25 +13,25 @@ import java.util.logging.Logger;
 /**
  *
  * Inspired by http://www.jdotsoft.com/JarClassLoader.php
- * <p>
+ * <p/>
  * @author TimePath
  */
 public class CompositeClassLoader extends ClassLoader {
 
     public static final Logger LOG = Logger.getLogger(CompositeClassLoader.class.getName());
 
-    private final Map<String, Class<?>> classes = new HashMap<>();
+    private final Map<String, Class<?>> classes = new HashMap<>(0);
 
-    private final Map<String, Enumeration<URL>> enumerations = new HashMap<>();
+    private final Map<String, Enumeration<URL>> enumerations = new HashMap<>(0);
 
-    private final Map<URI, ClassLoader> jars = new HashMap<>();
+    private final Map<URI, ClassLoader> jars = new HashMap<>(0);
 
-    private final Map<String, String> libraries = new HashMap<>();
+    private final Map<String, String> libraries = new HashMap<>(0);
 
     private final List<ClassLoader> loaders = Collections.synchronizedList(
         new LinkedList<ClassLoader>());
 
-    private final Map<String, URL> resources = new HashMap<>();
+    private final Map<String, URL> resources = new HashMap<>(0);
 
     {
         add(Object.class.getClassLoader()); // bootstrap
@@ -100,7 +100,8 @@ public class CompositeClassLoader extends ClassLoader {
             LOG.log(Level.SEVERE, null, t);
         }
     }
-
+    
+    @SuppressWarnings("unchecked")
     private <A, B> B reflect(Map<A, B> cache, String method, A key) {
         LOG.log(Level.FINE, "{0}: {1}", new Object[] {method, key});
         B ret = cache.get(key);
@@ -120,7 +121,7 @@ public class CompositeClassLoader extends ClassLoader {
                         cache.put(key, u);
                         return u;
                     }
-                } catch(InvocationTargetException ite) { // caused by underlying method
+                } catch(InvocationTargetException ite) { // Caused by underlying method
                     try {
                         throw ite.getCause();
                     } catch(ClassNotFoundException ex) {
