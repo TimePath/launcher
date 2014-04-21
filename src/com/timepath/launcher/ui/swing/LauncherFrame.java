@@ -4,6 +4,8 @@ import com.timepath.launcher.*;
 import com.timepath.launcher.util.Utils;
 import java.awt.*;
 import java.awt.event.*;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.net.URL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -13,8 +15,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.*;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
+import javax.swing.event.*;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
 
 import static com.timepath.launcher.util.Utils.debug;
 import static com.timepath.launcher.util.Utils.start;
@@ -35,6 +38,12 @@ public class LauncherFrame extends JFrame {
     }
 
     public void news(final Program p) {
+        if(p == null) {
+            display(null);
+            this.launchButton.setEnabled(false);
+            return;
+        }
+        this.launchButton.setEnabled(!p.lock);
         if(p.panel != null) {
             display(p.panel);
             return;
@@ -79,12 +88,14 @@ public class LauncherFrame extends JFrame {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    public void setListModel(ListModel<Program> m) {
+    public void setListModel(DefaultTreeModel m) {
         programList.setModel(m);
     }
 
     public void start(final Program program) {
+        if(program == null) {
+            return;
+        }
         new SwingWorker<Void, Void>() {
 
             @Override
@@ -103,12 +114,23 @@ public class LauncherFrame extends JFrame {
 
     }
 
+    private Program getSelected(Object selected) {
+        if(!(selected instanceof DefaultMutableTreeNode)) {
+            return null;
+        }
+        Object obj = ((DefaultMutableTreeNode) selected).getUserObject();
+        if(!(obj instanceof Program)) {
+            return null;
+        }
+        return (Program) obj;
+    }
+
     public LauncherFrame(final Launcher launcher) {
         Utils.lookAndFeel();
         initComponents();
+        initAboutPanel();
         this.newsScroll.getVerticalScrollBar().setUnitIncrement(16);
 
-        initAboutPanel();
         LOG.log(Level.INFO, "Created UI at {0}ms", System.currentTimeMillis() - start);
 
         this.launcher = launcher;
@@ -134,56 +156,63 @@ public class LauncherFrame extends JFrame {
             }
         });
 
-        programList.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+        programList.getSelectionModel().addTreeSelectionListener(new TreeSelectionListener() {
             @Override
-            public void valueChanged(ListSelectionEvent e) {
-                if(e.getValueIsAdjusting()) {
-                    return;
-                }
-                Program p = (Program) programList.getSelectedValue();
-                if(p == null) {
-                    return;
-                }
-                news(p);
+            public void valueChanged(TreeSelectionEvent e) {
+                news(getSelected(programList.getLastSelectedPathComponent()));
             }
         });
 
         launchButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                Program p = (Program) programList.getSelectedValue();
-                if(p == null) {
-                    return;
-                }
+                Program p = getSelected(programList.getLastSelectedPathComponent());
                 start(p);
-            }
-        });
-
-        programList.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                Program p = (Program) programList.getSelectedValue();
-                if(p == null) {
-                    return;
-                }
-                if(SwingUtilities.isLeftMouseButton(e) && e.getClickCount() >= 2) {
-                    start(p);
-                }
             }
         });
 
         programList.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                Program p = (Program) programList.getSelectedValue();
-                if(p == null) {
-                    return;
-                }
                 if(e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    Program p = getSelected(programList.getLastSelectedPathComponent());
                     start(p);
                 }
             }
         });
+
+        MouseAdapter adapter = new MouseAdapter() {
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if(select(e) == -1) {
+                    return;
+                }
+                if(SwingUtilities.isLeftMouseButton(e) && e.getClickCount() >= 2) {
+                    Program p = getSelected(programList.getLastSelectedPathComponent());
+                    start(p);
+                }
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                select(e);
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                select(e);
+            }
+
+            private int select(MouseEvent e) {
+                int selRow = programList.getClosestRowForLocation(e.getX(), e.getY());
+                programList.setSelectionRow(selRow);
+                return selRow;
+            }
+        };
+
+        programList.addMouseMotionListener(adapter);
+        programList.addMouseListener(adapter);
 
         Point mid = GraphicsEnvironment.getLocalGraphicsEnvironment().getCenterPoint();
         Dimension d = new Dimension(mid.x, mid.y);
@@ -202,13 +231,41 @@ public class LauncherFrame extends JFrame {
             @Override
             protected void done() {
                 try {
-                    DefaultListModel<Program> listM = new DefaultListModel<>();
-                    for(Repository repo : get()) {
+                    List<Repository> repos = get();
+                    DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode();
+                    DefaultTreeModel listM = new DefaultTreeModel(rootNode);
+                    for(Repository repo : repos) {
+                        DefaultMutableTreeNode repoNode = rootNode;
+                        if(repos.size() > 1) {
+                            repoNode = new DefaultMutableTreeNode(repo.getName());
+                            rootNode.add(repoNode);
+                        }
                         for(Program p : repo.getPackages()) {
-                            listM.addElement(p);
+                            repoNode.add(new DefaultMutableTreeNode(p));
                         }
                     }
                     setListModel(listM);
+                    PropertyChangeListener pcl = new PropertyChangeListener() {
+
+                        boolean ignore = true;
+
+                        @Override
+                        public void propertyChange(PropertyChangeEvent evt) {
+                            if(ignore) {
+                                ignore = false;
+                                return;
+                            }
+                            programSplit.removePropertyChangeListener(
+                                JSplitPane.DIVIDER_LOCATION_PROPERTY, this);
+                            programSplit.setDividerLocation(Math.max(
+                                (int) evt.getNewValue(),
+                                programList.getPreferredScrollableViewportSize().width));
+                        }
+                    };
+                    programSplit
+                        .addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, pcl);
+                    programSplit.setDividerLocation(-1);
+
                     LOG.log(Level.INFO, "Listing at {0}ms", System.currentTimeMillis() - start);
                     if(!debug && !launcher.selfCheck()) {
                         JOptionPane.showMessageDialog(LauncherFrame.this,
@@ -296,7 +353,7 @@ public class LauncherFrame extends JFrame {
         tabbedPane = new javax.swing.JTabbedPane();
         programSplit = new javax.swing.JSplitPane();
         programScroll = new javax.swing.JScrollPane();
-        programList = new javax.swing.JList();
+        programList = new javax.swing.JTree();
         programPanel = new javax.swing.JPanel();
         newsScroll = new javax.swing.JScrollPane();
         launchButton = new javax.swing.JButton();
@@ -308,7 +365,8 @@ public class LauncherFrame extends JFrame {
 
         programSplit.setContinuousLayout(true);
 
-        programList.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        programList.setModel(null);
+        programList.setRootVisible(false);
         programScroll.setViewportView(programList);
 
         programSplit.setLeftComponent(programScroll);
@@ -356,7 +414,7 @@ public class LauncherFrame extends JFrame {
     private com.timepath.launcher.ui.swing.DownloadPanel downloadPanel;
     private javax.swing.JButton launchButton;
     private javax.swing.JScrollPane newsScroll;
-    private javax.swing.JList programList;
+    private javax.swing.JTree programList;
     private javax.swing.JPanel programPanel;
     private javax.swing.JScrollPane programScroll;
     private javax.swing.JSplitPane programSplit;
