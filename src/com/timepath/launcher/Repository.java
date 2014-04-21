@@ -9,7 +9,10 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.parsers.*;
+import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import static com.timepath.launcher.Launcher.REPO_MAIN;
@@ -110,13 +113,36 @@ public class Repository {
         try {
             DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
-            Node root = docBuilder.parse(new BufferedInputStream(is));
+            Document doc = docBuilder.parse(new BufferedInputStream(is));
+            
+            Node root = XMLUtils.getElements("root", doc).get(0);
+            
+            Node version = null;
+            
+            Node iter = null;
+            NodeList versions = root.getChildNodes();
+            for(int i = 0; i < versions.getLength(); iter = versions.item(i++)) {
+                if(iter == null || !iter.hasAttributes()) {
+                    continue;
+                }
+                NamedNodeMap attributes = iter.getAttributes();
+                Node versionAttribute = attributes.getNamedItem("version");
+                if(versionAttribute == null) {
+                    continue;
+                }
+                String v = versionAttribute.getNodeValue();
+                if(v != null) {
+                    if(Utils.currentVersion >= Long.parseLong(v)) {
+                        version = iter;
+                    }
+                }
+            }
 
-            LOG.log(Level.FINEST, "\n{0}", XMLUtils.printTree(root, 0));
+            LOG.log(Level.FINEST, "\n{0}", XMLUtils.printTree(doc, 0));
 
             String[] nodes = {"self", "libs", "programs"};
             for(String n : nodes) {
-                List<Node> programs = XMLUtils.getElements("root/" + n + "/entry", root);
+                List<Node> programs = XMLUtils.getElements(n + "/entry", version);
                 for(Node entry : programs) {
                     //<editor-fold defaultstate="collapsed" desc="Parse">
                     Program p = new Program();
