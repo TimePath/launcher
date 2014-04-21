@@ -1,9 +1,6 @@
 package com.timepath.launcher.ui.swing;
 
-import com.timepath.launcher.DownloadMonitor;
-import com.timepath.launcher.Launcher;
-import com.timepath.launcher.PackageFile;
-import com.timepath.launcher.Program;
+import com.timepath.launcher.*;
 import com.timepath.launcher.util.Utils;
 import java.awt.*;
 import java.awt.event.*;
@@ -195,19 +192,19 @@ public class LauncherFrame extends JFrame {
     }
 
     private void updateList() {
-        new SwingWorker<List<List<Program>>, Void>() {
+        new SwingWorker<List<Repository>, Void>() {
 
             @Override
-            protected List<List<Program>> doInBackground() throws Exception {
-                return launcher.getListings();
+            protected List<Repository> doInBackground() throws Exception {
+                return launcher.getRepositories();
             }
 
             @Override
             protected void done() {
                 try {
                     DefaultListModel<Program> listM = new DefaultListModel<>();
-                    for(List<Program> repo : get()) {
-                        for(Program p : repo) {
+                    for(Repository repo : get()) {
+                        for(Program p : repo.getPackages()) {
                             listM.addElement(p);
                         }
                     }

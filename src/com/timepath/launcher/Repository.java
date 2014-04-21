@@ -3,6 +3,8 @@ package com.timepath.launcher;
 import com.timepath.launcher.util.Utils;
 import com.timepath.launcher.util.XMLUtils;
 import java.io.*;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -10,7 +12,10 @@ import javax.xml.parsers.*;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
+import static com.timepath.launcher.Launcher.REPO_MAIN;
 import static com.timepath.launcher.util.Utils.UPDATE_NAME;
+import static com.timepath.launcher.util.Utils.debug;
+import static com.timepath.launcher.util.Utils.start;
 
 public class Repository {
 
@@ -18,11 +23,89 @@ public class Repository {
 
     private final Map<String, Program> libs = new HashMap<>(0);
 
+    private final String location;
+
+    private String name;
+
     private List<Program> packages;
 
     Program self;
 
-    public Repository(InputStream is) {
+    public Repository(String s) {
+        location = s;
+        name = s;
+        connect();
+    }
+
+    public void connect() {
+        InputStream is = null;
+        if(debug) {
+            try {
+                is = new FileInputStream(System.getProperty("user.home") + "/Dropbox/Public/"
+                                             + REPO_MAIN);
+            } catch(FileNotFoundException ex) {
+                LOG.log(Level.SEVERE, null, ex);
+            }
+        }
+        if(is == null) {
+            try {
+                long listingStart = System.currentTimeMillis();
+                LOG.log(Level.INFO, "Resolving...");
+                URL u = new URL(location);
+                LOG.log(Level.INFO, "Resolved in {0}ms", System.currentTimeMillis() - listingStart);
+                LOG.log(Level.INFO, "Connecting...");
+                URLConnection c = u.openConnection();
+                LOG.log(Level.INFO, "Connected in {0}ms", System.currentTimeMillis() - listingStart);
+                LOG.log(Level.INFO, "Streaming...");
+                is = c.getInputStream();
+            } catch(IOException ex) {
+                LOG.log(Level.SEVERE, null, ex);
+            }
+        }
+        LOG.log(Level.INFO, "Stream opened at {0}ms", System.currentTimeMillis() - start);
+        LOG.log(Level.INFO, "Parsing...");
+        parse(is);
+        LOG.log(Level.INFO, "Parsed at {0}ms", System.currentTimeMillis() - start);
+    }
+
+    /**
+     * @return the name
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * @return the packages
+     */
+    public List<Program> getPackages() {
+        if(packages == null) {
+            connect();
+        }
+        return Collections.unmodifiableList(packages);
+    }
+
+    private List<PackageFile> getDownloads(Node entry) {
+        List<PackageFile> downloads = new LinkedList<>();
+        // downloadURL
+        for(Node n : XMLUtils.getElements("download", entry)) {
+            Node checksum = Utils.last(XMLUtils.getElements("checksum", entry));
+            String dlu = XMLUtils.getAttribute(n, "url");
+            if(dlu == null) {
+                continue;
+            }
+            String csu = null;
+            if(checksum != null) {
+                csu = XMLUtils.getAttribute(checksum, "url");
+            }
+            PackageFile d = new PackageFile(dlu, csu);
+            d.nested = getDownloads(n);
+            downloads.add(d);
+        }
+        return downloads;
+    }
+
+    private void parse(InputStream is) {
         packages = new LinkedList<>();
         try {
             DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
@@ -85,36 +168,6 @@ public class Repository {
         } catch(IOException | ParserConfigurationException | SAXException ex) {
             LOG.log(Level.SEVERE, null, ex);
         }
-    }
-
-    private Repository() {
-    }
-
-    /**
-     * @return the packages
-     */
-    public List<Program> getPackages() {
-        return Collections.unmodifiableList(packages);
-    }
-
-    private List<PackageFile> getDownloads(Node entry) {
-        List<PackageFile> downloads = new LinkedList<>();
-        // downloadURL
-        for(Node n : XMLUtils.getElements("download", entry)) {
-            Node checksum = Utils.last(XMLUtils.getElements("checksum", entry));
-            String dlu = XMLUtils.getAttribute(n, "url");
-            if(dlu == null) {
-                continue;
-            }
-            String csu = null;
-            if(checksum != null) {
-                csu = XMLUtils.getAttribute(checksum, "url");
-            }
-            PackageFile d = new PackageFile(dlu, csu);
-            d.nested = getDownloads(n);
-            downloads.add(d);
-        }
-        return downloads;
     }
 
 }

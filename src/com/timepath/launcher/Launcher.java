@@ -1,7 +1,5 @@
 package com.timepath.launcher;
 
-import java.io.*;
-import java.net.*;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.*;
@@ -13,10 +11,9 @@ import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 import javax.swing.*;
 
-import static com.timepath.launcher.util.Utils.debug;
-import static com.timepath.launcher.util.Utils.start;
-
 public class Launcher {
+
+    public static final String REPO_MAIN = "public.xml";
 
     private static final Logger LOG = Logger.getLogger(Launcher.class.getName());
 
@@ -39,15 +36,18 @@ public class Launcher {
         return downloadManager;
     }
 
-    public List<List<Program>> getListings() {
-        List<List<Program>> lists = new LinkedList<>();
+    public List<Repository> getRepositories() {
+        List<Repository> lists = new LinkedList<>();
 
-        lists.add(getListing("http://dl.dropboxusercontent.com/u/42745598/public.xml"));
+        Repository main = new Repository("http://dl.dropboxusercontent.com/u/42745598/" + REPO_MAIN);
+        this.self = main.self;
+        lists.add(main);
+        
         Preferences repos = Preferences.userNodeForPackage(getClass()).node("repositories");
         try {
             for(String repo : repos.keys()) {
                 if(repos.getBoolean(repo, false)) {
-                    lists.add(getListing(repo));
+                    lists.add(new Repository(repo));
                 }
             }
         } catch(BackingStoreException ex) {
@@ -124,41 +124,6 @@ public class Launcher {
             arr.add(getDownloadManager().submit(d));
         }
         return arr;
-    }
-
-    private List<Program> getListing(String s) {
-        InputStream is = null;
-        if(debug) {
-            try {
-                is = new FileInputStream(System.getProperty("user.home")
-                                         + "/Dropbox/Public/projects.xml");
-            } catch(FileNotFoundException ex) {
-                LOG.log(Level.SEVERE, null, ex);
-            }
-        }
-        if(is == null) {
-            try {
-                long listingStart = System.currentTimeMillis();
-                LOG.log(Level.INFO, "Resolving...");
-                URL u = new URL(s);
-                LOG.log(Level.INFO, "Resolved in {0}ms", System.currentTimeMillis() - listingStart);
-                LOG.log(Level.INFO, "Connecting...");
-                URLConnection c = u.openConnection();
-                LOG.log(Level.INFO, "Connected in {0}ms", System.currentTimeMillis() - listingStart);
-                LOG.log(Level.INFO, "Streaming...");
-                is = c.getInputStream();
-            } catch(IOException ex) {
-                LOG.log(Level.SEVERE, null, ex);
-            }
-        }
-        LOG.log(Level.INFO, "Stream opened at {0}ms", System.currentTimeMillis() - start);
-        LOG.log(Level.INFO, "Parsing...");
-        Repository r = new Repository(is);
-        if(self == null) {
-            self = r.self;
-        }
-        LOG.log(Level.INFO, "Parsed at {0}ms", System.currentTimeMillis() - start);
-        return r.getPackages();
     }
 
 }
