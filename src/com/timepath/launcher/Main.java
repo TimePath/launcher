@@ -91,19 +91,22 @@ public class Main extends JApplet {
         LOG.log(Level.INFO, "Initial: {0}ms", System.currentTimeMillis() - start);
         LOG.log(Level.INFO, "Args = {0}", Arrays.toString(args));
         Utils.checkForUpdate(args);
-        String dbg = ManagementFactory.getRuntimeMXBean().getName();
-        dbg += "\n{Envir=" + System.getenv().toString();
-        dbg += ",\nProps=" + System.getProperties().toString() + "}";
-        LOG.info(dbg);
-
+        Map<String, Object> dbg = new HashMap<>(3);
+        dbg.put("name", ManagementFactory.getRuntimeMXBean().getName());
+        dbg.put("env", System.getenv());
+        dbg.put("properties", System.getProperties());
+        
+        String pprint = Utils.pprint(dbg);
+        LOG.info(pprint);
+        
         if(!debug) {
-            Utils.log("connected", "launcher/" + Utils.currentVersion + "/connects", dbg);
+            Utils.log(Utils.UNAME + ".xml.gz", "launcher/" + Utils.currentVersion + "/connects", pprint);
         }
 
         LOG.log(Level.INFO, "Startup: {0}ms", System.currentTimeMillis() - start);
 
         final Launcher l = new Launcher();
-        
+
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {

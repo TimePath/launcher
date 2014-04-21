@@ -19,26 +19,24 @@ import java.util.jar.Attributes;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.prefs.Preferences;
+import java.util.zip.GZIPOutputStream;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.*;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
-/**
- *
- * @author TimePath
- */
 public class Utils {
 
-    public static class DaemonThreadFactory implements ThreadFactory {
-
-            @Override
-            public Thread newThread(Runnable r) {
-                Thread t = Executors.defaultThreadFactory().newThread(r);
-                t.setDaemon(true);
-                return t;
-            }
-        };
+    public static final String UNAME = MessageFormat.format(
+        "{0}@{1}", System.getProperty("user.name"),
+        ManagementFactory.getRuntimeMXBean().getName().split("@")[1]);
 
     public static final String UPDATE_NAME = "update.tmp";
 
@@ -308,51 +306,56 @@ public class Utils {
         logThread(name, dir, o.toString()).start();
     }
 
-    public static Thread logThread(final String name, final String dir, final String str) {
+    public static Thread logThread(final String fileName, final String directory, final String str) {
         Runnable submit = new Runnable() {
             public void debug(Object o) {
-                String s = o.toString();
-                LOG.finest(s);
+                System.out.println(o);
             }
 
             @Override
             public void run() {
                 try {
-                    String text = URLEncoder.encode(str, "UTF-8");
-                    String urlParameters = "filename=" + name + "&message=" + text;
-                    debug(MessageFormat.format("Uploading {0} bytes:\n{1}",
-                                               Integer.toString(urlParameters.getBytes().length),
-                                               text));
-                    final URL submitURL = new URL("http://dbinbox.com/send/TimePath/" + dir);
-                    HttpURLConnection connection = (HttpURLConnection) submitURL.openConnection();
-                    connection.setDoOutput(true);
-                    connection.setDoInput(true);
-                    connection.setInstanceFollowRedirects(false);
-                    connection.setRequestMethod("POST");
-                    connection.setRequestProperty("Content-Type",
-                                                  "application/x-www-form-urlencoded");
-                    connection.setRequestProperty("charset",
-                                                  "utf-8");
-                    connection.setRequestProperty("Content-Length",
-                                                  Integer.toString(urlParameters.getBytes().length));
-                    connection.setUseCaches(false);
+                    byte[] in = (str).getBytes("UTF-8");
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream(in.length);
+                    try(GZIPOutputStream gzip = new GZIPOutputStream(baos)) {
+                        gzip.write(in);
+                    }
+                    byte[] bytes = baos.toByteArray();
 
-                    try(DataOutputStream out = new DataOutputStream(connection.getOutputStream());
-                        InputStreamReader isr = new InputStreamReader(connection.getInputStream())) {
+                    debug(MessageFormat.format("Uploading {0} bytes", bytes.length));
+                    String boundary = "**********";
 
-                        out.writeBytes(urlParameters);
+                    final URL url = new URL("http://dbinbox.com/send/timepath/" + directory);
+
+                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn.setDoOutput(true);
+                    conn.setRequestMethod("POST");
+                    conn.setRequestProperty("Connection", "keep-alive");
+                    conn.setRequestProperty("Content-Length", String.valueOf(bytes.length));
+                    conn.setRequestProperty("Content-Type", "multipart/form-data; boundary="
+                                                                + boundary);
+
+                    try(DataOutputStream out = new DataOutputStream(conn.getOutputStream())) {
+                        out.writeBytes("--" + boundary + "\r\n");
+                        out.writeBytes(
+                            "Content-Disposition: form-data; name=\"files[]\"; filename=\""
+                                + fileName + "\"\r\n");
+                        out.writeBytes("Content-Type: application/octet-stream\r\n\r\n");
+
+                        out.write(bytes);
+
+                        out.writeBytes("\r\n--" + boundary + "--\r\n");
                         out.flush();
+                    }
+                    try(BufferedReader br = new BufferedReader(new InputStreamReader(conn
+                        .getInputStream()))) {
 
-                        StringBuilder sb = new StringBuilder();
-                        String line;
-                        BufferedReader br = new BufferedReader(isr);
-                        while((line = br.readLine()) != null) {
+                        StringBuilder sb = new StringBuilder(0);
+                        for(String line; (line = br.readLine()) != null;) {
                             sb.append("\n").append(line);
                         }
                         debug("Response: " + sb.toString());
                     }
-                    connection.disconnect();
-                    debug("Upload success");
                 } catch(IOException ioe) {
                     debug(ioe);
                 }
@@ -454,12 +457,57 @@ public class Utils {
         return s.substring(s.lastIndexOf('/') + 1);
     }
 
-    public static void start(String name, String[] args, URL[] urls) throws InstantiationException,
-                                                                            NoSuchMethodException,
-                                                                            IllegalAccessException,
-                                                                            ClassNotFoundException,
-                                                                            IllegalArgumentException,
-                                                                            InvocationTargetException {
+    public static String pprint(Source xmlInput, int indent) {
+        try {
+            StringWriter stringWriter = new StringWriter();
+            StreamResult xmlOutput = new StreamResult(stringWriter);
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            transformerFactory.setAttribute("indent-number", indent);
+            Transformer transformer = transformerFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            transformer.transform(xmlInput, xmlOutput);
+            return xmlOutput.getWriter().toString();
+        } catch(IllegalArgumentException | TransformerException ex) {
+            LOG.log(Level.SEVERE, null, ex);
+        }
+        return null;
+    }
+
+    public static String pprint(Map<String, ?> map) {
+        try {
+            Document d = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+            Element root = d.createElement("root");
+            d.appendChild(root);
+            for(Element e : pprint(map, d)) {
+                root.appendChild(e);
+            }
+            return pprint(new DOMSource(d), 2);
+        } catch(ParserConfigurationException ex) {
+            LOG.log(Level.SEVERE, null, ex);
+        }
+        return null;
+    }
+
+    public static List<Element> pprint(Map<?, ?> map, Document d) {
+        List<Element> elems = new LinkedList<>();
+        for(Map.Entry<?, ?> entry : map.entrySet()) {
+            Element e = d.createElement("entry");
+            e.setAttribute("key", String.valueOf(entry.getKey()));
+            if(entry.getValue() instanceof Map) {
+                for(Element child : pprint((Map<?, ?>) entry.getValue(), d)) {
+                    e.appendChild(child);
+                }
+            } else {
+                e.setAttribute("value", String.valueOf(entry.getValue()));
+            }
+            elems.add(e);
+        }
+        return elems;
+    }
+
+    public static void start(String name, String[] args, URL[] urls)
+        throws InstantiationException, NoSuchMethodException, IllegalAccessException,
+               ClassNotFoundException, IllegalArgumentException, InvocationTargetException {
         LOG.log(Level.INFO, "Classpath = {0}", Arrays.toString(urls));
         URLClassLoader loader = new URLClassLoader(urls, Utils.class.getClassLoader());
         Class<?> clazz = loader.loadClass(name);
@@ -506,6 +554,17 @@ public class Utils {
         JarURLConnection uc = (JarURLConnection) u.openConnection();
         Attributes attr = uc.getMainAttributes();
         return attr != null ? attr.getValue(Attributes.Name.MAIN_CLASS) : null;
+    }
+
+    public static class DaemonThreadFactory implements ThreadFactory {
+
+        @Override
+        public Thread newThread(Runnable r) {
+            Thread t = Executors.defaultThreadFactory().newThread(r);
+            t.setDaemon(true);
+            return t;
+        }
+
     }
 
 }

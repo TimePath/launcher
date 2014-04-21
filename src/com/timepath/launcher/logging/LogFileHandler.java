@@ -20,17 +20,17 @@ public class LogFileHandler extends Handler {
         logFile = new File(Utils.currentFile.getParentFile(), MessageFormat.format(
                            "logs/log_{0}.txt", System.currentTimeMillis() / 1000));
         logFile.getParentFile().mkdirs();
-
-        SimpleFormatter fileFormatter = new SimpleFormatter();
+        
+        Formatter f = new XMLFormatter();
         fh = new FileHandler(logFile.getPath(), 0, 1, false);
-        fh.setFormatter(fileFormatter);
+        fh.setFormatter(f);
         final URL u = logFile.toURI().toURL();
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {
                 fh.flush();
                 fh.close();
-                Utils.logThread("exit", "launcher/" + Utils.currentVersion + "/logs",
+                Utils.logThread(Utils.UNAME + ".xml.gz", "launcher/" + Utils.currentVersion + "/logs",
                                 Utils.loadPage(u)).run();
             }
         });
