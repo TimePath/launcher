@@ -83,36 +83,38 @@ public class Program extends PackageFile {
      * @return false if not up to date, true if up to date or working offline
      */
     public boolean isLatest() {
-        if(debug && self) {
-            return true;
-        }
         LOG.log(Level.INFO, "Checking {0} for updates...", this);
         for(PackageFile d : downloads) {
             try {
-                LOG.log(Level.INFO, "Version file: {0}", d.getFile());
-                LOG.log(Level.INFO, "Version url: {0}", d.versionURL);
-
                 File f = d.getFile();
                 if(UPDATE_NAME.equals(f.getName())) { // Edge case for current file
                     f = Utils.currentFile;
                 }
+                
+                LOG.log(Level.INFO, "Version file: {0}", f);
+                LOG.log(Level.INFO, "Version url: {0}", d.versionURL);
 
                 if(!f.exists()) {
+                    LOG.log(Level.INFO, "Don't have {0}, not latest", f);
                     return false;
                 } else if(d.versionURL == null) {
-                    continue; // Eave unversioned file, skip check
+                    LOG.log(Level.INFO, "{0} not versioned, skipping", f);
+                    continue; // Have unversioned file, skip check
                 }
                 String checksum = Utils.checksum(f, "MD5");
                 BufferedReader br = new BufferedReader(new InputStreamReader(
                     new URL(d.versionURL).openStream()));
                 String expected = br.readLine();
                 if(!checksum.equals(expected)) {
+                    LOG.log(Level.INFO, "Checksum mismatch for {0}, not latest", f);
                     return false;
                 }
             } catch(IOException | NoSuchAlgorithmException ex) {
                 LOG.log(Level.SEVERE, null, ex);
+                return false;
             }
         }
+        LOG.log(Level.INFO, "{0} doesn't need updating", this);
         return true;
     }
 
