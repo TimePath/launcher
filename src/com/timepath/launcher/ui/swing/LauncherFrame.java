@@ -16,22 +16,21 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.*;
 import javax.swing.event.*;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 
 import static com.timepath.launcher.util.Utils.debug;
 import static com.timepath.launcher.util.Utils.start;
 
-/**
- *
- * @author TimePath
- */
 @SuppressWarnings("serial")
 public class LauncherFrame extends JFrame {
 
     private static final Logger LOG = Logger.getLogger(LauncherFrame.class.getName());
 
     private Launcher launcher;
+
+    private RepositoryManagerImpl repositoryManager;
 
     public void display(Component c) {
         newsScroll.setViewportView(c);
@@ -147,6 +146,8 @@ public class LauncherFrame extends JFrame {
             }
         });
 
+        repositoryManager = new RepositoryManagerImpl();
+
         updateList();
 
         this.addWindowListener(new WindowAdapter() {
@@ -234,7 +235,12 @@ public class LauncherFrame extends JFrame {
                     List<Repository> repos = get();
                     DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode();
                     DefaultTreeModel listM = new DefaultTreeModel(rootNode);
+                    for(int i = repositoryManager.model.getRowCount(); i > 0; ) {
+                        repositoryManager.model.removeRow(--i);
+                    }
                     for(Repository repo : repos) {
+                        repositoryManager.model.addRow(new Object[] {repo, repo.isEnabled()});
+
                         DefaultMutableTreeNode repoNode = rootNode;
                         if(repos.size() > 1) {
                             repoNode = new DefaultMutableTreeNode(repo.getName());
@@ -350,6 +356,7 @@ public class LauncherFrame extends JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        aboutPanel = new javax.swing.JPanel();
         tabbedPane = new javax.swing.JTabbedPane();
         programSplit = new javax.swing.JSplitPane();
         programScroll = new javax.swing.JScrollPane();
@@ -358,7 +365,22 @@ public class LauncherFrame extends JFrame {
         newsScroll = new javax.swing.JScrollPane();
         launchButton = new javax.swing.JButton();
         downloadPanel = new com.timepath.launcher.ui.swing.DownloadPanel();
-        aboutPanel = new javax.swing.JPanel();
+        jMenuBar1 = new javax.swing.JMenuBar();
+        jMenu1 = new javax.swing.JMenu();
+        jMenuItem1 = new javax.swing.JMenuItem();
+        jMenu2 = new javax.swing.JMenu();
+        jMenuItem2 = new javax.swing.JMenuItem();
+
+        org.jdesktop.layout.GroupLayout aboutPanelLayout = new org.jdesktop.layout.GroupLayout(aboutPanel);
+        aboutPanel.setLayout(aboutPanelLayout);
+        aboutPanelLayout.setHorizontalGroup(
+            aboutPanelLayout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+            .add(0, 635, Short.MAX_VALUE)
+        );
+        aboutPanelLayout.setVerticalGroup(
+            aboutPanelLayout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+            .add(0, 410, Short.MAX_VALUE)
+        );
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("TimePath's program hub");
@@ -382,18 +404,31 @@ public class LauncherFrame extends JFrame {
         tabbedPane.addTab("Programs", programSplit);
         tabbedPane.addTab("Downloads", downloadPanel);
 
-        org.jdesktop.layout.GroupLayout aboutPanelLayout = new org.jdesktop.layout.GroupLayout(aboutPanel);
-        aboutPanel.setLayout(aboutPanelLayout);
-        aboutPanelLayout.setHorizontalGroup(
-            aboutPanelLayout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-            .add(0, 635, Short.MAX_VALUE)
-        );
-        aboutPanelLayout.setVerticalGroup(
-            aboutPanelLayout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-            .add(0, 454, Short.MAX_VALUE)
-        );
+        jMenu1.setText("Tools");
 
-        tabbedPane.addTab("About", aboutPanel);
+        jMenuItem1.setText("Add repository");
+        jMenuItem1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jMenuItem1ActionPerformed(evt);
+            }
+        });
+        jMenu1.add(jMenuItem1);
+
+        jMenuBar1.add(jMenu1);
+
+        jMenu2.setText("Help");
+
+        jMenuItem2.setText("About");
+        jMenuItem2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jMenuItem2ActionPerformed(evt);
+            }
+        });
+        jMenu2.add(jMenuItem2);
+
+        jMenuBar1.add(jMenu2);
+
+        setJMenuBar(jMenuBar1);
 
         org.jdesktop.layout.GroupLayout layout = new org.jdesktop.layout.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -409,9 +444,22 @@ public class LauncherFrame extends JFrame {
         setBounds(0, 0, 650, 510);
     }// </editor-fold>//GEN-END:initComponents
 
+    private void jMenuItem2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem2ActionPerformed
+        JOptionPane.showMessageDialog(this, aboutPanel);
+    }//GEN-LAST:event_jMenuItem2ActionPerformed
+
+    private void jMenuItem1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem1ActionPerformed
+        JOptionPane.showMessageDialog(this, repositoryManager);
+    }//GEN-LAST:event_jMenuItem1ActionPerformed
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     protected javax.swing.JPanel aboutPanel;
     private com.timepath.launcher.ui.swing.DownloadPanel downloadPanel;
+    private javax.swing.JMenu jMenu1;
+    private javax.swing.JMenu jMenu2;
+    private javax.swing.JMenuBar jMenuBar1;
+    private javax.swing.JMenuItem jMenuItem1;
+    private javax.swing.JMenuItem jMenuItem2;
     private javax.swing.JButton launchButton;
     private javax.swing.JScrollPane newsScroll;
     private javax.swing.JTree programList;
@@ -421,5 +469,36 @@ public class LauncherFrame extends JFrame {
     private javax.swing.JTabbedPane tabbedPane;
     // End of variables declaration//GEN-END:variables
     //</editor-fold>
+
+    private class RepositoryManagerImpl extends RepositoryManager {
+
+        DefaultTableModel model = (DefaultTableModel) this.jTable1.getModel();
+
+        RepositoryManagerImpl() {
+            super();
+            model.setColumnCount(1);
+        }
+        
+
+        @Override
+        protected void addActionPerformed(ActionEvent evt) {
+            String in = JOptionPane.showInputDialog(LauncherFrame.this, "Enter URL");
+            if(in == null) {
+                return;
+            }
+            Repository r = new Repository(in);
+            launcher.addRepository(r);
+            updateList();
+        }
+
+        @Override
+        protected void removeActionPerformed(ActionEvent evt) {
+            for(int row : this.jTable1.getSelectedRows()) {
+                launcher.removeRepository((Repository) model.getValueAt(row, 0));
+            }
+            updateList();
+        }
+
+    }
 
 }

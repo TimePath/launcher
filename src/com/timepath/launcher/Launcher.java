@@ -13,6 +13,8 @@ import javax.swing.*;
 
 public class Launcher {
 
+    public static final Preferences PREFS = Preferences.userNodeForPackage(Launcher.class);
+
     public static final String REPO_MAIN = "public.xml";
 
     private static final Logger LOG = Logger.getLogger(Launcher.class.getName());
@@ -29,6 +31,10 @@ public class Launcher {
 
     private Program self;
 
+    public void addRepository(Repository r) {
+        PREFS.node("repositories").putBoolean(r.location, true);
+    }
+
     /**
      * @return the downloadManager
      */
@@ -42,8 +48,8 @@ public class Launcher {
         Repository main = new Repository("http://dl.dropboxusercontent.com/u/42745598/" + REPO_MAIN);
         this.self = main.self;
         lists.add(main);
-        
-        Preferences repos = Preferences.userNodeForPackage(getClass()).node("repositories");
+
+        Preferences repos = PREFS.node("repositories");
         try {
             for(String repo : repos.keys()) {
                 if(repos.getBoolean(repo, false)) {
@@ -54,6 +60,10 @@ public class Launcher {
             LOG.log(Level.SEVERE, null, ex);
         }
         return lists;
+    }
+
+    public void removeRepository(Repository r) {
+        PREFS.node("repositories").putBoolean(r.location, false);
     }
 
     /**

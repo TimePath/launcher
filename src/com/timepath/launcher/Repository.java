@@ -15,7 +15,6 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import static com.timepath.launcher.Launcher.REPO_MAIN;
 import static com.timepath.launcher.util.Utils.UPDATE_NAME;
 import static com.timepath.launcher.util.Utils.debug;
 import static com.timepath.launcher.util.Utils.start;
@@ -24,20 +23,25 @@ public class Repository {
 
     private static final Logger LOG = Logger.getLogger(Repository.class.getName());
 
-    private final Map<String, Program> libs = new HashMap<>(0);
+    private boolean enabled;
 
-    private final String location;
+    private final Map<String, Program> libs = new HashMap<>(0);
 
     private String name;
 
     private List<Program> packages;
+
+    final String location;
 
     Program self;
 
     public Repository(String s) {
         location = s;
         name = s;
-        connect();
+        this.enabled = true;
+        if(enabled) {
+            connect();
+        }
     }
 
     public void connect() {
@@ -45,7 +49,7 @@ public class Repository {
         if(debug) {
             try {
                 is = new FileInputStream(System.getProperty("user.home") + "/Dropbox/Public/"
-                                             + REPO_MAIN);
+                                             + Utils.name(location));
             } catch(FileNotFoundException ex) {
                 LOG.log(Level.SEVERE, null, ex);
             }
@@ -88,6 +92,25 @@ public class Repository {
         return Collections.unmodifiableList(packages);
     }
 
+    /**
+     * @return the enabled
+     */
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    /**
+     * @param enabled the enabled to set
+     */
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    @Override
+    public String toString() {
+        return getName();
+    }
+
     private List<PackageFile> getDownloads(Node entry) {
         List<PackageFile> downloads = new LinkedList<>();
         // downloadURL
@@ -114,11 +137,11 @@ public class Repository {
             DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
             Document doc = docBuilder.parse(new BufferedInputStream(is));
-            
+
             Node root = XMLUtils.getElements("root", doc).get(0);
-            
+
             Node version = null;
-            
+
             Node iter = null;
             NodeList versions = root.getChildNodes();
             for(int i = 0; i < versions.getLength(); iter = versions.item(i++)) {
@@ -132,13 +155,17 @@ public class Repository {
                 }
                 String v = versionAttribute.getNodeValue();
                 if(v != null) {
-                    if(Utils.currentVersion >= Long.parseLong(v)) {
-                        version = iter;
+                    try {
+                        if(Utils.debug || Utils.currentVersion >= Long.parseLong(v)) {
+                            version = iter;
+                        }
+                    } catch(NumberFormatException ignore) {
+
                     }
                 }
             }
 
-            LOG.log(Level.FINEST, "\n{0}", XMLUtils.printTree(doc, 0));
+            LOG.log(Level.FINE, "\n{0}", XMLUtils.printTree(version, 0));
 
             String[] nodes = {"self", "libs", "programs"};
             for(String n : nodes) {
