@@ -365,7 +365,7 @@ public class Utils {
     }
 
     public static void lookAndFeel() {
-        //<editor-fold defaultstate="collapsed" desc="Look and feel setting code">
+        //<editor-fold defaultstate="collapsed" desc="Load native extended themes">
 //        switch(OS.get()) {
 //            case OSX:
 //                UIManager.installLookAndFeel("Quaqua", "ch.randelshofer.quaqua.QuaquaLookAndFeel");
@@ -374,10 +374,11 @@ public class Utils {
 //                UIManager.installLookAndFeel("GTK extended", "org.gtk.laf.extended.GTKLookAndFeelExtended");
 //                break;
 //        }
-        String envTheme = System.getProperty("swing.defaultlaf");
+        //</editor-fold>
+        UIManager.installLookAndFeel("Substance", "org.pushingpixels.substance.api.skin.SubstanceGraphiteLookAndFeel");
+        
         String usrTheme = settings.get("laf", null);
-        //<editor-fold defaultstate="collapsed" desc="Validate user theme">
-        if(usrTheme != null) {
+        if(usrTheme != null) { // Validate user theme
             try {
                 Class.forName(usrTheme);
             } catch(ClassNotFoundException ex) {
@@ -386,32 +387,39 @@ public class Utils {
                 settings.remove("laf");
             }
         }
-        //</editor-fold>
-        if(usrTheme == null) {
-            //<editor-fold defaultstate="collapsed" desc="Detect a default">
-            HashMap<String, String> laf = new HashMap<String, String>();
-            for(UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-                laf.put(info.getName(), info.getClassName());
-            }
-            // In order of preference
-            String[] test = {
-                "Nimbus",
-                UIManager.getCrossPlatformLookAndFeelClassName(),
-                UIManager.getSystemLookAndFeelClassName(),};
-            for(String s : test) {
-                if(laf.containsKey(s)) {
-                    usrTheme = laf.get(s);
-                    settings.put("laf", usrTheme);
-                    LOG.log(Level.CONFIG, "Set default user theme: {0}", usrTheme);
-                    break;
-                }
-            }
-            //</editor-fold>
-        }
+        fallback:
+            if(usrTheme == null) { // Still null, pick a default
+                // In order of preference
+                String[] test = {
+                    "Nimbus",
+                    UIManager.getSystemLookAndFeelClassName(),
+                    UIManager.getCrossPlatformLookAndFeelClassName()
+                };
 
-        String theme1 = envTheme != null ? envTheme : usrTheme; // envTheme authorative
-        String theme2 = usrTheme == null ? envTheme : usrTheme; // usrTheme authorative
-        String theme = theme1; // TODO: add preference
+                // Build a map for faster querying
+                Map<String, String> laf = new HashMap<>(0);
+                for(UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+                    laf.put(info.getName(), info.getClassName());
+                }
+
+                for(String s : test) {
+                    if((usrTheme = laf.get(s)) != null) {
+                        settings.put("laf", usrTheme);
+                        LOG.log(Level.CONFIG, "Set default user theme: {0}", usrTheme);
+                        break fallback;
+                    }
+                }
+                usrTheme = null;
+            }
+
+        String envTheme = System.getProperty("swing.defaultlaf");
+        boolean lafOverride = settings.getBoolean("lafOverride", false);
+        String theme;
+        if(lafOverride) {
+            theme = usrTheme == null ? envTheme : usrTheme; // usrTheme authorative
+        } else {
+            theme = envTheme != null ? envTheme : usrTheme; // envTheme authorative
+        }
 
         try {
             UIManager.setLookAndFeel(theme);
@@ -445,7 +453,6 @@ public class Utils {
 //                LOG.warning("Unable to load enhanced L&F");
 //            }
 //        }
-        //</editor-fold>
         //</editor-fold>
     }
 
