@@ -1,14 +1,23 @@
 package com.timepath.launcher.ui.web;
 
 import com.sun.net.httpserver.*;
+import com.timepath.launcher.Launcher;
+import com.timepath.launcher.Program;
+import com.timepath.launcher.Repository;
 import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.*;
+import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
 class WebHandler implements HttpHandler {
 
@@ -19,11 +28,11 @@ class WebHandler implements HttpHandler {
     private static final Logger LOG = Logger.getLogger(WebHandler.class.getName());
 
     private static final Map<String, Page> cache = Collections.synchronizedMap(
-        new HashMap<String, Page>());
+        new HashMap<String, Page>(0));
 
     private static final URL cwd = Server.class.getResource("");
 
-    WebHandler() {
+    WebHandler(final Launcher launcher) {
         LOG.log(Level.INFO, "cwd: {0}", cwd);
 
         TimerTask task = new TimerTask() {
@@ -32,13 +41,14 @@ class WebHandler implements HttpHandler {
             public void run() {
                 try {
                     Page p = new Page();
-                    String s = transform(getStream("projects.xsl"), new URL(
-                                         "http://dl.dropboxusercontent.com/u/42745598/projects.xml")
-                                         .openStream());
+                    String s = transform(
+                        new StreamSource(getStream("projects.xsl")),
+                        serialize(launcher.getRepositories())
+                    );
                     p.data = s.getBytes();
                     p.expires = System.currentTimeMillis() + EXPIRES_INDEX * 1000;
                     cache.put("", p);
-                } catch(TransformerException | IOException ex) {
+                } catch(TransformerException | ParserConfigurationException | IOException ex) {
                     LOG.log(Level.SEVERE, null, ex);
                 }
             }
@@ -52,7 +62,7 @@ class WebHandler implements HttpHandler {
     public void handle(HttpExchange t) throws IOException {
 
         LOG.log(Level.INFO, "{0} {1}: {2}", new Object[] {t.getProtocol(), t.getRequestMethod(),
-                                                          t.getRequestURI()});
+                                                                           t.getRequestURI()});
         LOG.log(Level.FINE, "{0}", Arrays.toString(t.getRequestHeaders().entrySet().toArray()));
         String request = t.getRequestURI().toString();
 
@@ -201,11 +211,40 @@ class WebHandler implements HttpHandler {
         return baos.toByteArray();
     }
 
-    private String transform(InputStream xsl, InputStream xml) throws TransformerException {
-        TransformerFactory tFactory = TransformerFactory.newInstance();
+    private Source serialize(List<Repository> repos) throws ParserConfigurationException {
+        List<Program> programs = new LinkedList<>();
+        for(Repository repo : repos) {
+            programs.addAll(repo.getPackages());
+        }
+        
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        DocumentBuilder db = dbf.newDocumentBuilder();
+        Document d = db.newDocument();
+        
+        Element root = d.createElement("root");
+        Element rootPrograms = d.createElement("programs");
+        root.appendChild(rootPrograms);
+        Element rootLibs = d.createElement("libs");
+        root.appendChild(rootLibs);
+        
+        for(Program p : programs) {
+            Element e = d.createElement("entry");
+            e.setAttribute("name", p.title);
+            StringBuilder sb = new StringBuilder(0);
+            for(Program dep : p.depends) {
+                sb.append(",").append(dep.title);
+            }
+            String deps = sb.substring(Math.min(1, sb.length()));
+            e.setAttribute("depends", deps);
+            rootPrograms.appendChild(e);
+            rootLibs.appendChild(e.cloneNode(true));
+        }
+        
+        return new DOMSource(root);
+    }
 
-        StreamSource xslDoc = new StreamSource(xsl);
-        StreamSource xmlDoc = new StreamSource(xml);
+    private String transform(Source xslDoc, Source xmlDoc) throws TransformerException {
+        TransformerFactory tFactory = TransformerFactory.newInstance();
 
         Transformer trasform = tFactory.newTransformer(xslDoc);
         ByteArrayOutputStream byteArray = new ByteArrayOutputStream(10240);

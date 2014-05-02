@@ -1,6 +1,7 @@
 package com.timepath.launcher.ui.web;
 
 import com.sun.net.httpserver.*;
+import com.timepath.launcher.Launcher;
 import com.timepath.launcher.util.Utils;
 import com.timepath.launcher.util.Utils.DaemonThreadFactory;
 import java.io.IOException;
@@ -37,6 +38,7 @@ public class Server extends Thread {
             return;
         }
 
+        final Launcher l = new Launcher();
         final HttpServer server;
         try {
             server = HttpServer.create(new InetSocketAddress(0), BACKLOG);
@@ -48,7 +50,7 @@ public class Server extends Thread {
             ExecutorService threadPool = Executors.newCachedThreadPool(new DaemonThreadFactory());
             server.setExecutor(threadPool);
 
-            server.createContext("/", new WebHandler());
+            server.createContext("/", new WebHandler(l));
             server.createContext(ENDPOINT_LAUNCH, new LaunchHandler());
             server.createContext(ENDPOINT_SSE, new SSEHandler());
             server.createContext(ENDPOINT_SHUTDOWN, new HttpHandler() {
