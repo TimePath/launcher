@@ -389,6 +389,7 @@ public class LauncherFrame extends JFrame {
 
         programList.setModel(null);
         programList.setRootVisible(false);
+        programList.setShowsRootHandles(true);
         programScroll.setViewportView(programList);
 
         programSplit.setLeftComponent(programScroll);
