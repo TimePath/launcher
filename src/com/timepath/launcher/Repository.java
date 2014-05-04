@@ -167,6 +167,11 @@ public class Repository {
 
             LOG.log(Level.FINE, "\n{0}", XMLUtils.printTree(version, 0));
 
+            
+            List<Node> meta = XMLUtils.getElements("meta", version);
+            String nameCandidate = XMLUtils.getAttribute(meta.get(0), "name");
+            name = nameCandidate != null ? nameCandidate : name;
+            
             String[] nodes = {"self", "libs", "programs"};
             for(String n : nodes) {
                 List<Node> programs = XMLUtils.getElements(n + "/entry", version);
