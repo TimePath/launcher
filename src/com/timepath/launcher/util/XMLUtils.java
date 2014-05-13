@@ -1,43 +1,32 @@
 package com.timepath.launcher.util;
 
-import com.timepath.launcher.util.XMLUtils;
+import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
 import java.text.MessageFormat;
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.logging.Logger;
-import org.w3c.dom.*;
 
 /**
- *
  * @author TimePath
  */
 public class XMLUtils {
 
     private static final Logger LOG = Logger.getLogger(XMLUtils.class.getName());
 
-    public static List<Node> get(Node parent, short nodeType) {
-        List<Node> list = new LinkedList<>();
-        if(parent.hasChildNodes()) {
-            NodeList nodes = parent.getChildNodes();
-            for(int i = 0; i < nodes.getLength(); i++) {
-                Node n = nodes.item(i);
-                if(n.getNodeType() == nodeType) {
-                    list.add(n);
-                }
-            }
-        }
-        return list;
+    private XMLUtils() {
     }
 
-    public static String getAttribute(Node n, String key) {
-        Element e = (Element) n;
-        Node child = Utils.last(getElements(key, n));
+    public static String getAttribute(Node node, String key) {
+        Element e = (Element) node;
+        Node child = Utils.last(getElements(key, node));
         if(child != null) {
             return child.getNodeValue();
-        } else if(e.getAttributeNode(key) != null) {
-            return e.getAttributeNode(key).getValue();
-        } else {
-            return null;
         }
+        return ( e.getAttributeNode(key) != null ) ? e.getAttributeNode(key).getValue() : null;
     }
 
     public static List<Node> getElements(String eval, Node root) {
@@ -47,9 +36,9 @@ public class XMLUtils {
         for(String part : path) {
             List<Node> repl = new LinkedList<>();
             for(Node scan : nodes) {
-                for(Node n : get(scan, Node.ELEMENT_NODE)) {
-                    if(n.getNodeName().equals(part)) {
-                        repl.add(n);
+                for(Node node : get(scan, Node.ELEMENT_NODE)) {
+                    if(node.getNodeName().equals(part)) {
+                        repl.add(node);
                     }
                 }
             }
@@ -58,35 +47,41 @@ public class XMLUtils {
         return nodes;
     }
 
+    public static List<Node> get(Node parent, short nodeType) {
+        List<Node> list = new LinkedList<>();
+        if(parent.hasChildNodes()) {
+            NodeList nodes = parent.getChildNodes();
+            for(int i = 0; i < nodes.getLength(); i++) {
+                Node node = nodes.item(i);
+                if(node.getNodeType() == nodeType) {
+                    list.add(node);
+                }
+            }
+        }
+        return list;
+    }
+
     public static String printTree(Node root, int depth) {
         StringBuilder sb = new StringBuilder();
         String spacing = "";
         if(depth > 0) {
-            spacing = String.format("%-" + (depth * 4) + "s", "");
+            spacing = String.format("%-" + ( depth * 4 ) + 's', "");
         }
-
         StringBuilder sb2 = new StringBuilder(root.getNodeName());
         if(root.hasAttributes()) {
             NamedNodeMap attribs = root.getAttributes();
             for(int i = attribs.getLength() - 1; i >= 0; i--) {
-                sb2.append(MessageFormat.format(" {0}=\"{1}\"",
-                                                attribs.item(i).getNodeName(),
-                                                attribs.item(i).getNodeValue()));
+                sb2.append(MessageFormat.format(" {0}=\"{1}\"", attribs.item(i).getNodeName(), attribs.item(i).getNodeValue()));
             }
         }
         List<Node> elements = get(root, Node.ELEMENT_NODE);
-        sb.append(MessageFormat.format("{0}: {1}<{2}{3}>\n", depth, spacing, sb2.toString(),
-                                       elements.isEmpty() ? '/' : ""));
-        for(Node n : elements) {
-            sb.append(printTree(n, depth + 1));
+        sb.append(MessageFormat.format("{0}: {1}<{2}{3}>\n", depth, spacing, sb2.toString(), elements.isEmpty() ? '/' : ""));
+        for(Node node : elements) {
+            sb.append(printTree(node, depth + 1));
         }
         if(!elements.isEmpty()) {
             sb.append(MessageFormat.format("{0}: {1}</{2}>\n", depth, spacing, root.getNodeName()));
         }
         return sb.toString();
     }
-
-    private XMLUtils() {
-    }
-
 }

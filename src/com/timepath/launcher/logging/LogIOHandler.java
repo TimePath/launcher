@@ -6,29 +6,20 @@ import java.lang.management.ManagementFactory;
 import java.net.Socket;
 import java.text.DateFormat;
 import java.text.MessageFormat;
-import java.util.*;
+import java.util.Date;
+import java.util.Deque;
+import java.util.LinkedList;
 import java.util.logging.*;
-import java.util.logging.Formatter;
 
 public class LogIOHandler extends StreamHandler {
 
-    private static final Logger LOG = Logger.getLogger(LogIOHandler.class.getName());
-
-    private final LinkedList<LogRecord> ll = new LinkedList<>();
-
+    private static final Logger           LOG         = Logger.getLogger(LogIOHandler.class.getName());
+    protected final      String           node        = ManagementFactory.getRuntimeMXBean().getName(); // unique
+    private final        Deque<LogRecord> recordDeque = new LinkedList<>();
     private PrintWriter pw;
 
-    protected final String node = ManagementFactory.getRuntimeMXBean().getName(); // unique
-
     public LogIOHandler() {
-        this.setFormatter(new LogIOFormatter());
-    }
-
-    @Override
-    public synchronized void close() throws SecurityException {
-        send("-node|" + node);
-        pw.close();
-        pw = null;
+        setFormatter(new LogIOFormatter());
     }
 
     public LogIOHandler connect(String host, int port) {
@@ -42,44 +33,52 @@ public class LogIOHandler extends StreamHandler {
         return this;
     }
 
+    private void send(String req) {
+        pw.print(req + "\r\n");
+        pw.flush();
+    }
+
+    @Override
+    public synchronized void publish(LogRecord record) {
+        recordDeque.addLast(record);
+        if(pw != null) {
+            send(getFormatter().format(record));
+            recordDeque.pollLast(); // Remove it after sending
+        }
+    }
+
     @Override
     public synchronized void flush() {
         pw.flush();
     }
 
     @Override
-    public synchronized void publish(LogRecord lr) {
-        ll.addLast(lr);
-        if(pw != null) {
-            send(getFormatter().format(lr));
-            ll.pollLast(); // Remove it after sending
-        }
-    }
-
-    private void send(String req) {
-        pw.print(req + "\r\n");
-        pw.flush();
+    public synchronized void close() {
+        send("-node|" + node);
+        pw.close();
+        pw = null;
     }
 
     private class LogIOFormatter extends Formatter {
 
         private DateFormat dateFormat;
 
+        private LogIOFormatter() {}
+
         @Override
-        public synchronized String format(LogRecord lr) {
+        public synchronized String format(LogRecord record) {
             if(dateFormat == null) {
                 dateFormat = DateFormat.getDateTimeInstance();
             }
-
-            String level = lr.getLevel().getName().toLowerCase();
+            String level = record.getLevel().getName().toLowerCase();
             String message = MessageFormat.format("{0}: <{2}::{3}> {4}: {5}",
-                                                  dateFormat.format(new Date(lr.getMillis())),
-                                                  lr.getLoggerName(), lr.getSourceClassName(),
-                                                  lr.getSourceMethodName(), lr.getLevel(),
-                                                  formatMessage(lr));
-            return "+log||" + node + "|" + level + "|" + message;
+                                                  dateFormat.format(new Date(record.getMillis())),
+                                                  record.getLoggerName(),
+                                                  record.getSourceClassName(),
+                                                  record.getSourceMethodName(),
+                                                  record.getLevel(),
+                                                  formatMessage(record));
+            return "+log||" + node + '|' + level + '|' + message;
         }
-
     }
-
 }

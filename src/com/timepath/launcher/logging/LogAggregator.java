@@ -1,17 +1,19 @@
 package com.timepath.launcher.logging;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.LinkedList;
-import java.util.List;
-import java.util.logging.*;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 import static com.timepath.launcher.util.Utils.debug;
 
 public class LogAggregator extends Handler {
 
-    private static final Logger LOG = Logger.getLogger(LogAggregator.class.getName());
-
-    private final List<Handler> handlers = new LinkedList<>();
+    private static final Logger              LOG      = Logger.getLogger(LogAggregator.class.getName());
+    private final        Collection<Handler> handlers = new LinkedList<>();
 
     public LogAggregator() {
         if(!debug) {
@@ -25,9 +27,9 @@ public class LogAggregator extends Handler {
     }
 
     @Override
-    public void close() throws SecurityException {
+    public void publish(LogRecord record) {
         for(Handler h : handlers) {
-            h.close();
+            h.publish(record);
         }
     }
 
@@ -39,10 +41,9 @@ public class LogAggregator extends Handler {
     }
 
     @Override
-    public void publish(LogRecord lr) {
+    public void close() {
         for(Handler h : handlers) {
-            h.publish(lr);
+            h.close();
         }
     }
-
 }

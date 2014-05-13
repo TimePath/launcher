@@ -1,29 +1,30 @@
 package com.timepath.swing.table;
 
-import java.util.*;
 import javax.swing.table.AbstractTableModel;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
+ * @param <E>
  *
  * @author TimePath
- * @param <E>
  */
 @SuppressWarnings("serial")
 public abstract class ObjectBasedTableModel<E> extends AbstractTableModel {
 
     private final List<String> columns = Arrays.asList(columns());
+    private final List<E>      rows    = new LinkedList<>();
 
-    private final List<E> rows = new LinkedList<>();
-
-    public ObjectBasedTableModel() {
-
+    protected ObjectBasedTableModel() {
     }
 
     /**
      * Add Object o to the model
-     * <p>
-     * @param o the Object
-     * <p>
+     *
+     * @param o
+     *         the Object
+     *
      * @return true if added
      */
     public boolean add(E o) {
@@ -32,26 +33,11 @@ public abstract class ObjectBasedTableModel<E> extends AbstractTableModel {
             return false;
         }
         rows.add(o);
-        this.fireTableRowsInserted(rows.size() - 1, rows.size() - 1);
+        fireTableRowsInserted(rows.size() - 1, rows.size() - 1);
         return true;
     }
 
     public abstract String[] columns();
-
-    /**
-     * Gets a property from an Object based on an index
-     * <p>
-     * @param o           the Object
-     * @param columnIndex index to Object property
-     * <p>
-     * @return the property
-     */
-    public abstract Object get(E o, int columnIndex);
-
-    @Override
-    public int getColumnCount() {
-        return columns.size();
-    }
 
     @Override
     public String getColumnName(int column) {
@@ -70,15 +56,33 @@ public abstract class ObjectBasedTableModel<E> extends AbstractTableModel {
     }
 
     @Override
+    public int getColumnCount() {
+        return columns.size();
+    }
+
+    @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         return get(rows.get(rowIndex), columnIndex);
     }
 
     /**
+     * Gets a property from an Object based on an index
+     *
+     * @param o
+     *         the Object
+     * @param columnIndex
+     *         index to Object property
+     *
+     * @return the property
+     */
+    public abstract Object get(E o, int columnIndex);
+
+    /**
      * Remove Object o from the model
-     * <p>
-     * @param o the Object
-     * <p>
+     *
+     * @param o
+     *         the Object
+     *
      * @return true if removed
      */
     public boolean remove(E o) {
@@ -87,15 +91,16 @@ public abstract class ObjectBasedTableModel<E> extends AbstractTableModel {
             return false;
         }
         rows.remove(idx);
-        this.fireTableRowsDeleted(idx, idx);
+        fireTableRowsDeleted(idx, idx);
         return true;
     }
 
     /**
      * Fire update for Object o in the model
-     * <p>
-     * @param o the Object
-     * <p>
+     *
+     * @param o
+     *         the Object
+     *
      * @return true if not updated (because the Object isn't in the model)
      */
     public boolean update(E o) {
@@ -103,8 +108,7 @@ public abstract class ObjectBasedTableModel<E> extends AbstractTableModel {
         if(idx < 0) {
             return false;
         }
-        this.fireTableRowsUpdated(idx, idx);
+        fireTableRowsUpdated(idx, idx);
         return true;
     }
-
 }

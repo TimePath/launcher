@@ -1,10 +1,18 @@
 package com.timepath.launcher;
 
-import com.timepath.launcher.util.Utils.DaemonThreadFactory;
+import com.timepath.launcher.util.Utils;
+
 import java.io.*;
-import java.net.*;
-import java.util.*;
-import java.util.concurrent.*;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -12,12 +20,9 @@ import static com.timepath.launcher.util.Utils.name;
 
 public class DownloadManager {
 
-    private static final Logger LOG = Logger.getLogger(DownloadManager.class.getName());
-
-    private final List<DownloadMonitor> monitors = Collections.synchronizedList(
-        new LinkedList<DownloadMonitor>());
-
-    private final ExecutorService pool = Executors.newCachedThreadPool(new DaemonThreadFactory());
+    private static final Logger                LOG      = Logger.getLogger(DownloadManager.class.getName());
+    private final        List<DownloadMonitor> monitors = Collections.synchronizedList(new LinkedList<DownloadMonitor>());
+    private final        ExecutorService       pool     = Executors.newCachedThreadPool(new Utils.DaemonThreadFactory());
 
     public DownloadManager() {
     }
@@ -34,78 +39,67 @@ public class DownloadManager {
         pool.shutdown();
     }
 
-    public Future<?> submit(PackageFile d) {
+    public Future<?> submit(PackageFile pkgFile) {
         synchronized(monitors) {
-            for(Iterator<DownloadMonitor> i = monitors.iterator(); i.hasNext();) {
-                i.next().submit(d);
+            for(DownloadMonitor monitor : monitors) {
+                monitor.submit(pkgFile);
             }
         }
-        return pool.submit(new DownloadTask(d));
+        return pool.submit(new DownloadTask(pkgFile));
     }
 
     private class DownloadTask implements Runnable {
 
-        private final PackageFile d;
+        private final PackageFile pkgFile;
 
-        private DownloadTask(PackageFile d) {
-            this.d = d;
+        private DownloadTask(PackageFile pkgFile) {
+            this.pkgFile = pkgFile;
         }
 
         @Override
         public void run() {
-            String[] dl = {d.downloadURL, d.versionURL};
+            String[] dl = { pkgFile.downloadURL, pkgFile.checksumURL };
             try {
                 for(String s : dl) {
                     if(s == null) {
                         continue;
                     }
                     URL u = new URI(s).toURL();
-                    File f;
-                    if(s == dl[0]) {
-                        f = d.getFile();
-                    } else {
-                        f = d.versionFile();
+                    File file = ( s == dl[0] ) ? pkgFile.getFile() : pkgFile.versionFile();
+                    if(file == null) {
+                        file = new File(PackageFile.PROGRAM_DIRECTORY, name(u));
                     }
-                    if(f == null) {
-                        f = new File(PackageFile.PROGRAM_DIRECTORY, name(u));
-                    }
-                    download(u, f);
+                    download(u, file);
                 }
             } catch(IOException | URISyntaxException ex) {
                 LOG.log(Level.SEVERE, null, ex);
             }
         }
 
-        private void download(URL u, File f) throws IOException {
-            URLConnection c = u.openConnection();
-            long size = c.getContentLengthLong();
-            d.size = size;
-            LOG.log(Level.INFO, "Downloading {0} > {1}", new Object[] {u, f});
-            f.mkdirs();
-            f.delete();
-            f.createNewFile();
+        private void download(URL u, File file) throws IOException {
+            URLConnection connection = u.openConnection();
+            pkgFile.size = connection.getContentLengthLong();
+            LOG.log(Level.INFO, "Downloading {0} > {1}", new Object[] { u, file });
+            file.mkdirs();
+            file.delete();
+            file.createNewFile();
             byte[] buffer = new byte[8192];
-
-            try(InputStream is = new BufferedInputStream(c.getInputStream(), buffer.length);
-                OutputStream fos = new BufferedOutputStream(new FileOutputStream(f),
-                                                            buffer.length)) {
+            try(InputStream is = new BufferedInputStream(connection.getInputStream(), buffer.length);
+                OutputStream fos = new BufferedOutputStream(new FileOutputStream(file), buffer.length)) {
                 int read;
                 long total = 0;
-                while((read = is.read(buffer)) > -1) {
+                while(( read = is.read(buffer) ) > -1) {
                     fos.write(buffer, 0, read);
                     total += read;
-                    d.progress = total;
+                    pkgFile.progress = total;
                     synchronized(monitors) {
-                        Iterator<DownloadMonitor> i = monitors.iterator();
-                        while(i.hasNext()) {
-                            i.next().update(d);
+                        for(DownloadMonitor monitor : monitors) {
+                            monitor.update(pkgFile);
                         }
                     }
                 }
                 fos.flush();
             }
         }
-
     }
-
 }

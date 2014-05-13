@@ -1,13 +1,11 @@
 package com.timepath.launcher;
 
 /**
- *
  * @author TimePath
  */
 public interface DownloadMonitor {
 
-    void submit(PackageFile d);
+    void submit(PackageFile pkgFile);
 
-    void update(PackageFile d);
-    
+    void update(PackageFile pkgFile);
 }

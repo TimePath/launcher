@@ -6,15 +6,15 @@
 package com.timepath.launcher.ui.swing;
 
 import com.timepath.launcher.util.Utils;
-import java.awt.Window;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.*;
 
 /**
- *
  * @author TimePath
  */
 @SuppressWarnings("serial")
@@ -24,13 +24,12 @@ public class ThemeSelector extends JComboBox<String> {
 
     public ThemeSelector() {
         final DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
-        this.setModel(model);
-
+        setModel(model);
         String currentLafClass = UIManager.getLookAndFeel().getClass().getName();
         for(UIManager.LookAndFeelInfo lafInfo : UIManager.getInstalledLookAndFeels()) {
             try {
                 Class.forName(lafInfo.getClassName());
-            } catch(ClassNotFoundException ex) {
+            } catch(ClassNotFoundException ignored) {
                 continue; // Registered but not found on classpath
             }
             String name = lafInfo.getName();
@@ -39,8 +38,7 @@ public class ThemeSelector extends JComboBox<String> {
                 model.setSelectedItem(name);
             }
         }
-
-        this.addActionListener(new ActionListener() {
+        addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String target = (String) model.getSelectedItem();
@@ -66,5 +64,4 @@ public class ThemeSelector extends JComboBox<String> {
             }
         });
     }
-
 }

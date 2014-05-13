@@ -2,54 +2,66 @@ package com.timepath.launcher;
 
 import com.timepath.launcher.util.Utils;
 import com.timepath.launcher.util.XMLUtils;
-import java.io.*;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.xml.parsers.*;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import static com.timepath.launcher.util.Utils.UPDATE_NAME;
-import static com.timepath.launcher.util.Utils.debug;
-import static com.timepath.launcher.util.Utils.start;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.*;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Repository {
 
     private static final Logger LOG = Logger.getLogger(Repository.class.getName());
-
-    private boolean enabled;
-
-    private final Map<String, Program> libs = new HashMap<>(0);
-
-    private String name;
-
-    private List<Program> packages;
-
     final String location;
-
+    private final Map<String, Program> libs = new HashMap<>(0);
     Program self;
+    private boolean       enabled;
+    private String        name;
+    private List<Program> packages;
 
     public Repository(String s) {
         location = s;
         name = s;
-        this.enabled = true;
+        enabled = true;
         if(enabled) {
             connect();
         }
     }
 
+    private static List<PackageFile> getDownloads(Node entry) {
+        List<PackageFile> downloads = new LinkedList<>();
+        // downloadURL
+        for(Node node : XMLUtils.getElements("download", entry)) {
+            Node checksum = Utils.last(XMLUtils.getElements("checksum", entry));
+            String dlu = XMLUtils.getAttribute(node, "url");
+            if(dlu == null) {
+                continue;
+            }
+            String csu = null;
+            if(checksum != null) {
+                csu = XMLUtils.getAttribute(checksum, "url");
+            }
+            PackageFile file = new PackageFile(dlu, csu);
+            file.nested = getDownloads(node);
+            downloads.add(file);
+        }
+        return downloads;
+    }
+
     public void connect() {
         InputStream is = null;
-        if(debug) {
+        if(Utils.debug) {
             try {
-                is = new FileInputStream(System.getProperty("user.home") + "/Dropbox/Public/"
-                                             + Utils.name(location));
+                is = new FileInputStream(System.getProperty("user.home") + "/Dropbox/Public/" + Utils.name(location));
             } catch(FileNotFoundException ex) {
                 LOG.log(Level.SEVERE, null, ex);
             }
@@ -61,25 +73,18 @@ public class Repository {
                 URL u = new URL(location);
                 LOG.log(Level.INFO, "Resolved in {0}ms", System.currentTimeMillis() - listingStart);
                 LOG.log(Level.INFO, "Connecting...");
-                URLConnection c = u.openConnection();
+                URLConnection connection = u.openConnection();
                 LOG.log(Level.INFO, "Connected in {0}ms", System.currentTimeMillis() - listingStart);
                 LOG.log(Level.INFO, "Streaming...");
-                is = c.getInputStream();
+                is = connection.getInputStream();
             } catch(IOException ex) {
                 LOG.log(Level.SEVERE, null, ex);
             }
         }
-        LOG.log(Level.INFO, "Stream opened at {0}ms", System.currentTimeMillis() - start);
+        LOG.log(Level.INFO, "Stream opened at {0}ms", System.currentTimeMillis() - Utils.START_TIME);
         LOG.log(Level.INFO, "Parsing...");
         parse(is);
-        LOG.log(Level.INFO, "Parsed at {0}ms", System.currentTimeMillis() - start);
-    }
-
-    /**
-     * @return the name
-     */
-    public String getName() {
-        return name;
+        LOG.log(Level.INFO, "Parsed at {0}ms", System.currentTimeMillis() - Utils.START_TIME);
     }
 
     /**
@@ -100,7 +105,8 @@ public class Repository {
     }
 
     /**
-     * @param enabled the enabled to set
+     * @param enabled
+     *         the enabled to set
      */
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
@@ -108,27 +114,14 @@ public class Repository {
 
     @Override
     public String toString() {
-        return getName();
+        return name;
     }
 
-    private List<PackageFile> getDownloads(Node entry) {
-        List<PackageFile> downloads = new LinkedList<>();
-        // downloadURL
-        for(Node n : XMLUtils.getElements("download", entry)) {
-            Node checksum = Utils.last(XMLUtils.getElements("checksum", entry));
-            String dlu = XMLUtils.getAttribute(n, "url");
-            if(dlu == null) {
-                continue;
-            }
-            String csu = null;
-            if(checksum != null) {
-                csu = XMLUtils.getAttribute(checksum, "url");
-            }
-            PackageFile d = new PackageFile(dlu, csu);
-            d.nested = getDownloads(n);
-            downloads.add(d);
-        }
-        return downloads;
+    /**
+     * @return the name
+     */
+    public String getName() {
+        return name;
     }
 
     private void parse(InputStream is) {
@@ -137,15 +130,12 @@ public class Repository {
             DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
             Document doc = docBuilder.parse(new BufferedInputStream(is));
-
             Node root = XMLUtils.getElements("root", doc).get(0);
-
             Node version = null;
-
             Node iter = null;
             NodeList versions = root.getChildNodes();
             for(int i = 0; i < versions.getLength(); iter = versions.item(i++)) {
-                if(iter == null || !iter.hasAttributes()) {
+                if(( iter == null ) || !iter.hasAttributes()) {
                     continue;
                 }
                 NamedNodeMap attributes = iter.getAttributes();
@@ -156,31 +146,23 @@ public class Repository {
                 String v = versionAttribute.getNodeValue();
                 if(v != null) {
                     try {
-                        if(Utils.debug || Utils.currentVersion >= Long.parseLong(v)) {
+                        if(Utils.debug || ( Utils.currentVersion >= Long.parseLong(v) )) {
                             version = iter;
                         }
                     } catch(NumberFormatException ignore) {
-
                     }
                 }
             }
-
             LOG.log(Level.FINE, "\n{0}", XMLUtils.printTree(version, 0));
-
-            
             List<Node> meta = XMLUtils.getElements("meta", version);
             String nameCandidate = XMLUtils.getAttribute(meta.get(0), "name");
             name = nameCandidate != null ? nameCandidate : name;
-            
-            String[] nodes = {"self", "libs", "programs"};
-            for(String n : nodes) {
-                List<Node> programs = XMLUtils.getElements(n + "/entry", version);
+            String[] nodes = { "self", "libs", "programs" };
+            for(String s1 : nodes) {
+                List<Node> programs = XMLUtils.getElements(s1 + "/entry", version);
                 for(Node entry : programs) {
-                    //<editor-fold defaultstate="collapsed" desc="Parse">
                     Program p = new Program();
-
                     p.title = XMLUtils.getAttribute(entry, "name");
-
                     String depends = XMLUtils.getAttribute(entry, "depends");
                     if(depends != null) {
                         String[] dependencies = depends.split(",");
@@ -188,9 +170,7 @@ public class Repository {
                             p.depends.add(libs.get(s.trim()));
                         }
                     }
-
-                    p.filename = XMLUtils.getAttribute(entry, "file");
-
+                    p.fileName = XMLUtils.getAttribute(entry, "file");
                     Node java = Utils.last(XMLUtils.getElements("java", entry));
                     if(java != null) {
                         p.main = XMLUtils.getAttribute(java, "main");
@@ -200,25 +180,21 @@ public class Repository {
                             p.daemon = Boolean.parseBoolean(daemon);
                         }
                     }
-
                     Node news = Utils.last(XMLUtils.getElements("newsfeed", entry));
                     if(news != null) {
                         p.newsfeedURL = XMLUtils.getAttribute(news, "url");
                     }
-
                     p.downloads = getDownloads(entry);
-
-                    //</editor-fold>
-                    if(n.equals(nodes[0])) {
-                        for(PackageFile d : p.downloads) {
-                            d.filename = UPDATE_NAME;
+                    if(s1.equals(nodes[0])) {
+                        for(PackageFile file : p.downloads) {
+                            file.fileName = Utils.UPDATE_NAME;
                         }
                         p.setSelf(true);
                         self = p;
                         packages.add(p);
-                    } else if(n.equals(nodes[1])) {
+                    } else if(s1.equals(nodes[1])) {
                         libs.put(p.title, p);
-                    } else if(n.equals(nodes[2])) {
+                    } else if(s1.equals(nodes[2])) {
                         packages.add(p);
                     }
                 }
@@ -227,5 +203,4 @@ public class Repository {
             LOG.log(Level.SEVERE, null, ex);
         }
     }
-
 }
