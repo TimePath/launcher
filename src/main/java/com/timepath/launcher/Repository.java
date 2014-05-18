@@ -14,6 +14,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
 import java.net.URL;
 import java.net.URLConnection;
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -114,7 +115,7 @@ public class Repository {
 
     @Override
     public String toString() {
-        return name;
+        return MessageFormat.format("{0} ({1})", name, location);
     }
 
     /**

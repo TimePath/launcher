@@ -279,7 +279,7 @@ public class LauncherFrame extends JFrame {
         long time = Utils.currentVersion;
         if(time != 0) {
             DateFormat df = new SimpleDateFormat("EEE dd MMM yyyy, hh:mm:ss a z");
-            aboutText2 += "<p>Build date: " + df.format(new Date(time * 1000)) + "</p>";
+            aboutText2 += "<p>Build date: " + df.format(new Date(time)) + "</p>";
         }
         aboutText2 += "</html>";
         final String p1 = aboutText;
