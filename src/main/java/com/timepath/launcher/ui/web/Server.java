@@ -4,6 +4,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import com.timepath.launcher.Launcher;
+import com.timepath.launcher.util.SwingUtils;
 import com.timepath.launcher.util.Utils;
 
 import javax.swing.event.HyperlinkEvent;
@@ -77,6 +78,6 @@ public class Server implements Runnable {
     private void browse() {
         String s = "http://127.0.0.1:" + ADDRESS.getPort();
         HyperlinkEvent e = new HyperlinkEvent(this, HyperlinkEvent.EventType.ACTIVATED, null, s);
-        Utils.linkListener.hyperlinkUpdate(e);
+        SwingUtils.HYPERLINK_LISTENER.hyperlinkUpdate(e);
     }
 }

@@ -20,6 +20,7 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -40,7 +41,7 @@ class WebHandler implements HttpHandler {
                 try {
                     Page p = new Page();
                     String s = transform(new StreamSource(getStream("projects.xsl")), serialize(launcher.getRepositories()));
-                    p.data = s.getBytes();
+                    p.data = s.getBytes(StandardCharsets.UTF_8);
                     p.expires = System.currentTimeMillis() + EXPIRES_INDEX * 1000;
                     cache.put("", p);
                 } catch(TransformerException | ParserConfigurationException | IOException ex) {
@@ -53,11 +54,11 @@ class WebHandler implements HttpHandler {
         new Timer("page-rebuild-timer", true).scheduleAtFixedRate(task, period, period);
     }
 
-    private static InputStream getStream(String request) throws MalformedURLException, IOException {
+    private static InputStream getStream(String request) throws IOException {
         return new BufferedInputStream(new ByteArrayInputStream(get(request)));
     }
 
-    private static byte[] get(String request) throws MalformedURLException, IOException {
+    private static byte[] get(String request) throws IOException {
         URL u = new URL(cwd + request);
         Page cached = cache.get(request);
         if(( cached == null ) || cached.expired()) { // Not in cache or is expired
@@ -120,12 +121,22 @@ class WebHandler implements HttpHandler {
         return new DOMSource(root);
     }
 
+    /**
+     * Uses JAXP to transform xml with xsl
+     *
+     * @param xslDoc
+     * @param xmlDoc
+     *
+     * @return
+     *
+     * @throws TransformerException
+     */
     private static String transform(Source xslDoc, Source xmlDoc) throws TransformerException {
         TransformerFactory tFactory = TransformerFactory.newInstance();
-        Transformer trasform = tFactory.newTransformer(xslDoc);
+        Transformer trasformer = tFactory.newTransformer(xslDoc);
         ByteArrayOutputStream byteArray = new ByteArrayOutputStream(10240);
         Result result = new StreamResult(byteArray);
-        trasform.transform(xmlDoc, result);
+        trasformer.transform(xmlDoc, result);
         return byteArray.toString();
     }
 
@@ -214,9 +225,9 @@ class WebHandler implements HttpHandler {
                     while(( read = is.read(buffer) ) > -1) {
                         baos.write(buffer, 0, read);
                     }
-                    String doc = new String(baos.toByteArray());
+                    String doc = new String(baos.toByteArray(), StandardCharsets.UTF_8);
                     String cType = conn.getContentType();
-                    byte[] raw = doc.getBytes();
+                    byte[] raw = doc.getBytes(StandardCharsets.UTF_8);
                     Headers responseHeaders = t.getResponseHeaders();
                     responseHeaders.set("Content-Type", cType);
                     t.sendResponseHeaders(code, raw.length); // TODO: proper return code handling

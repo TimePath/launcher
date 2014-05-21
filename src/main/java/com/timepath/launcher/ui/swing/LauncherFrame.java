@@ -1,6 +1,12 @@
 package com.timepath.launcher.ui.swing;
 
-import com.timepath.launcher.*;
+import com.timepath.launcher.DownloadManager.DownloadMonitor;
+import com.timepath.launcher.Launcher;
+import com.timepath.launcher.PackageFile;
+import com.timepath.launcher.Program;
+import com.timepath.launcher.Repository;
+import com.timepath.launcher.util.JARUtils;
+import com.timepath.launcher.util.SwingUtils;
 import com.timepath.launcher.util.Utils;
 
 import javax.swing.*;
@@ -23,8 +29,9 @@ import java.util.TimeZone;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
-import static com.timepath.launcher.util.Utils.debug;
+import static com.timepath.launcher.util.Utils.DEBUG;
 
 @SuppressWarnings("serial")
 public class LauncherFrame extends JFrame {
@@ -40,86 +47,199 @@ public class LauncherFrame extends JFrame {
     private   JSplitPane            programSplit;
 
     public LauncherFrame(final Launcher launcher) {
-        initComponents();
-        initAboutPanel();
-        newsScroll.getVerticalScrollBar().setUnitIncrement(16);
-        LOG.log(Level.INFO, "Created UI at {0}ms", System.currentTimeMillis() - Utils.START_TIME);
         this.launcher = launcher;
         launcher.getDownloadManager().addListener(new DownloadMonitor() {
             @Override
             public void submit(PackageFile pkgFile) {
-                downloadPanel.tableModel.add(pkgFile);
+                downloadPanel.getTableModel().add(pkgFile);
             }
 
             @Override
             public void update(PackageFile pkgFile) {
-                downloadPanel.tableModel.update(pkgFile);
+                downloadPanel.getTableModel().update(pkgFile);
             }
         });
         repositoryManager = new RepositoryManagerImpl();
+        initComponents();
+        LOG.log(Level.INFO, "Created UI at {0}ms", System.currentTimeMillis() - Utils.START_TIME);
         updateList();
+        setTitle("TimePath's program hub");
+        setBounds(0, 0, 650, 510);
+        setJMenuBar(new JMenuBar() {{
+            add(new JMenu() {{
+                setText("Tools");
+                add(new JMenuItem(new AbstractAction("Add repository") {
+                    @Override
+                    public void actionPerformed(final ActionEvent e) {
+                        jMenuItem1ActionPerformed(e);
+                    }
+                }));
+                add(new JMenuItem(new AbstractAction("Preferences") {
+                    @Override
+                    public void actionPerformed(final ActionEvent e) {
+                        jMenuItem3ActionPerformed(e);
+                    }
+                }));
+            }});
+            add(new JMenu() {{
+                setText("Help");
+                add(new JMenuItem(new AbstractAction("About") {
+                    @Override
+                    public void actionPerformed(final ActionEvent e) {
+                        jMenuItem2ActionPerformed(e);
+                    }
+                }));
+            }});
+        }});
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
                 launcher.shutdown();
+                LauncherFrame.this.dispose();
             }
         });
-        programList.getSelectionModel().addTreeSelectionListener(new TreeSelectionListener() {
-            @Override
-            public void valueChanged(TreeSelectionEvent e) {
-                news(getSelected(programList.getLastSelectedPathComponent()));
-            }
-        });
-        launchButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Program p = getSelected(programList.getLastSelectedPathComponent());
-                start(p);
-            }
-        });
-        programList.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                if(e.getKeyCode() == KeyEvent.VK_ENTER) {
-                    Program p = getSelected(programList.getLastSelectedPathComponent());
-                    start(p);
-                }
-            }
-        });
-        MouseAdapter adapter = new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if(select(e) == -1) {
-                    return;
-                }
-                if(SwingUtilities.isLeftMouseButton(e) && ( e.getClickCount() >= 2 )) {
-                    Program p = getSelected(programList.getLastSelectedPathComponent());
-                    start(p);
-                }
-            }
-
-            @Override
-            public void mousePressed(MouseEvent e) {
-                select(e);
-            }
-
-            @Override
-            public void mouseDragged(MouseEvent e) {
-                select(e);
-            }
-
-            private int select(MouseEvent e) {
-                int selRow = programList.getClosestRowForLocation(e.getX(), e.getY());
-                programList.setSelectionRow(selRow);
-                return selRow;
-            }
-        };
-        programList.addMouseMotionListener(adapter);
-        programList.addMouseListener(adapter);
         Point mid = GraphicsEnvironment.getLocalGraphicsEnvironment().getCenterPoint();
-        Dimension dimension = new Dimension(mid.x, mid.y);
-        setSize(dimension);
+        setSize(new Dimension(mid.x, mid.y));
         setLocationRelativeTo(null);
+    }
+
+    private void updateList() {
+        new SwingWorker<List<Repository>, Void>() {
+            @Override
+            protected List<Repository> doInBackground() throws Exception {
+                return launcher.getRepositories();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<Repository> repos = get();
+                    DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode();
+                    TreeModel listM = new DefaultTreeModel(rootNode);
+                    for(int i = repositoryManager.model.getRowCount(); i > 0; ) {
+                        repositoryManager.model.removeRow(--i);
+                    }
+                    for(Repository repo : repos) {
+                        repositoryManager.model.addRow(new Object[] { repo, repo.isEnabled() });
+                        DefaultMutableTreeNode repoNode = rootNode;
+                        if(repos.size() > 1) {
+                            repoNode = new DefaultMutableTreeNode(repo.getName());
+                            rootNode.add(repoNode);
+                        }
+                        for(Program p : repo.getPackages()) {
+                            repoNode.add(new DefaultMutableTreeNode(p));
+                        }
+                    }
+                    setListModel(listM);
+                    PropertyChangeListener pcl = new PropertyChangeListener() {
+                        boolean ignore = true;
+
+                        @Override
+                        public void propertyChange(PropertyChangeEvent evt) {
+                            if(ignore) {
+                                ignore = false;
+                                return;
+                            }
+                            programSplit.removePropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, this);
+                            programSplit.setDividerLocation(Math.max((int) evt.getNewValue(),
+                                                                     programList.getPreferredScrollableViewportSize().width));
+                        }
+                    };
+                    programSplit.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, pcl);
+                    programSplit.setDividerLocation(-1);
+                    LOG.log(Level.INFO, "Listing at {0}ms", System.currentTimeMillis() - Utils.START_TIME);
+                    if(!DEBUG && launcher.updateRequired()) {
+                        JOptionPane.showMessageDialog(LauncherFrame.this,
+                                                      "Please update",
+                                                      "A new version is available",
+                                                      JOptionPane.INFORMATION_MESSAGE,
+                                                      null);
+                    }
+                } catch(InterruptedException | ExecutionException ex) {
+                    LOG.log(Level.SEVERE, null, ex);
+                }
+            }
+        }.execute();
+    }
+
+    public void setListModel(TreeModel model) {
+        programList.setModel(model);
+    }
+
+    private void initComponents() {
+        aboutPanel = new JPanel(new BorderLayout()) {{
+            add(initAboutPanel(), BorderLayout.CENTER);
+        }};
+        JTabbedPane tabbedPane = new JTabbedPane() {{
+            addTab("Programs", programSplit = new JSplitPane() {{
+                setLeftComponent(new JScrollPane(programList = new JTree((TreeModel) null) {{
+                    setRootVisible(false);
+                    getSelectionModel().addTreeSelectionListener(new TreeSelectionListener() {
+                        @Override
+                        public void valueChanged(TreeSelectionEvent e) {
+                            news(getSelected(getLastSelectedPathComponent()));
+                        }
+                    });
+                    addKeyListener(new KeyAdapter() {
+                        @Override
+                        public void keyPressed(KeyEvent e) {
+                            if(e.getKeyCode() == KeyEvent.VK_ENTER) {
+                                Program p = getSelected(getLastSelectedPathComponent());
+                                start(p);
+                            }
+                        }
+                    });
+                    MouseAdapter adapter = new MouseAdapter() {
+                        @Override
+                        public void mouseClicked(MouseEvent e) {
+                            if(select(e) == -1) {
+                                return;
+                            }
+                            if(SwingUtilities.isLeftMouseButton(e) && ( e.getClickCount() >= 2 )) {
+                                Program p = getSelected(getLastSelectedPathComponent());
+                                start(p);
+                            }
+                        }
+
+                        @Override
+                        public void mousePressed(MouseEvent e) {
+                            select(e);
+                        }
+
+                        @Override
+                        public void mouseDragged(MouseEvent e) {
+                            select(e);
+                        }
+
+                        private int select(MouseEvent e) {
+                            int selRow = getClosestRowForLocation(e.getX(), e.getY());
+                            setSelectionRow(selRow);
+                            return selRow;
+                        }
+                    };
+                    addMouseMotionListener(adapter);
+                    addMouseListener(adapter);
+                }}));
+                setRightComponent(new JPanel(new BorderLayout()) {{
+                    add(newsScroll = new JScrollPane() {{
+                        getVerticalScrollBar().setUnitIncrement(16);
+                    }}, BorderLayout.CENTER);
+                    add(launchButton = new JButton(new AbstractAction("Launch") {
+                        @Override
+                        public void actionPerformed(final ActionEvent e) {
+                            start(getSelected(programList.getLastSelectedPathComponent()));
+                        }
+                    }), BorderLayout.SOUTH);
+                }});
+            }});
+            addTab("Downloads", downloadPanel = new DownloadPanel());
+        }};
+        GroupLayout layout = new GroupLayout(getContentPane());
+        getContentPane().setLayout(layout);
+        layout.setHorizontalGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                                        .addComponent(tabbedPane, GroupLayout.Alignment.TRAILING));
+        layout.setVerticalGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                                      .addComponent(tabbedPane, GroupLayout.Alignment.TRAILING));
     }
 
     public void news(final Program p) {
@@ -146,7 +266,7 @@ public class LauncherFrame extends JFrame {
                     String s = Utils.loadPage(new URL(p.newsfeedURL));
                     JEditorPane editorPane = new JEditorPane(p.newsfeedType, s);
                     editorPane.setEditable(false);
-                    editorPane.addHyperlinkListener(Utils.linkListener);
+                    editorPane.addHyperlinkListener(SwingUtils.HYPERLINK_LISTENER);
                     return editorPane;
                 }
 
@@ -197,200 +317,54 @@ public class LauncherFrame extends JFrame {
         return (Program) obj;
     }
 
-    private void updateList() {
-        new SwingWorker<List<Repository>, Void>() {
-            @Override
-            protected List<Repository> doInBackground() throws Exception {
-                return launcher.getRepositories();
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    List<Repository> repos = get();
-                    DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode();
-                    TreeModel listM = new DefaultTreeModel(rootNode);
-                    for(int i = repositoryManager.model.getRowCount(); i > 0; ) {
-                        repositoryManager.model.removeRow(--i);
-                    }
-                    for(Repository repo : repos) {
-                        repositoryManager.model.addRow(new Object[] { repo, repo.isEnabled() });
-                        DefaultMutableTreeNode repoNode = rootNode;
-                        if(repos.size() > 1) {
-                            repoNode = new DefaultMutableTreeNode(repo.getName());
-                            rootNode.add(repoNode);
-                        }
-                        for(Program p : repo.getPackages()) {
-                            repoNode.add(new DefaultMutableTreeNode(p));
-                        }
-                    }
-                    setListModel(listM);
-                    PropertyChangeListener pcl = new PropertyChangeListener() {
-                        boolean ignore = true;
-
-                        @Override
-                        public void propertyChange(PropertyChangeEvent evt) {
-                            if(ignore) {
-                                ignore = false;
-                                return;
-                            }
-                            programSplit.removePropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, this);
-                            programSplit.setDividerLocation(Math.max((int) evt.getNewValue(),
-                                                                     programList.getPreferredScrollableViewportSize().width));
-                        }
-                    };
-                    programSplit.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, pcl);
-                    programSplit.setDividerLocation(-1);
-                    LOG.log(Level.INFO, "Listing at {0}ms", System.currentTimeMillis() - Utils.START_TIME);
-                    if(!debug && launcher.updateRequired()) {
-                        JOptionPane.showMessageDialog(LauncherFrame.this,
-                                                      "Please update",
-                                                      "A new version is available",
-                                                      JOptionPane.INFORMATION_MESSAGE,
-                                                      null);
-                    }
-                } catch(InterruptedException | ExecutionException ex) {
-                    LOG.log(Level.SEVERE, null, ex);
-                }
-            }
-        }.execute();
-    }
-
-    public void setListModel(TreeModel model) {
-        programList.setModel(model);
-    }
-
-    private void initAboutPanel() {
-        final JEditorPane pane = new JEditorPane("text/html", "");
-        pane.setEditable(false);
-        pane.setOpaque(false);
-        pane.setBackground(new Color(0, 0, 0, 0));
-        pane.addHyperlinkListener(Utils.linkListener);
-        String aboutText = "<html><h2>This my launcher for launching things</h2>";
-        aboutText += "<p>It's much easier to distribute them this way</p>";
-        aboutText += "<p>Author: TimePath (<a href=\"http://steamcommunity.com/id/TimePath/\">steam</a>|<a href=\"http://www" +
-                     ".reddit.com/user/TimePath/\">reddit</a>|<a href=\"https://github.com/TimePath/\">GitHub</a>)<br>";
-        String latestThread = "http://steamcommunity.com/gid/103582791434775526/discussions";
-        String aboutText2 = "<p>Please leave feedback or suggestions on " + "<a href=\"" + latestThread +
-                            "\">the steam group</a>";
-        // TODO: http://steamredirect.heroku.com or Runtime.exec() on older versions of java
-        aboutText2 += "<br>You might be able to catch me live " +
-                      "<a href=\"steam://friends/joinchat/103582791434775526\">in chat</a></p>";
-        long time = Utils.currentVersion;
-        if(time != 0) {
-            DateFormat df = new SimpleDateFormat("EEE dd MMM yyyy, hh:mm:ss a z");
-            aboutText2 += "<p>Build date: " + df.format(new Date(time)) + "</p>";
-        }
-        aboutText2 += "</html>";
-        final String p1 = aboutText;
-        final String p2 = aboutText2;
-        String local = "</p>";
-        pane.setText(p1 + local + p2);
+    private JEditorPane initAboutPanel() {
+        final JEditorPane pane = new JEditorPane("text/html", "") {{
+            setEditable(false);
+            setOpaque(false);
+            setBackground(new Color(255, 255, 255, 0));
+            addHyperlinkListener(SwingUtils.HYPERLINK_LISTENER);
+        }};
+        String buildDate = "unknown";
+        long time = JARUtils.CURRENT_VERSION;
         final DateFormat df = new SimpleDateFormat("EEE dd MMM yyyy, hh:mm:ss a z");
+        if(time != 0) {
+            buildDate = df.format(new Date(time));
+        }
+        String aboutText = Utils.loadPage(getClass().getResource("/com/timepath/launcher/swing/about.html"))
+                                .replace("${buildDate}", buildDate)
+                                .replace("${steamGroup}", "steam://friends/joinchat/103582791434775526");
+        final String[] split = aboutText.split(Pattern.quote("${localtime}"));
+        pane.setText(split[0] + "calculating..." + split[1]);
         df.setTimeZone(TimeZone.getTimeZone("Australia/Sydney"));
-        final Timer t = new Timer(1000, new ActionListener() {
+        final Timer timer = new Timer(1000, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String s = "My (presumed) local time: " + df.format(System.currentTimeMillis()) + "</p>";
-                int i = pane.getSelectionStart();
-                int j = pane.getSelectionEnd();
-                pane.setText(p1 + s + p2);
-                pane.select(i, j);
+                final String time = df.format(System.currentTimeMillis());
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        int i = pane.getSelectionStart();
+                        int j = pane.getSelectionEnd();
+                        pane.setText(split[0] + time + split[1]);
+                        pane.select(i, j);
+                    }
+                });
             }
         });
-        t.setInitialDelay(0);
         addHierarchyListener(new HierarchyListener() {
             @Override
             public void hierarchyChanged(HierarchyEvent e) {
-                if(( e.getChangeFlags() & HierarchyEvent.DISPLAYABILITY_CHANGED ) > 0) {
+                if(( e.getChangeFlags() & HierarchyEvent.DISPLAYABILITY_CHANGED ) != 0) {
                     if(isDisplayable()) {
-                        t.start();
+                        timer.setInitialDelay(0);
+                        timer.start();
                     } else {
-                        t.stop();
+                        timer.stop();
                     }
                 }
             }
         });
-        t.start();
-        aboutPanel.setLayout(new BorderLayout());
-        aboutPanel.add(pane, BorderLayout.CENTER);
-    }
-
-    private void initComponents() {
-        aboutPanel = new JPanel();
-        JTabbedPane tabbedPane = new JTabbedPane();
-        programSplit = new JSplitPane();
-        JScrollPane programScroll = new JScrollPane();
-        programList = new JTree();
-        JPanel programPanel = new JPanel();
-        newsScroll = new JScrollPane();
-        launchButton = new JButton();
-        downloadPanel = new DownloadPanel();
-        JMenuBar jMenuBar1 = new JMenuBar();
-        JMenu jMenu1 = new JMenu();
-        JMenuItem jMenuItem1 = new JMenuItem();
-        JMenuItem jMenuItem3 = new JMenuItem();
-        JMenu jMenu2 = new JMenu();
-        JMenuItem jMenuItem2 = new JMenuItem();
-        GroupLayout aboutPanelLayout = new GroupLayout(aboutPanel);
-        aboutPanel.setLayout(aboutPanelLayout);
-        aboutPanelLayout.setHorizontalGroup(aboutPanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                                                            .addGap(0, 635, Short.MAX_VALUE)
-                                           );
-        aboutPanelLayout.setVerticalGroup(aboutPanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                                                          .addGap(0, 410, Short.MAX_VALUE)
-                                         );
-        setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-        setTitle("TimePath's program hub");
-        programList.setModel(null);
-        programList.setRootVisible(false);
-        programScroll.setViewportView(programList);
-        programSplit.setLeftComponent(programScroll);
-        programPanel.setLayout(new BorderLayout());
-        programPanel.add(newsScroll, BorderLayout.CENTER);
-        launchButton.setText("Launch");
-        programPanel.add(launchButton, BorderLayout.SOUTH);
-        programSplit.setRightComponent(programPanel);
-        tabbedPane.addTab("Programs", programSplit);
-        tabbedPane.addTab("Downloads", downloadPanel);
-        jMenu1.setText("Tools");
-        jMenuItem1.setText("Add repository");
-        jMenuItem1.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                jMenuItem1ActionPerformed(e);
-            }
-        });
-        jMenu1.add(jMenuItem1);
-        jMenuItem3.setText("Preferences");
-        jMenuItem3.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                jMenuItem3ActionPerformed(e);
-            }
-        });
-        jMenu1.add(jMenuItem3);
-        jMenuBar1.add(jMenu1);
-        jMenu2.setText("Help");
-        jMenuItem2.setText("About");
-        jMenuItem2.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                jMenuItem2ActionPerformed(e);
-            }
-        });
-        jMenu2.add(jMenuItem2);
-        jMenuBar1.add(jMenu2);
-        setJMenuBar(jMenuBar1);
-        GroupLayout layout = new GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                                        .addComponent(tabbedPane, GroupLayout.Alignment.TRAILING)
-                                 );
-        layout.setVerticalGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                                      .addComponent(tabbedPane, GroupLayout.Alignment.TRAILING)
-                               );
-        setBounds(0, 0, 650, 510);
+        return pane;
     }
 
     private void jMenuItem2ActionPerformed(ActionEvent evt) {

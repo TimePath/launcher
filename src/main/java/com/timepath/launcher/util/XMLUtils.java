@@ -22,7 +22,7 @@ public class XMLUtils {
 
     public static String getAttribute(Node node, String key) {
         Element e = (Element) node;
-        Node child = Utils.last(getElements(key, node));
+        Node child = last(getElements(key, node));
         if(child != null) {
             return child.getNodeValue();
         }
@@ -59,6 +59,10 @@ public class XMLUtils {
             }
         }
         return list;
+    }
+
+    public static <E> E last(List<E> arr) {
+        return ( ( arr == null ) || arr.isEmpty() ) ? null : arr.get(arr.size() - 1);
     }
 
     public static String printTree(Node root, int depth) {

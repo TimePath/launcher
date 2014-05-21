@@ -1,6 +1,8 @@
 package com.timepath.launcher;
 
+import com.timepath.launcher.util.JARUtils;
 import com.timepath.launcher.util.Utils;
+import com.timepath.launcher.util.Utils.DaemonThreadFactory;
 
 import java.io.*;
 import java.net.URI;
@@ -16,13 +18,11 @@ import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static com.timepath.launcher.util.Utils.name;
-
 public class DownloadManager {
 
     private static final Logger                LOG      = Logger.getLogger(DownloadManager.class.getName());
     private final        List<DownloadMonitor> monitors = Collections.synchronizedList(new LinkedList<DownloadMonitor>());
-    private final        ExecutorService       pool     = Executors.newCachedThreadPool(new Utils.DaemonThreadFactory());
+    private final        ExecutorService       pool     = Executors.newCachedThreadPool(new DaemonThreadFactory());
 
     public DownloadManager() {
     }
@@ -48,6 +48,13 @@ public class DownloadManager {
         return pool.submit(new DownloadTask(pkgFile));
     }
 
+    public interface DownloadMonitor {
+
+        void submit(PackageFile pkgFile);
+
+        void update(PackageFile pkgFile);
+    }
+
     private class DownloadTask implements Runnable {
 
         private final PackageFile pkgFile;
@@ -67,7 +74,7 @@ public class DownloadManager {
                     URL u = new URI(s).toURL();
                     File file = ( s == dl[0] ) ? pkgFile.getFile() : pkgFile.versionFile();
                     if(file == null) {
-                        file = new File(PackageFile.PROGRAM_DIRECTORY, name(u));
+                        file = new File(PackageFile.PROGRAM_DIRECTORY, JARUtils.name(u));
                     }
                     download(u, file);
                 }
@@ -80,9 +87,7 @@ public class DownloadManager {
             URLConnection connection = u.openConnection();
             pkgFile.size = connection.getContentLengthLong();
             LOG.log(Level.INFO, "Downloading {0} > {1}", new Object[] { u, file });
-            file.mkdirs();
-            file.delete();
-            file.createNewFile();
+            Utils.createFile(file);
             byte[] buffer = new byte[8192];
             try(InputStream is = new BufferedInputStream(connection.getInputStream(), buffer.length);
                 OutputStream fos = new BufferedOutputStream(new FileOutputStream(file), buffer.length)) {

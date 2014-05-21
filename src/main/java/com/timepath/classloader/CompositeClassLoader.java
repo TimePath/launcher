@@ -1,4 +1,4 @@
-package com.timepath.launcher;
+package com.timepath.classloader;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -20,19 +20,18 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Inspired by http://www.jdotsoft.com/JarClassLoader.php
- *
  * @author TimePath
+ * @see <a href="http://www.jdotsoft.com/JarClassLoader.php">JarClassLoader</a>
  */
 public class CompositeClassLoader extends ClassLoader {
 
-    public static final Logger                        LOG          = Logger.getLogger(CompositeClassLoader.class.getName());
-    private final       Map<String, Class<?>>         classes      = new HashMap<>(0);
-    private final       Map<String, Enumeration<URL>> enumerations = new HashMap<>(0);
-    private final       Map<URI, ClassLoader>         jars         = new HashMap<>(0);
-    private final       Map<String, String>           libraries    = new HashMap<>(0);
-    private final       List<ClassLoader>             loaders      = Collections.synchronizedList(new LinkedList<ClassLoader>());
-    private final       Map<String, URL>              resources    = new HashMap<>(0);
+    private static final Logger                        LOG          = Logger.getLogger(CompositeClassLoader.class.getName());
+    private final        Map<String, Class<?>>         classes      = new HashMap<>(0);
+    private final        Map<String, Enumeration<URL>> enumerations = new HashMap<>(0);
+    private final        Map<URI, ClassLoader>         jars         = new HashMap<>(0);
+    private final        Map<String, String>           libraries    = new HashMap<>(0);
+    private final        List<ClassLoader>             loaders      = Collections.synchronizedList(new LinkedList<ClassLoader>());
+    private final        Map<String, URL>              resources    = new HashMap<>(0);
 
     public CompositeClassLoader() {
         add(Object.class.getClassLoader()); // bootstrap

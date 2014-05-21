@@ -1,5 +1,6 @@
 package com.timepath.launcher;
 
+import com.timepath.launcher.util.JARUtils;
 import com.timepath.launcher.util.Utils;
 import com.timepath.launcher.util.XMLUtils;
 import org.w3c.dom.Document;
@@ -42,7 +43,7 @@ public class Repository {
         List<PackageFile> downloads = new LinkedList<>();
         // downloadURL
         for(Node node : XMLUtils.getElements("download", entry)) {
-            Node checksum = Utils.last(XMLUtils.getElements("checksum", entry));
+            Node checksum = XMLUtils.last(XMLUtils.getElements("checksum", entry));
             String dlu = XMLUtils.getAttribute(node, "url");
             if(dlu == null) {
                 continue;
@@ -60,9 +61,9 @@ public class Repository {
 
     public void connect() {
         InputStream is = null;
-        if(Utils.debug) {
+        if(Utils.DEBUG) {
             try {
-                is = new FileInputStream(System.getProperty("user.home") + "/Dropbox/Public/" + Utils.name(location));
+                is = new FileInputStream(System.getProperty("user.home") + "/Dropbox/Public/" + JARUtils.name(location));
             } catch(FileNotFoundException ex) {
                 LOG.log(Level.SEVERE, null, ex);
             }
@@ -147,7 +148,7 @@ public class Repository {
                 String v = versionAttribute.getNodeValue();
                 if(v != null) {
                     try {
-                        if(Utils.debug || ( Utils.currentVersion >= Long.parseLong(v) )) {
+                        if(Utils.DEBUG || ( JARUtils.CURRENT_VERSION >= Long.parseLong(v) )) {
                             version = iter;
                         }
                     } catch(NumberFormatException ignore) {
@@ -172,7 +173,7 @@ public class Repository {
                         }
                     }
                     p.fileName = XMLUtils.getAttribute(entry, "file");
-                    Node java = Utils.last(XMLUtils.getElements("java", entry));
+                    Node java = XMLUtils.last(XMLUtils.getElements("java", entry));
                     if(java != null) {
                         p.main = XMLUtils.getAttribute(java, "main");
                         p.args = Utils.argParse(XMLUtils.getAttribute(java, "args"));
@@ -181,14 +182,14 @@ public class Repository {
                             p.daemon = Boolean.parseBoolean(daemon);
                         }
                     }
-                    Node news = Utils.last(XMLUtils.getElements("newsfeed", entry));
+                    Node news = XMLUtils.last(XMLUtils.getElements("newsfeed", entry));
                     if(news != null) {
                         p.newsfeedURL = XMLUtils.getAttribute(news, "url");
                     }
                     p.downloads = getDownloads(entry);
                     if(s1.equals(nodes[0])) {
                         for(PackageFile file : p.downloads) {
-                            file.fileName = Utils.UPDATE_NAME;
+                            file.fileName = JARUtils.UPDATE_NAME;
                         }
                         p.setSelf(true);
                         self = p;

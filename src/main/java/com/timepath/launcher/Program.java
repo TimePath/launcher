@@ -1,6 +1,8 @@
 package com.timepath.launcher;
 
-import com.timepath.launcher.util.Utils;
+import com.timepath.classloader.CompositeClassLoader;
+import com.timepath.launcher.util.JARUtils;
+import com.timepath.launcher.util.UpdateUtils;
 
 import javax.swing.*;
 import java.io.BufferedReader;
@@ -9,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -17,8 +20,8 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static com.timepath.launcher.util.Utils.UPDATE_NAME;
-import static com.timepath.launcher.util.Utils.debug;
+import static com.timepath.launcher.util.JARUtils.UPDATE_NAME;
+import static com.timepath.launcher.util.Utils.DEBUG;
 
 /**
  * @author TimePath
@@ -27,14 +30,12 @@ public class Program extends PackageFile {
 
     private static final Logger LOG = Logger.getLogger(Program.class.getName());
     public List<String> args;
-    public String       changelogData;
     public Set<Program>      depends   = new HashSet<>(0);
     /**
      * A map of downloads to checksums. TODO: allow for versions
      */
     public List<PackageFile> downloads = new LinkedList<>();
-    public JEditorPane jEditorPane;
-    public String      main;
+    public String main;
     public String newsfeedType = "text/html";
     public String  newsfeedURL;
     public JPanel  panel;
@@ -44,10 +45,6 @@ public class Program extends PackageFile {
     public boolean lock;
 
     public Program() {}
-
-    public boolean isSelf() {
-        return self;
-    }
 
     public void setSelf(boolean self) {
         this.self = self;
@@ -64,7 +61,7 @@ public class Program extends PackageFile {
             for(PackageFile extract : download.nested) {
                 try {
                     URL u = new URL("jar", "", download.getFile().toURI() + "!/" + extract.downloadURL);
-                    Utils.extract(u, extract.getFile());
+                    UpdateUtils.extract(u, extract.getFile());
                     h.add(extract.getFile().toURI());
                 } catch(IOException ex) {
                     LOG.log(Level.SEVERE, null, ex);
@@ -95,7 +92,7 @@ public class Program extends PackageFile {
             try {
                 File file = pkgFile.getFile();
                 if(UPDATE_NAME.equals(file.getName())) { // Edge case for current file
-                    file = Utils.currentFile;
+                    file = JARUtils.CURRENT_FILE;
                 }
                 LOG.log(Level.INFO, "Version file: {0}", file);
                 LOG.log(Level.INFO, "Version url: {0}", pkgFile.checksumURL);
@@ -107,8 +104,9 @@ public class Program extends PackageFile {
                     LOG.log(Level.INFO, "{0} not versioned, skipping", file);
                     continue; // Have unversioned file, skip check
                 }
-                String checksum = Utils.checksum(file, "MD5");
-                BufferedReader br = new BufferedReader(new InputStreamReader(new URL(pkgFile.checksumURL).openStream()));
+                String checksum = UpdateUtils.checksum(file, "MD5");
+                BufferedReader br = new BufferedReader(new InputStreamReader(new URL(pkgFile.checksumURL).openStream(),
+                                                                             StandardCharsets.UTF_8));
                 String expected = br.readLine();
                 if(!checksum.equals(expected)) {
                     LOG.log(Level.INFO, "Checksum mismatch for {0}, not latest", file);
@@ -190,7 +188,7 @@ public class Program extends PackageFile {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(title);
-        if(debug) {
+        if(DEBUG) {
             sb.append(' ').append('(').append(downloads).append(')');
             if(!depends.isEmpty()) {
                 sb.append(' ').append(depends);

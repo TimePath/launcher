@@ -1,4 +1,4 @@
-package com.timepath.launcher.logging;
+package com.timepath.logging;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -15,6 +15,7 @@ public class LogIOHandler extends StreamHandler {
 
     private static final Logger           LOG         = Logger.getLogger(LogIOHandler.class.getName());
     protected final      String           node        = ManagementFactory.getRuntimeMXBean().getName(); // unique
+    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection") // pollLast()
     private final        Deque<LogRecord> recordDeque = new LinkedList<>();
     private PrintWriter pw;
 

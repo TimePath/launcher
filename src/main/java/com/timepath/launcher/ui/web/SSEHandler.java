@@ -7,6 +7,7 @@ import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.logging.Logger;
 
 /**
@@ -33,7 +34,7 @@ class SSEHandler implements HttpHandler {
             public void run() {
                 try(OutputStream os = exchange.getResponseBody()) {
                     while(true) {
-                        os.write(event(response).getBytes());
+                        os.write(event(response).getBytes(StandardCharsets.UTF_8));
                         os.flush();
                         Thread.sleep(10000);
                     }

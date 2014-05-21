@@ -1,7 +1,8 @@
 package com.timepath.launcher;
 
+import com.timepath.classloader.CompositeClassLoader;
+
 import javax.swing.*;
-import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -14,21 +15,19 @@ import java.util.logging.Logger;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
+import static java.security.AccessController.doPrivileged;
+
 public class Launcher {
 
-    public static final  Preferences          PREFS     = Preferences.userNodeForPackage(Launcher.class);
-    public static final  String               REPO_MAIN = "public.xml";
-    private static final Logger               LOG       = Logger.getLogger(Launcher.class.getName());
-    private final        CompositeClassLoader cl
-                                                              = AccessController.doPrivileged(new PrivilegedAction<CompositeClassLoader>() {
-                                                                                                  @Override
-                                                                                                  public CompositeClassLoader
-                                                                                                  run() {
-                                                                                                      return new
-                                                                                                              CompositeClassLoader();
-                                                                                                  }
-                                                                                              }
-                                                                                             );
+    public static final  Preferences          PREFS           = Preferences.userNodeForPackage(Launcher.class);
+    public static final  String               REPO_MAIN       = "public.xml";
+    private static final Logger               LOG             = Logger.getLogger(Launcher.class.getName());
+    private final        CompositeClassLoader cl              = doPrivileged(new PrivilegedAction<CompositeClassLoader>() {
+        @Override
+        public CompositeClassLoader run() {
+            return new CompositeClassLoader();
+        }
+    });
     private final        DownloadManager      downloadManager = new DownloadManager();
     private Program self;
 

@@ -48,13 +48,12 @@ public class ThemeSelector extends JComboBox<String> {
                         try {
                             String usrTheme = info.getClassName();
                             UIManager.setLookAndFeel(usrTheme);
-                            for(Window w : Window.getWindows()) {
+                            for(Window w : Window.getWindows()) { // TODO: instrumentation to access detached components
                                 SwingUtilities.updateComponentTreeUI(w);
                             }
-                            Utils.settings.put("laf", usrTheme);
+                            Utils.SETTINGS.put("laf", usrTheme);
                             return;
-                        } catch(InstantiationException | IllegalAccessException |
-                                UnsupportedLookAndFeelException ex) {
+                        } catch(InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException ex) {
                             LOG.log(Level.SEVERE, null, ex);
                         } catch(ClassNotFoundException ex) {
                             LOG.log(Level.WARNING, "Unable to load user L&F\n{0}", ex);
