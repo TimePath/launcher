@@ -31,11 +31,11 @@ public class Launcher {
     public Launcher() {}
 
     public static void addRepository(Repository r) {
-        PREFS.node("repositories").putBoolean(r.location, true);
+        PREFS.node("repositories").putBoolean(r.getLocation(), true);
     }
 
     public static void removeRepository(Repository r) {
-        PREFS.node("repositories").putBoolean(r.location, false);
+        PREFS.node("repositories").putBoolean(r.getLocation(), false);
     }
 
     /**
@@ -48,7 +48,7 @@ public class Launcher {
     public List<Repository> getRepositories() {
         List<Repository> lists = new LinkedList<>();
         Repository main = Repository.fromIndex("http://dl.dropboxusercontent.com/u/42745598/" + REPO_MAIN);
-        self = main.self;
+        self = main.getSelf();
         lists.add(main);
         Preferences repos = PREFS.node("repositories");
         try {
@@ -76,14 +76,14 @@ public class Launcher {
 
     public void start(Program run) {
         Package pkg = run.getPackage();
-        if(pkg.lock) {
+        if(pkg.isLocked()) {
             LOG.log(Level.INFO, "Package {0} locked, aborting: {1}", new Object[] { pkg, run });
             return;
         }
         LOG.log(Level.INFO, "Locking {0}", pkg);
-        pkg.lock = true;
+        pkg.setLocked(true);
         Collection<Package> updates = pkg.getUpdates();
-        if(pkg.self && !updates.contains(pkg)) {
+        if(pkg.isSelf() && !updates.contains(pkg)) {
             JOptionPane.showMessageDialog(null,
                                           "Launcher is up to date",
                                           "Launcher is up to date",
@@ -103,18 +103,18 @@ public class Launcher {
                     future.get(); // Wait for download
                 }
                 LOG.log(Level.INFO, "Updated {0}", p);
-                if(p.self) {
+                if(p.isSelf()) {
                     selfupdated = true;
                 }
             } catch(InterruptedException | ExecutionException ex) {
                 LOG.log(Level.SEVERE, null, ex);
             }
         }
-        if(( run.main == null ) && selfupdated) {
+        if(( run.getMain() == null ) && selfupdated) {
             JOptionPane.showMessageDialog(null, "Restart to apply", "Update downloaded", JOptionPane.INFORMATION_MESSAGE, null);
         } else {
             run.createThread(cl).start();
-            pkg.lock = false;
+            pkg.setLocked(false);
         }
     }
 

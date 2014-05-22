@@ -17,11 +17,11 @@ import java.util.logging.Logger;
 public class Program {
 
     private static final Logger LOG = Logger.getLogger(Program.class.getName());
-    public final  String       main;
+    private final String       main;
     private final List<String> args;
-    public        String       newsfeedURL;
-    public        boolean      daemon;
-    public        JPanel       panel;
+    private       String       newsfeedURL;
+    private       boolean      daemon;
+    private       JPanel       panel;
     private       String       title;
     private       Package      parent;
 
@@ -85,5 +85,25 @@ public class Program {
 
     public String getTitle() {
         return title;
+    }
+
+    public String getMain() {
+        return main;
+    }
+
+    public String getNewsfeedURL() {
+        return newsfeedURL;
+    }
+
+    public void setDaemon(final boolean daemon) {
+        this.daemon = daemon;
+    }
+
+    public JPanel getPanel() {
+        return panel;
+    }
+
+    public void setPanel(final JPanel panel) {
+        this.panel = panel;
     }
 }

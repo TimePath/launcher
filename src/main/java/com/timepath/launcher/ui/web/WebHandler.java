@@ -111,7 +111,7 @@ class WebHandler implements HttpHandler {
             e.setAttribute("name", p.getTitle());
             StringBuilder sb = new StringBuilder(0);
             for(com.timepath.launcher.Package dep : p.getPackage().getDownloads()) {
-                sb.append(',').append(dep.name);
+                sb.append(',').append(dep.getName());
             }
             String deps = sb.substring(Math.min(1, sb.length()));
             e.setAttribute("depends", deps);

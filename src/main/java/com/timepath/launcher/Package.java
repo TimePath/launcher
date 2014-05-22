@@ -3,6 +3,7 @@ package com.timepath.launcher;
 import com.timepath.launcher.util.JARUtils;
 import com.timepath.launcher.util.UpdateUtils;
 import com.timepath.launcher.util.Utils;
+import com.timepath.launcher.util.Utils.DaemonThreadFactory;
 import com.timepath.launcher.util.XMLUtils;
 import com.timepath.maven.MavenResolver;
 import org.apache.maven.model.Dependency;
@@ -19,10 +20,9 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.NoSuchAlgorithmException;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -39,16 +39,23 @@ public class Package {
                                                                                 "bin").getPath()
                                                                       );
     private static final Logger LOG               = Logger.getLogger(Package.class.getName());
-    public final String  name;
-    public       boolean self;
-    public       boolean lock;
-    public long progress, size = -1;
+    private final String name;
+    private final Set<Package> downloads = Collections.synchronizedSet(new HashSet<Package>());
+    /**
+     * Download status
+     */
+    public        long         progress  = -1, size = -1;
+    /**
+     * Maven coordinates
+     */
+    private String gid, aid, ver;
     /**
      * Base URL in maven repo
      */
-    protected String baseURL;
-    protected List<Program> executions = new LinkedList<>();
-    protected Set<Package> downloads;
+    private String baseURL;
+    private List<Program> executions = new LinkedList<>();
+    private boolean locked;
+    private boolean self;
 
     /**
      * Instantiate a Program instance from XML
@@ -60,7 +67,7 @@ public class Package {
             throw new IllegalArgumentException("The root node must not be null");
         }
         LOG.log(Level.INFO, "Constructing Package from node");
-        LOG.log(Level.INFO, "{0}", Utils.pprint(new DOMSource(root), 2));
+        LOG.log(Level.FINE, "{0}", Utils.pprint(new DOMSource(root), 2));
         name = XMLUtils.get(root, "name");
         for(Node execution : XMLUtils.getElements(root, "executions/execution")) {
             Node cfg = last(XMLUtils.getElements(execution, "configuration"));
@@ -72,13 +79,13 @@ public class Package {
             executions.add(e);
             String daemonStr = XMLUtils.get(cfg, "daemon");
             if(daemonStr != null) {
-                e.daemon = Boolean.parseBoolean(daemonStr);
+                e.setDaemon(Boolean.parseBoolean(daemonStr));
             }
         }
-        String gid = inherit(root, "groupId");
+        gid = inherit(root, "groupId");
         if(gid == null) return; // invalid pom
-        String aid = XMLUtils.get(root, "artifactId");
-        String ver = inherit(root, "version");
+        aid = XMLUtils.get(root, "artifactId");
+        ver = inherit(root, "version");
         if(ver == null) { // TODO: dependencyManagement/dependencies/dependency/version
             ver = "3.2.1";
         }
@@ -130,10 +137,6 @@ public class Package {
     @Override
     public String toString() {
         return name == null ? JARUtils.name(baseURL) : name;
-    }
-
-    public void markSelf(boolean self) {
-        this.self = self;
     }
 
     /**
@@ -190,33 +193,48 @@ public class Package {
      * @return all package files, flattened
      */
     public Set<Package> getDownloads() {
-        if(downloads == null) {
-            initDownloads();
-        }
-        return downloads;
+        return downloads.isEmpty() ? initDownloads() : Collections.unmodifiableSet(downloads);
     }
 
-    private Package initDownloads() {
+    /**
+     * Fetches all dependency information recursively
+     * TODO: eager loading
+     */
+    private Set<Package> initDownloads() {
         LOG.log(Level.INFO, "initDownloads: {0}", this);
-        downloads = new HashSet<>();
         downloads.add(this);
         try {
-            URL u = new URL(baseURL + ".pom");
-            LOG.log(Level.INFO, "Reading POM: {0}", u);
-            Model m = new MavenXpp3Reader().read(u.openStream());
-            for(Dependency d : m.getDependencies()) {
+            final Model m = new MavenXpp3Reader().read(MavenResolver.resolvePomStream(gid, aid, ver, null));
+            ExecutorService pool = Executors.newCachedThreadPool(new DaemonThreadFactory());
+            Map<Dependency, Future<Set<Package>>> futures = new HashMap<>();
+            for(final Dependency d : m.getDependencies()) {
+                futures.put(d, pool.submit(new Callable<Set<Package>>() {
+                    @Override
+                    public Set<Package> call() throws Exception {
+                        try {
+                            Package pkg = Package.fromDependency(m, d);
+                            return pkg.getDownloads();
+                        } catch(SAXException | ParserConfigurationException | MalformedURLException | IllegalArgumentException
+                                e) {
+                            LOG.log(Level.SEVERE, null, e);
+                        }
+                        return null;
+                    }
+                }));
+            }
+            for(Entry<Dependency, Future<Set<Package>>> e : futures.entrySet()) {
                 try {
-                    Package pkg = Package.fromDependency(m, d);
-                    downloads.add(pkg);
-                    pkg.initDownloads();
-                } catch(SAXException | ParserConfigurationException | MalformedURLException | IllegalArgumentException e) {
-                    LOG.log(Level.SEVERE, null, e);
+                    Set<Package> result = e.getValue().get();
+                    if(result != null) downloads.addAll(result);
+                    else LOG.log(Level.SEVERE, "Download enumeration failed: {0}", e.getKey());
+                } catch(InterruptedException | ExecutionException ex) {
+                    LOG.log(Level.SEVERE, null, ex);
                 }
             }
         } catch(IOException | XmlPullParserException e) {
             LOG.log(Level.SEVERE, null, e);
         }
-        return this;
+        return downloads;
     }
 
     /**
@@ -251,5 +269,25 @@ public class Package {
 
     public List<Program> getExecutions() {
         return executions;
+    }
+
+    public boolean isSelf() {
+        return self;
+    }
+
+    public void setSelf(final boolean self) {
+        this.self = self;
+    }
+
+    public boolean isLocked() {
+        return locked;
+    }
+
+    public void setLocked(final boolean locked) {
+        this.locked = locked;
+    }
+
+    public String getName() {
+        return name;
     }
 }

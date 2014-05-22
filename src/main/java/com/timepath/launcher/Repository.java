@@ -22,14 +22,41 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * A repository contains a list of multiple {@code Package}s and their {@code Program}s
+ *
+ * @author TimePath
+ */
 public class Repository {
 
     private static final Logger LOG = Logger.getLogger(Repository.class.getName());
-    String        location;
-    Package       self;
-    String        name;
-    List<Program> executions;
+    /**
+     * URL to the index file
+     */
+    private String        location;
+    /**
+     * The package representing this repository. Mostly only relevant to the main repository so that the main launcher has a way
+     * of updating itself
+     */
+    private Package       self;
+    /**
+     * The name of this repository
+     */
+    private String        name;
+    /**
+     * A list of all program entry points
+     */
+    private List<Program> executions;
 
+    private Repository() {}
+
+    /**
+     * Constructs a repository from a compatible node within a larger document
+     *
+     * @param location
+     *
+     * @return
+     */
     public static Repository fromIndex(String location) {
         InputStream is = null;
         if(Utils.DEBUG) { // try loading from local file
@@ -52,18 +79,23 @@ public class Repository {
         return r;
     }
 
-    public static Repository parse(Node root) {
+    /**
+     * Constructs a repository from a root node
+     *
+     * @param root
+     *
+     * @return
+     */
+    private static Repository parse(Node root) {
         if(root == null) {
-            return null;
+            throw new IllegalArgumentException("The root node must not be null");
         }
         Repository r = new Repository();
-        r.executions = new LinkedList<>();
         r.name = XMLUtils.get(root, "name");
         r.self = new Package(root);
-        r.self.markSelf(true);
-        r.executions.addAll(r.self.getExecutions());
-        List<Node> programs = XMLUtils.getElements(root, "programs/program");
-        for(Node entry : programs) {
+        r.self.setSelf(true);
+        r.executions = new LinkedList<>(r.self.getExecutions());
+        for(Node entry : XMLUtils.getElements(root, "programs/program")) {
             r.executions.addAll(new Package(entry).getExecutions());
         }
         return r;
@@ -125,5 +157,13 @@ public class Repository {
      */
     public String getName() {
         return name == null ? location : name;
+    }
+
+    public Package getSelf() {
+        return self;
+    }
+
+    public String getLocation() {
+        return location;
     }
 }

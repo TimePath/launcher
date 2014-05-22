@@ -11,6 +11,7 @@ import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
@@ -36,7 +37,7 @@ public class MavenResolver {
         addRepository(REPO_CUSTOM);
     }
 
-    private static final Logger            LOG      = Logger.getLogger(MavenResolver.class.getName());
+    private static final Logger              LOG      = Logger.getLogger(MavenResolver.class.getName());
     private static       Map<String, String> pomCache = Collections.synchronizedMap(new HashMap<String, String>());
 
     private MavenResolver() {}
@@ -114,20 +115,28 @@ public class MavenResolver {
     public static Node resolvePom(String groupId, String artifactId, String version, String classifier)
     throws IOException, SAXException, ParserConfigurationException
     {
+        return XMLUtils.rootNode(resolvePomStream(groupId, artifactId, version, classifier), "project");
+    }
+
+    public static InputStream resolvePomStream(String groupId, String artifactId, String version, String classifier)
+    throws MalformedURLException
+    {
         String key = MessageFormat.format("{0}:{1}:{2}:{3}", groupId, artifactId, version, classifier);
         LOG.log(Level.INFO, "Resolving POM: {0}", key);
         String pom = pomCache.get(key);
         if(pom == null) {
+            LOG.log(Level.INFO, "Resolving POM: Missed cache");
             pom = Utils.loadPage(new URL(resolve(groupId, artifactId, version, classifier, "pom")));
             if(pom == null) {
                 return null;
             }
             pomCache.put(key, pom);
+        } else {
+            LOG.log(Level.INFO, "Resolving POM: Hit cache");
         }
         LOG.log(Level.INFO, "Resolved POM: {0}", key);
         byte[] bytes = pom.getBytes(StandardCharsets.UTF_8);
-        InputStream is = new BufferedInputStream(new ByteArrayInputStream(bytes));
-        return XMLUtils.rootNode(is, "project");
+        return new BufferedInputStream(new ByteArrayInputStream(bytes));
     }
 
     public static String resolve(String groupId, String artifactId, String version, String classifier, String packaging) {

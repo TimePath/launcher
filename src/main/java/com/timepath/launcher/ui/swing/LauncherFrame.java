@@ -253,22 +253,22 @@ public class LauncherFrame extends JFrame {
             launchButton.setEnabled(false);
             return;
         }
-        launchButton.setEnabled(!p.getPackage().lock);
-        if(p.panel != null) {
-            display(p.panel);
+        launchButton.setEnabled(!p.getPackage().isLocked());
+        if(p.getPanel() != null) {
+            display(p.getPanel());
             return;
         }
-        p.panel = new JPanel(new BorderLayout());
-        display(p.panel);
-        String str = ( p.newsfeedURL == null ) ? "No newsfeed available" : "Loading...";
+        p.setPanel(new JPanel(new BorderLayout()));
+        display(p.getPanel());
+        String str = ( p.getNewsfeedURL() == null ) ? "No newsfeed available" : "Loading...";
         final JEditorPane initial = new JEditorPane("text", str);
         initial.setEditable(false);
-        p.panel.add(initial);
-        if(p.newsfeedURL != null) {
+        p.getPanel().add(initial);
+        if(p.getNewsfeedURL() != null) {
             new SwingWorker<JEditorPane, Void>() {
                 @Override
                 protected JEditorPane doInBackground() throws Exception {
-                    String s = Utils.loadPage(new URL(p.newsfeedURL));
+                    String s = Utils.loadPage(new URL(p.getNewsfeedURL()));
                     JEditorPane editorPane = new JEditorPane("text/html", s);
                     editorPane.setEditable(false);
                     editorPane.addHyperlinkListener(SwingUtils.HYPERLINK_LISTENER);
@@ -278,8 +278,8 @@ public class LauncherFrame extends JFrame {
                 @Override
                 protected void done() {
                     try {
-                        p.panel.remove(initial);
-                        p.panel.add(get());
+                        p.getPanel().remove(initial);
+                        p.getPanel().add(get());
                     } catch(InterruptedException | ExecutionException ex) {
                         LOG.log(Level.SEVERE, null, ex);
                     }
