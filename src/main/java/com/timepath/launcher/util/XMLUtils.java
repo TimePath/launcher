@@ -1,13 +1,17 @@
 package com.timepath.launcher.util;
 
-import org.w3c.dom.Element;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+import org.w3c.dom.*;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.MessageFormat;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -95,5 +99,15 @@ public class XMLUtils {
         } catch(NullPointerException ignored) {
             return null;
         }
+    }
+
+    public static Node rootNode(final InputStream is, String name)
+    throws ParserConfigurationException, IOException, SAXException
+    {
+        LOG.log(Level.INFO, "Getting root {0} node", name);
+        DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+        Document doc = docBuilder.parse(is);
+        return XMLUtils.getElements(doc, name).get(0);
     }
 }

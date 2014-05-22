@@ -1,14 +1,10 @@
 package com.timepath.launcher;
 
 import com.timepath.classloader.CompositeClassLoader;
-import com.timepath.launcher.Package.Executable;
 
 import javax.swing.*;
 import java.security.PrivilegedAction;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
@@ -78,18 +74,16 @@ public class Launcher {
         downloadManager.shutdown();
     }
 
-    public void start(Executable program) {
-        if(program == null) {
+    public void start(Program run) {
+        Package pkg = run.getPackage();
+        if(pkg.lock) {
+            LOG.log(Level.INFO, "Package {0} locked, aborting: {1}", new Object[] { pkg, run });
             return;
         }
-        if(program.getPackage().lock) {
-            LOG.log(Level.INFO, "Program locked, aborting: {0}", program);
-            return;
-        }
-        LOG.log(Level.INFO, "Locking {0}", program);
-        program.getPackage().lock = true;
-        List<Package> updates = program.getPackage().getUpdates();
-        if(program.getPackage().self && !updates.contains(program)) {
+        LOG.log(Level.INFO, "Locking {0}", pkg);
+        pkg.lock = true;
+        Collection<Package> updates = pkg.getUpdates();
+        if(pkg.self && !updates.contains(pkg)) {
             JOptionPane.showMessageDialog(null,
                                           "Launcher is up to date",
                                           "Launcher is up to date",
@@ -116,11 +110,11 @@ public class Launcher {
                 LOG.log(Level.SEVERE, null, ex);
             }
         }
-        if(( program.main == null ) && selfupdated) {
+        if(( run.main == null ) && selfupdated) {
             JOptionPane.showMessageDialog(null, "Restart to apply", "Update downloaded", JOptionPane.INFORMATION_MESSAGE, null);
         } else {
-            program.createThread(cl).start();
-            program.getPackage().lock = false;
+            run.createThread(cl).start();
+            pkg.lock = false;
         }
     }
 

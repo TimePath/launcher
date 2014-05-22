@@ -1,6 +1,5 @@
 package com.timepath.launcher;
 
-import com.timepath.launcher.Package.Executable;
 import com.timepath.launcher.util.JARUtils;
 import com.timepath.launcher.util.Utils;
 import com.timepath.launcher.util.XMLUtils;
@@ -26,10 +25,10 @@ import java.util.logging.Logger;
 public class Repository {
 
     private static final Logger LOG = Logger.getLogger(Repository.class.getName());
-    String           location;
-    Package          self;
-    String           name;
-    List<Executable> executions;
+    String        location;
+    Package       self;
+    String        name;
+    List<Program> executions;
 
     public static Repository fromIndex(String location) {
         InputStream is = null;
@@ -112,7 +111,7 @@ public class Repository {
     /**
      * @return the executions
      */
-    public List<Executable> getExecutions() {
+    public List<Program> getExecutions() {
         return Collections.unmodifiableList(executions);
     }
 

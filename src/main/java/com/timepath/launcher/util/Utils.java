@@ -49,6 +49,7 @@ public class Utils {
 
     @SuppressWarnings("StatementWithEmptyBody")
     public static String loadPage(URL u) {
+        LOG.log(Level.INFO, "loadPage: {0}", u);
         try {
             URLConnection connection = u.openConnection();
             try(InputStreamReader isr = new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8)) {

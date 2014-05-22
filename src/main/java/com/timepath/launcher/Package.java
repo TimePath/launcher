@@ -1,29 +1,28 @@
 package com.timepath.launcher;
 
-import com.timepath.classloader.CompositeClassLoader;
 import com.timepath.launcher.util.JARUtils;
 import com.timepath.launcher.util.UpdateUtils;
 import com.timepath.launcher.util.Utils;
 import com.timepath.launcher.util.XMLUtils;
 import com.timepath.maven.MavenResolver;
 import org.apache.maven.model.Dependency;
+import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
-import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
-import javax.swing.*;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.dom.DOMSource;
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -48,18 +47,8 @@ public class Package {
      * Base URL in maven repo
      */
     protected String baseURL;
-    List<Executable> executions = new LinkedList<>();
-    private List<Package> downloads;
-
-    public Package(final Dependency d) throws IOException, SAXException, ParserConfigurationException {
-        this(new URL(MavenResolver.resolve(d.getGroupId(), d.getArtifactId(),
-                                           // TODO: dependencyManagement/dependencies/dependency/version
-                                           d.getVersion() == null ? "3.2.1" : d.getVersion(), null, "pom")));
-    }
-
-    public Package(final URL u) throws ParserConfigurationException, IOException, SAXException {
-        this(getNode(u));
-    }
+    protected List<Program> executions = new LinkedList<>();
+    protected Set<Package> downloads;
 
     /**
      * Instantiate a Program instance from XML
@@ -67,14 +56,19 @@ public class Package {
      * @param root
      */
     public Package(Node root) {
+        if(root == null) {
+            throw new IllegalArgumentException("The root node must not be null");
+        }
+        LOG.log(Level.INFO, "Constructing Package from node");
         LOG.log(Level.INFO, "{0}", Utils.pprint(new DOMSource(root), 2));
         name = XMLUtils.get(root, "name");
         for(Node execution : XMLUtils.getElements(root, "executions/execution")) {
             Node cfg = last(XMLUtils.getElements(execution, "configuration"));
-            Executable e = new Executable(XMLUtils.get(execution, "name"),
-                                          XMLUtils.get(execution, "url"),
-                                          XMLUtils.get(cfg, "main"),
-                                          Utils.argParse(XMLUtils.get(cfg, "args")));
+            Program e = new Program(this,
+                                    XMLUtils.get(execution, "name"),
+                                    XMLUtils.get(execution, "url"),
+                                    XMLUtils.get(cfg, "main"),
+                                    Utils.argParse(XMLUtils.get(cfg, "args")));
             executions.add(e);
             String daemonStr = XMLUtils.get(cfg, "daemon");
             if(daemonStr != null) {
@@ -100,17 +94,42 @@ public class Package {
         return ret;
     }
 
-    private static Node getNode(final URL u) throws ParserConfigurationException, IOException, SAXException {
-        LOG.log(Level.INFO, "Getting program: {0}", u);
-        DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
-        DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
-        Document doc = docBuilder.parse(new BufferedInputStream(new BufferedInputStream(u.openStream())));
-        return XMLUtils.getElements(doc, "project").get(0);
+    public static Package fromDependency(Model m, Dependency d) throws IOException, SAXException, ParserConfigurationException {
+        Node root = MavenResolver.resolvePom(depGroup(m, d), d.getArtifactId(), depVersion(m, d), null);
+        LOG.log(Level.INFO, "Got rootnode: {0}", root);
+        return new Package(root);
+    }
+
+    /**
+     * TODO: dependencyManagement/dependencies/dependency/version
+     */
+    private static String depVersion(Model parent, Dependency d) {
+        String ret = d.getVersion() == null ? "3.2.1" : d.getVersion();
+        if(parent.getVersion() != null) ret.replace("${project.version}", parent.getVersion());
+        return ret;
+    }
+
+    private static String depGroup(Model parent, Dependency d) {
+        String ret = d.getGroupId();
+        if(parent.getGroupId() != null) ret.replace("${project.groupId}", parent.getGroupId());
+        return ret;
+    }
+
+    @Override
+    public int hashCode() {
+        return baseURL.hashCode();
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if(this == o) return true;
+        if(o == null || getClass() != o.getClass()) return false;
+        return baseURL.equals(( (Package) o ).baseURL);
     }
 
     @Override
     public String toString() {
-        return name;
+        return name == null ? JARUtils.name(baseURL) : name;
     }
 
     public void markSelf(boolean self) {
@@ -118,77 +137,48 @@ public class Package {
     }
 
     /**
-     * Flattens all dependencies
+     * Check a <b>single package</b> for updates
      *
-     * @return
-     */
-    public Set<URL> calculateClassPath() {
-        List<Package> all = getDownloads();
-        Set<URL> h = new HashSet<>(all.size());
-        for(Package download : all) {
-            try {
-                h.add(download.getFile().toURI().toURL());
-            } catch(MalformedURLException e) {
-                LOG.log(Level.SEVERE, null, e);
-            }
-        }
-        return h;
-    }
-
-    /**
-     * Check a program for updates
-     *
-     * @return false if not up to date, true if up to date or working offline
+     * @return false if completely up to date, true if up to date or working offline
      */
     public boolean isLatest() {
         LOG.log(Level.INFO, "Checking {0} for updates...", this);
-        for(Package pkgFile : getDownloads()) {
-            try {
-                File file = pkgFile.getFile();
-                if(UPDATE_NAME.equals(file.getName())) { // edge case for current file
-                    file = JARUtils.CURRENT_FILE;
-                }
-                LOG.log(Level.INFO, "Version file: {0}", file);
-                LOG.log(Level.INFO, "Version url: {0}", pkgFile.getChecksumURL());
-                if(!file.exists()) {
-                    LOG.log(Level.INFO, "Don't have {0}, not latest", file);
-                    return false;
-                }
-                if(pkgFile.getChecksumURL() == null) {
-                    LOG.log(Level.INFO, "{0} not versioned, skipping", file);
-                    continue; // have unversioned file, skip check
-                }
-                String checksum = UpdateUtils.checksum(file, "SHA1");
-                BufferedReader br = new BufferedReader(new InputStreamReader(new URL(pkgFile.getChecksumURL()).openStream(),
-                                                                             StandardCharsets.UTF_8));
-                String expected = br.readLine();
-                if(!checksum.equals(expected)) {
-                    LOG.log(Level.INFO, "Checksum mismatch for {0}, not latest", file);
-                    return false;
-                }
-            } catch(IOException | NoSuchAlgorithmException ex) {
-                LOG.log(Level.SEVERE, null, ex);
+        try {
+            File existing = getFile();
+            if(UPDATE_NAME.equals(existing.getName())) { // edge case for current file
+                existing = JARUtils.CURRENT_FILE;
+            }
+            LOG.log(Level.INFO, "Version file: {0}", existing);
+            LOG.log(Level.INFO, "Version url: {0}", getChecksumURL());
+            if(!existing.exists()) {
+                LOG.log(Level.INFO, "Don't have {0}, not latest", existing);
                 return false;
             }
+            String expected = Utils.loadPage(new URL(getChecksumURL())).trim();
+            String actual = UpdateUtils.checksum(existing, "SHA1");
+            if(!expected.equals(actual)) {
+                LOG.log(Level.INFO,
+                        "Checksum mismatch for {0}, not latest. {1} vs {2}",
+                        new Object[] { existing, expected, actual });
+                return false;
+            }
+        } catch(IOException | NoSuchAlgorithmException ex) {
+            LOG.log(Level.SEVERE, null, ex);
+            return false;
         }
-        LOG.log(Level.INFO, "{0} doesn't need updating", this);
+        LOG.log(Level.INFO, "{0} is up to date", this);
         return true;
     }
 
     /**
-     * @return A list of updates for this program
+     * @return all updates, flattened
      */
-    public List<Package> getUpdates() {
-        List<Package> outdated = new LinkedList<>();
-        Collection<Package> ps = getDownloads();
-        LOG.log(Level.INFO, "Download list: {0}", ps.toString());
-        for(Package p : ps) {
-            if(p == null) {
-                continue;
-            }
-            if(p.isLatest()) {
-                LOG.log(Level.INFO, "{0} is up to date", p);
-            } else {
+    public Set<Package> getUpdates() {
+        Set<Package> downloads = getDownloads();
+        Set<Package> outdated = new HashSet<>();
+        LOG.log(Level.INFO, "Download list: {0}", downloads.toString());
+        for(Package p : downloads) {
+            if(!p.isLatest()) {
                 LOG.log(Level.INFO, "{0} is outdated", p);
                 outdated.add(p);
             }
@@ -197,9 +187,9 @@ public class Package {
     }
 
     /**
-     * A map of downloads to checksums. TODO: allow for versions
+     * @return all package files, flattened
      */
-    public List<Package> getDownloads() {
+    public Set<Package> getDownloads() {
         if(downloads == null) {
             initDownloads();
         }
@@ -207,13 +197,19 @@ public class Package {
     }
 
     private Package initDownloads() {
-        downloads = new LinkedList<>();
+        LOG.log(Level.INFO, "initDownloads: {0}", this);
+        downloads = new HashSet<>();
         downloads.add(this);
         try {
-            for(Dependency d : new MavenXpp3Reader().read(new URL(baseURL + ".pom").openStream()).getDependencies()) {
+            URL u = new URL(baseURL + ".pom");
+            LOG.log(Level.INFO, "Reading POM: {0}", u);
+            Model m = new MavenXpp3Reader().read(u.openStream());
+            for(Dependency d : m.getDependencies()) {
                 try {
-                    downloads.add(new Package(d).initDownloads());
-                } catch(SAXException | ParserConfigurationException | MalformedURLException e) {
+                    Package pkg = Package.fromDependency(m, d);
+                    downloads.add(pkg);
+                    pkg.initDownloads();
+                } catch(SAXException | ParserConfigurationException | MalformedURLException | IllegalArgumentException e) {
                     LOG.log(Level.SEVERE, null, e);
                 }
             }
@@ -253,56 +249,7 @@ public class Package {
         return baseURL + ".jar.sha1";
     }
 
-    public List<Executable> getExecutions() {
+    public List<Program> getExecutions() {
         return executions;
-    }
-
-    public class Executable {
-
-        public final  String       main;
-        private final List<String> args;
-        public        String       title;
-        public        String       newsfeedURL;
-        public        boolean      daemon;
-        public        JPanel       panel;
-
-        public Executable(final String title, final String newsfeedURL, final String main, final List<String> args) {
-            this.title = title;
-            this.newsfeedURL = newsfeedURL;
-            this.main = main;
-            this.args = args;
-        }
-
-        public Package getPackage() { return Package.this; }
-
-        @Override
-        public String toString() {
-            return title;
-        }
-
-        public Thread createThread(final CompositeClassLoader cl) {
-            Thread t = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    if(main == null) { // Not executable
-                        return;
-                    }
-                    LOG.log(Level.INFO, "Starting {0} ({1})", new Object[] { this, main });
-                    try {
-                        String[] argv = null;
-                        if(args != null) {
-                            argv = args.toArray(new String[args.size()]);
-                        }
-                        Set<URL> cp = calculateClassPath();
-                        cl.start(main, argv, cp);
-                    } catch(Exception ex) {
-                        LOG.log(Level.SEVERE, null, ex);
-                    }
-                }
-            });
-            t.setContextClassLoader(cl);
-            t.setDaemon(daemon);
-            return t;
-        }
     }
 }

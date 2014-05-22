@@ -1,17 +1,20 @@
 package com.timepath.maven;
 
+import com.timepath.launcher.util.Utils;
+import com.timepath.launcher.util.XMLUtils;
 import org.apache.maven.artifact.repository.metadata.Metadata;
 import org.apache.maven.artifact.repository.metadata.Snapshot;
 import org.apache.maven.artifact.repository.metadata.io.xpp3.MetadataXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+import org.w3c.dom.Node;
+import org.xml.sax.SAXException;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.*;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -33,7 +36,8 @@ public class MavenResolver {
         addRepository(REPO_CUSTOM);
     }
 
-    private static final Logger LOG = Logger.getLogger(MavenResolver.class.getName());
+    private static final Logger            LOG      = Logger.getLogger(MavenResolver.class.getName());
+    private static       Map<String, String> pomCache = Collections.synchronizedMap(new HashMap<String, String>());
 
     private MavenResolver() {}
 
@@ -99,17 +103,36 @@ public class MavenResolver {
         return Collections.unmodifiableCollection(repos);
     }
 
-    public static String resolve(String groupId, String artifactId, String version, String classifier, String packaging) {
-        String ret = resolve(groupId, artifactId, version, classifier);
-        if(ret != null) ret += '.' + packaging;
-        return ret;
-    }
-
     public static void addRepository(String url) {
         repos.add(url.replaceAll("/$", ""));
     }
 
     public static String getLocal() {
         return System.getProperty("maven.repo.local", System.getProperty("user.home") + "/.m2/repository");
+    }
+
+    public static Node resolvePom(String groupId, String artifactId, String version, String classifier)
+    throws IOException, SAXException, ParserConfigurationException
+    {
+        String key = MessageFormat.format("{0}:{1}:{2}:{3}", groupId, artifactId, version, classifier);
+        LOG.log(Level.INFO, "Resolving POM: {0}", key);
+        String pom = pomCache.get(key);
+        if(pom == null) {
+            pom = Utils.loadPage(new URL(resolve(groupId, artifactId, version, classifier, "pom")));
+            if(pom == null) {
+                return null;
+            }
+            pomCache.put(key, pom);
+        }
+        LOG.log(Level.INFO, "Resolved POM: {0}", key);
+        byte[] bytes = pom.getBytes(StandardCharsets.UTF_8);
+        InputStream is = new BufferedInputStream(new ByteArrayInputStream(bytes));
+        return XMLUtils.rootNode(is, "project");
+    }
+
+    public static String resolve(String groupId, String artifactId, String version, String classifier, String packaging) {
+        String ret = resolve(groupId, artifactId, version, classifier);
+        if(ret != null) ret += '.' + packaging;
+        return ret;
     }
 }

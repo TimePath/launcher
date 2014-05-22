@@ -3,7 +3,7 @@ package com.timepath.launcher.ui.swing;
 import com.timepath.launcher.DownloadManager.DownloadMonitor;
 import com.timepath.launcher.Launcher;
 import com.timepath.launcher.Package;
-import com.timepath.launcher.Package.Executable;
+import com.timepath.launcher.Program;
 import com.timepath.launcher.Repository;
 import com.timepath.launcher.util.JARUtils;
 import com.timepath.launcher.util.SwingUtils;
@@ -131,7 +131,7 @@ public class LauncherFrame extends JFrame {
                             repoNode = new DefaultMutableTreeNode(repo.getName());
                             rootNode.add(repoNode);
                         }
-                        for(Executable p : repo.getExecutions()) {
+                        for(Program p : repo.getExecutions()) {
                             repoNode.add(new DefaultMutableTreeNode(p));
                         }
                     }
@@ -189,7 +189,7 @@ public class LauncherFrame extends JFrame {
                         @Override
                         public void keyPressed(KeyEvent e) {
                             if(e.getKeyCode() == KeyEvent.VK_ENTER) {
-                                Executable p = getSelected(getLastSelectedPathComponent());
+                                Program p = getSelected(getLastSelectedPathComponent());
                                 start(p);
                             }
                         }
@@ -201,7 +201,7 @@ public class LauncherFrame extends JFrame {
                                 return;
                             }
                             if(SwingUtilities.isLeftMouseButton(e) && ( e.getClickCount() >= 2 )) {
-                                Executable p = getSelected(getLastSelectedPathComponent());
+                                Program p = getSelected(getLastSelectedPathComponent());
                                 start(p);
                             }
                         }
@@ -247,7 +247,7 @@ public class LauncherFrame extends JFrame {
                                       .addComponent(tabbedPane, GroupLayout.Alignment.TRAILING));
     }
 
-    public void news(final Executable p) {
+    public void news(final Program p) {
         if(p == null) {
             display(null);
             launchButton.setEnabled(false);
@@ -292,15 +292,19 @@ public class LauncherFrame extends JFrame {
         newsScroll.setViewportView(component);
     }
 
-    public void start(final Executable program) {
+    public void start(final Program program) {
         if(program == null) {
             return;
         }
         new SwingWorker<Void, Void>() {
             @Override
-            protected Void doInBackground() throws Exception {
+            protected Void doInBackground() {
                 launchButton.setEnabled(false);
-                launcher.start(program);
+                try {
+                    launcher.start(program);
+                } catch(Throwable t) {
+                    LOG.log(Level.SEVERE, null, t);
+                }
                 return null;
             }
 
@@ -311,15 +315,15 @@ public class LauncherFrame extends JFrame {
         }.execute();
     }
 
-    private static Executable getSelected(Object selected) {
+    private static Program getSelected(Object selected) {
         if(!( selected instanceof DefaultMutableTreeNode )) {
             return null;
         }
         Object obj = ( (DefaultMutableTreeNode) selected ).getUserObject();
-        if(!( obj instanceof Executable )) {
+        if(!( obj instanceof Program )) {
             return null;
         }
-        return (Executable) obj;
+        return (Program) obj;
     }
 
     private JEditorPane initAboutPanel() {
