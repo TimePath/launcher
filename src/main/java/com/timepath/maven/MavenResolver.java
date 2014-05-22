@@ -2,10 +2,6 @@ package com.timepath.maven;
 
 import com.timepath.launcher.util.Utils;
 import com.timepath.launcher.util.XMLUtils;
-import org.apache.maven.artifact.repository.metadata.Metadata;
-import org.apache.maven.artifact.repository.metadata.Snapshot;
-import org.apache.maven.artifact.repository.metadata.io.xpp3.MetadataXpp3Reader;
-import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
@@ -19,6 +15,8 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+
+import static com.timepath.launcher.util.XMLUtils.last;
 
 /**
  * @author TimePath
@@ -42,7 +40,7 @@ public class MavenResolver {
 
     private MavenResolver() {}
 
-    public static void main(String[] args) throws IOException, XmlPullParserException {
+    public static void main(String[] args) throws IOException {
         System.out.println(resolve("com.timepath", "launcher", "1.0-SNAPSHOT", null));
     }
 
@@ -70,25 +68,24 @@ public class MavenResolver {
         groupId = '/' + groupId.replace('.', '/') + '/';
         for(String repository : getRepositories()) {
             String baseArtifact = repository + groupId + artifactId + '/';
-            // TODO: Check version ranges
-            // Metadata meta = new MetadataXpp3Reader().read(new URL(baseArtifact + "maven-metadata.xml").openStream());
+            // TODO: Check version ranges at new URL(baseArtifact + "maven-metadata.xml")
             String baseVersion = baseArtifact + version + '/';
             if(version.endsWith("-SNAPSHOT")) {
-                Metadata meta;
+                Node meta;
                 // TODO: Handle when using REPO_LOCAL
                 try {
-                    meta = new MetadataXpp3Reader().read(new URL(baseVersion + "maven-metadata.xml").openStream());
-                } catch(IOException | XmlPullParserException e) {
+                    meta = XMLUtils.rootNode(new URL(baseVersion + "maven-metadata.xml").openStream(), "metadata");
+                } catch(IOException | ParserConfigurationException | SAXException e) {
                     if(!( e instanceof FileNotFoundException )) LOG.log(Level.WARNING, "{0}", e.toString());
                     continue;
                 }
-                Snapshot snap = meta.getVersioning().getSnapshot();
+                Node snap = last(XMLUtils.getElements(meta, "versioning/snapshot"));
                 return MessageFormat.format("{0}{1}-{2}-{3}-{4}{5}",
                                             baseVersion,
                                             artifactId,
                                             version.substring(0, version.lastIndexOf("-SNAPSHOT")),
-                                            snap.getTimestamp(),
-                                            snap.getBuildNumber(),
+                                            XMLUtils.get(snap, "timestamp"),
+                                            XMLUtils.get(snap, "buildNumber"),
                                             classifier);
             } else {
                 return MessageFormat.format("{0}{1}-{2}{3}", baseVersion, artifactId, version, classifier);
