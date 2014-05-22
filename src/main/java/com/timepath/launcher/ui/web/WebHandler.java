@@ -4,7 +4,7 @@ import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.timepath.launcher.Launcher;
-import com.timepath.launcher.Program;
+import com.timepath.launcher.Package.Executable;
 import com.timepath.launcher.Repository;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -94,9 +94,9 @@ class WebHandler implements HttpHandler {
     }
 
     private static Source serialize(Iterable<Repository> repos) throws ParserConfigurationException {
-        Collection<Program> programs = new LinkedList<>();
+        Collection<Executable> programs = new LinkedList<>();
         for(Repository repo : repos) {
-            programs.addAll(repo.getPackages());
+            programs.addAll(repo.getExecutions());
         }
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         DocumentBuilder db = dbf.newDocumentBuilder();
@@ -106,12 +106,12 @@ class WebHandler implements HttpHandler {
         root.appendChild(rootPrograms);
         Element rootLibs = document.createElement("libs");
         root.appendChild(rootLibs);
-        for(Program p : programs) {
+        for(Executable p : programs) {
             Element e = document.createElement("entry");
             e.setAttribute("name", p.title);
             StringBuilder sb = new StringBuilder(0);
-            for(Program dep : p.depends) {
-                sb.append(',').append(dep.title);
+            for(com.timepath.launcher.Package dep : p.getPackage().getDownloads()) {
+                sb.append(',').append(dep.name);
             }
             String deps = sb.substring(Math.min(1, sb.length()));
             e.setAttribute("depends", deps);

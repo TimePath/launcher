@@ -5,6 +5,7 @@ import org.apache.maven.artifact.repository.metadata.Snapshot;
 import org.apache.maven.artifact.repository.metadata.io.xpp3.MetadataXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.text.MessageFormat;
@@ -49,6 +50,17 @@ public class MavenResolver {
      * @return The absolute basename of the project coordinate (without the packaging element)
      */
     public static String resolve(String groupId, String artifactId, String version, String classifier) {
+        groupId = groupId.replace("${project.groupId}", "com.timepath"); // TODO: variables
+        LOG.log(Level.INFO, "artifact: {0}:{1}:{2}", new Object[] { groupId, artifactId, version, classifier });
+        if(groupId == null) {
+            throw new IllegalArgumentException("groupId cannot be null");
+        }
+        if(artifactId == null) {
+            throw new IllegalArgumentException("artifactId cannot be null");
+        }
+        if(version == null) {
+            throw new IllegalArgumentException("version cannot be null");
+        }
         classifier = ( ( classifier == null ) || classifier.isEmpty() ) ? "" : '-' + classifier;
         groupId = '/' + groupId.replace('.', '/') + '/';
         for(String repository : getRepositories()) {
@@ -62,7 +74,7 @@ public class MavenResolver {
                 try {
                     meta = new MetadataXpp3Reader().read(new URL(baseVersion + "maven-metadata.xml").openStream());
                 } catch(IOException | XmlPullParserException e) {
-                    LOG.log(Level.WARNING, "{0}", e.toString());
+                    if(!( e instanceof FileNotFoundException )) LOG.log(Level.WARNING, "{0}", e.toString());
                     continue;
                 }
                 Snapshot snap = meta.getVersioning().getSnapshot();
@@ -72,8 +84,7 @@ public class MavenResolver {
                                             version.substring(0, version.lastIndexOf("-SNAPSHOT")),
                                             snap.getTimestamp(),
                                             snap.getBuildNumber(),
-                                            classifier
-                                           );
+                                            classifier);
             } else {
                 return MessageFormat.format("{0}{1}-{2}{3}", baseVersion, artifactId, version, classifier);
             }
@@ -86,6 +97,12 @@ public class MavenResolver {
         repos.add(REPO_LOCAL); // To allow for changes at runtime
         repos.addAll(MavenResolver.repos);
         return Collections.unmodifiableCollection(repos);
+    }
+
+    public static String resolve(String groupId, String artifactId, String version, String classifier, String packaging) {
+        String ret = resolve(groupId, artifactId, version, classifier);
+        if(ret != null) ret += '.' + packaging;
+        return ret;
     }
 
     public static void addRepository(String url) {

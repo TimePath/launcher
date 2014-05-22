@@ -1,6 +1,6 @@
 package com.timepath.launcher.ui.swing;
 
-import com.timepath.launcher.PackageFile;
+import com.timepath.launcher.Package;
 import com.timepath.swing.table.ObjectBasedTableModel;
 
 import javax.swing.*;
@@ -13,7 +13,7 @@ import java.util.logging.Logger;
 public class DownloadPanel extends JPanel {
 
     private static final Logger LOG = Logger.getLogger(DownloadPanel.class.getName());
-    protected ObjectBasedTableModel<PackageFile> tableModel;
+    protected ObjectBasedTableModel<Package> tableModel;
 
     public DownloadPanel() {
         initComponents();
@@ -21,17 +21,17 @@ public class DownloadPanel extends JPanel {
 
     private void initComponents() {
         final JTable jTable1 = new JTable();
-        jTable1.setModel(tableModel = new ObjectBasedTableModel<PackageFile>() {
+        jTable1.setModel(tableModel = new ObjectBasedTableModel<Package>() {
             @Override
             public String[] columns() {
                 return new String[] { "Name", "Progress" };
             }
 
             @Override
-            public Object get(PackageFile o, int columnIndex) {
+            public Object get(Package o, int columnIndex) {
                 switch(columnIndex) {
                     case 0:
-                        return o.fileName();
+                        return o.getFileName();
                     case 1:
                         double percent = ( o.progress * 100.0 ) / o.size;
                         return ( percent < 0 ) ? '?' : String.format("%.1f%%", percent);
@@ -53,7 +53,7 @@ public class DownloadPanel extends JPanel {
                                );
     }
 
-    public ObjectBasedTableModel<PackageFile> getTableModel() {
+    public ObjectBasedTableModel<com.timepath.launcher.Package> getTableModel() {
         return tableModel;
     }
 }

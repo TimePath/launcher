@@ -22,14 +22,14 @@ public class XMLUtils {
 
     public static String getAttribute(Node node, String key) {
         Element e = (Element) node;
-        Node child = last(getElements(key, node));
+        Node child = last(getElements(node, key));
         if(child != null) {
             return child.getNodeValue();
         }
         return ( e.getAttributeNode(key) != null ) ? e.getAttributeNode(key).getValue() : null;
     }
 
-    public static List<Node> getElements(String eval, Node root) {
+    public static List<Node> getElements(Node root, String eval) {
         String[] path = eval.split("/");
         List<Node> nodes = new LinkedList<>();
         nodes.add(root);
@@ -87,5 +87,13 @@ public class XMLUtils {
             sb.append(MessageFormat.format("{0}: {1}</{2}>\n", depth, spacing, root.getNodeName()));
         }
         return sb.toString();
+    }
+
+    public static String get(Node root, String key) {
+        try {
+            return last(XMLUtils.getElements(root, key)).getFirstChild().getNodeValue();
+        } catch(NullPointerException ignored) {
+            return null;
+        }
     }
 }

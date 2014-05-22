@@ -1,6 +1,5 @@
 package com.timepath.launcher;
 
-import com.timepath.launcher.util.JARUtils;
 import com.timepath.launcher.util.Utils;
 import com.timepath.launcher.util.Utils.DaemonThreadFactory;
 
@@ -39,7 +38,7 @@ public class DownloadManager {
         pool.shutdown();
     }
 
-    public Future<?> submit(PackageFile pkgFile) {
+    public Future<?> submit(Package pkgFile) {
         synchronized(monitors) {
             for(DownloadMonitor monitor : monitors) {
                 monitor.submit(pkgFile);
@@ -50,32 +49,29 @@ public class DownloadManager {
 
     public interface DownloadMonitor {
 
-        void submit(PackageFile pkgFile);
+        void submit(Package pkgFile);
 
-        void update(PackageFile pkgFile);
+        void update(Package pkgFile);
     }
 
     private class DownloadTask implements Runnable {
 
-        private final PackageFile pkgFile;
+        private final Package pkgFile;
 
-        private DownloadTask(PackageFile pkgFile) {
+        private DownloadTask(Package pkgFile) {
             this.pkgFile = pkgFile;
         }
 
         @Override
         public void run() {
-            String[] dl = { pkgFile.downloadURL, pkgFile.checksumURL };
+            String[] dl = { pkgFile.getDownloadURL(), pkgFile.getChecksumURL() };
             try {
                 for(String s : dl) {
                     if(s == null) {
                         continue;
                     }
                     URL u = new URI(s).toURL();
-                    File file = ( s == dl[0] ) ? pkgFile.getFile() : pkgFile.versionFile();
-                    if(file == null) {
-                        file = new File(PackageFile.PROGRAM_DIRECTORY, JARUtils.name(u));
-                    }
+                    File file = ( s == dl[0] ) ? pkgFile.getFile() : pkgFile.getChecksumFile();
                     download(u, file);
                 }
             } catch(IOException | URISyntaxException ex) {
@@ -88,7 +84,7 @@ public class DownloadManager {
             pkgFile.size = connection.getContentLengthLong();
             LOG.log(Level.INFO, "Downloading {0} > {1}", new Object[] { u, file });
             Utils.createFile(file);
-            byte[] buffer = new byte[8192];
+            byte[] buffer = new byte[81920];
             try(InputStream is = new BufferedInputStream(connection.getInputStream(), buffer.length);
                 OutputStream fos = new BufferedOutputStream(new FileOutputStream(file), buffer.length)) {
                 int read;

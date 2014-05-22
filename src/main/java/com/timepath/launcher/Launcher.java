@@ -1,6 +1,7 @@
 package com.timepath.launcher;
 
 import com.timepath.classloader.CompositeClassLoader;
+import com.timepath.launcher.Package.Executable;
 
 import javax.swing.*;
 import java.security.PrivilegedAction;
@@ -29,7 +30,7 @@ public class Launcher {
         }
     });
     private final        DownloadManager      downloadManager = new DownloadManager();
-    private Program self;
+    private Package self;
 
     public Launcher() {}
 
@@ -50,14 +51,14 @@ public class Launcher {
 
     public List<Repository> getRepositories() {
         List<Repository> lists = new LinkedList<>();
-        Repository main = Repository.get("http://dl.dropboxusercontent.com/u/42745598/" + REPO_MAIN);
+        Repository main = Repository.fromIndex("http://dl.dropboxusercontent.com/u/42745598/" + REPO_MAIN);
         self = main.self;
         lists.add(main);
         Preferences repos = PREFS.node("repositories");
         try {
             for(String repo : repos.keys()) {
                 if(repos.getBoolean(repo, false)) {
-                    lists.add(Repository.get(repo));
+                    lists.add(Repository.fromIndex(repo));
                 }
             }
         } catch(BackingStoreException ex) {
@@ -77,31 +78,31 @@ public class Launcher {
         downloadManager.shutdown();
     }
 
-    public void start(Program program) {
+    public void start(Executable program) {
         if(program == null) {
             return;
         }
-        if(program.lock) {
+        if(program.getPackage().lock) {
             LOG.log(Level.INFO, "Program locked, aborting: {0}", program);
             return;
         }
         LOG.log(Level.INFO, "Locking {0}", program);
-        program.lock = true;
-        List<Program> updates = program.getUpdates();
-        if(program.self && !updates.contains(program)) {
+        program.getPackage().lock = true;
+        List<Package> updates = program.getPackage().getUpdates();
+        if(program.getPackage().self && !updates.contains(program)) {
             JOptionPane.showMessageDialog(null,
                                           "Launcher is up to date",
                                           "Launcher is up to date",
                                           JOptionPane.INFORMATION_MESSAGE,
                                           null);
         }
-        Map<Program, List<Future<?>>> downloads = new HashMap<>(updates.size());
-        for(Program p : updates) {
+        Map<Package, List<Future<?>>> downloads = new HashMap<>(updates.size());
+        for(Package p : updates) {
             downloads.put(p, download(p));
         }
         boolean selfupdated = false;
-        for(Map.Entry<Program, List<Future<?>>> e : downloads.entrySet()) {
-            Program p = e.getKey();
+        for(Map.Entry<Package, List<Future<?>>> e : downloads.entrySet()) {
+            Package p = e.getKey();
             List<Future<?>> futures = e.getValue();
             try {
                 for(Future<?> future : futures) {
@@ -119,13 +120,13 @@ public class Launcher {
             JOptionPane.showMessageDialog(null, "Restart to apply", "Update downloaded", JOptionPane.INFORMATION_MESSAGE, null);
         } else {
             program.createThread(cl).start();
-            program.lock = false;
+            program.getPackage().lock = false;
         }
     }
 
-    private List<Future<?>> download(Program p) {
+    private List<Future<?>> download(Package p) {
         List<Future<?>> arr = new LinkedList<>();
-        for(PackageFile pkgFile : p.downloads) {
+        for(Package pkgFile : p.getDownloads()) {
             arr.add(downloadManager.submit(pkgFile));
         }
         return arr;

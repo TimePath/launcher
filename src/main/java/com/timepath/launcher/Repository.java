@@ -1,5 +1,6 @@
 package com.timepath.launcher;
 
+import com.timepath.launcher.Package.Executable;
 import com.timepath.launcher.util.JARUtils;
 import com.timepath.launcher.util.Utils;
 import com.timepath.launcher.util.XMLUtils;
@@ -17,24 +18,22 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.text.MessageFormat;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Repository {
 
     private static final Logger LOG = Logger.getLogger(Repository.class.getName());
-    Map<String, Program> libs = new HashMap<>(0);
-    String        location;
-    Program       self;
-    String        name;
-    List<Program> packages;
+    String           location;
+    Package          self;
+    String           name;
+    List<Executable> executions;
 
-    public static Repository get(String location) {
+    public static Repository fromIndex(String location) {
         InputStream is = null;
-        if(Utils.DEBUG) {
+        if(Utils.DEBUG) { // try loading from local file
             try {
                 is = new FileInputStream(System.getProperty("user.home") + "/Dropbox/Public/" + JARUtils.name(location));
             } catch(FileNotFoundException ignored) {
@@ -49,9 +48,25 @@ public class Repository {
                 LOG.log(Level.SEVERE, null, ex);
             }
         }
-        Repository r = RepositoryParser.parse(findCompatible(is));
+        Repository r = parse(findCompatible(is));
         r.location = location;
-        r.name = r.name == null ? location : r.name;
+        return r;
+    }
+
+    public static Repository parse(Node root) {
+        if(root == null) {
+            return null;
+        }
+        Repository r = new Repository();
+        r.executions = new LinkedList<>();
+        r.name = XMLUtils.get(root, "name");
+        r.self = new Package(root);
+        r.self.markSelf(true);
+        r.executions.addAll(r.self.getExecutions());
+        List<Node> programs = XMLUtils.getElements(root, "programs/program");
+        for(Node entry : programs) {
+            r.executions.addAll(new Package(entry).getExecutions());
+        }
         return r;
     }
 
@@ -63,7 +78,7 @@ public class Repository {
             DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
             Document doc = docBuilder.parse(new BufferedInputStream(is));
-            Node root = XMLUtils.getElements("root", doc).get(0);
+            Node root = XMLUtils.getElements(doc, "root").get(0);
             Node version = null;
             Node iter = null;
             NodeList versions = root.getChildNodes();
@@ -95,10 +110,10 @@ public class Repository {
     }
 
     /**
-     * @return the packages
+     * @return the executions
      */
-    public List<Program> getPackages() {
-        return Collections.unmodifiableList(packages);
+    public List<Executable> getExecutions() {
+        return Collections.unmodifiableList(executions);
     }
 
     @Override
@@ -110,6 +125,6 @@ public class Repository {
      * @return the name
      */
     public String getName() {
-        return name;
+        return name == null ? location : name;
     }
 }

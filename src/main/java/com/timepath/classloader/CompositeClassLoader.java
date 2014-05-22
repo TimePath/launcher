@@ -117,6 +117,7 @@ public class CompositeClassLoader extends ClassLoader {
         if(( method.getReturnType() != void.class ) || !Modifier.isStatic(modifiers) || !Modifier.isPublic(modifiers)) {
             throw new NoSuchMethodException("main");
         }
+        method.setAccessible(true);
         method.invoke(null, new Object[] { args }); // varargs call
     }
 

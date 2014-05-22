@@ -2,8 +2,8 @@ package com.timepath.launcher.ui.swing;
 
 import com.timepath.launcher.DownloadManager.DownloadMonitor;
 import com.timepath.launcher.Launcher;
-import com.timepath.launcher.PackageFile;
-import com.timepath.launcher.Program;
+import com.timepath.launcher.Package;
+import com.timepath.launcher.Package.Executable;
 import com.timepath.launcher.Repository;
 import com.timepath.launcher.util.JARUtils;
 import com.timepath.launcher.util.SwingUtils;
@@ -50,12 +50,12 @@ public class LauncherFrame extends JFrame {
         this.launcher = launcher;
         launcher.getDownloadManager().addListener(new DownloadMonitor() {
             @Override
-            public void submit(PackageFile pkgFile) {
+            public void submit(Package pkgFile) {
                 downloadPanel.getTableModel().add(pkgFile);
             }
 
             @Override
-            public void update(PackageFile pkgFile) {
+            public void update(Package pkgFile) {
                 downloadPanel.getTableModel().update(pkgFile);
             }
         });
@@ -131,7 +131,7 @@ public class LauncherFrame extends JFrame {
                             repoNode = new DefaultMutableTreeNode(repo.getName());
                             rootNode.add(repoNode);
                         }
-                        for(Program p : repo.getPackages()) {
+                        for(Executable p : repo.getExecutions()) {
                             repoNode.add(new DefaultMutableTreeNode(p));
                         }
                     }
@@ -189,7 +189,7 @@ public class LauncherFrame extends JFrame {
                         @Override
                         public void keyPressed(KeyEvent e) {
                             if(e.getKeyCode() == KeyEvent.VK_ENTER) {
-                                Program p = getSelected(getLastSelectedPathComponent());
+                                Executable p = getSelected(getLastSelectedPathComponent());
                                 start(p);
                             }
                         }
@@ -201,7 +201,7 @@ public class LauncherFrame extends JFrame {
                                 return;
                             }
                             if(SwingUtilities.isLeftMouseButton(e) && ( e.getClickCount() >= 2 )) {
-                                Program p = getSelected(getLastSelectedPathComponent());
+                                Executable p = getSelected(getLastSelectedPathComponent());
                                 start(p);
                             }
                         }
@@ -247,13 +247,13 @@ public class LauncherFrame extends JFrame {
                                       .addComponent(tabbedPane, GroupLayout.Alignment.TRAILING));
     }
 
-    public void news(final Program p) {
+    public void news(final Executable p) {
         if(p == null) {
             display(null);
             launchButton.setEnabled(false);
             return;
         }
-        launchButton.setEnabled(!p.lock);
+        launchButton.setEnabled(!p.getPackage().lock);
         if(p.panel != null) {
             display(p.panel);
             return;
@@ -269,7 +269,7 @@ public class LauncherFrame extends JFrame {
                 @Override
                 protected JEditorPane doInBackground() throws Exception {
                     String s = Utils.loadPage(new URL(p.newsfeedURL));
-                    JEditorPane editorPane = new JEditorPane(p.newsfeedType, s);
+                    JEditorPane editorPane = new JEditorPane("text/html", s);
                     editorPane.setEditable(false);
                     editorPane.addHyperlinkListener(SwingUtils.HYPERLINK_LISTENER);
                     return editorPane;
@@ -292,7 +292,7 @@ public class LauncherFrame extends JFrame {
         newsScroll.setViewportView(component);
     }
 
-    public void start(final Program program) {
+    public void start(final Executable program) {
         if(program == null) {
             return;
         }
@@ -311,15 +311,15 @@ public class LauncherFrame extends JFrame {
         }.execute();
     }
 
-    private static Program getSelected(Object selected) {
+    private static Executable getSelected(Object selected) {
         if(!( selected instanceof DefaultMutableTreeNode )) {
             return null;
         }
         Object obj = ( (DefaultMutableTreeNode) selected ).getUserObject();
-        if(!( obj instanceof Program )) {
+        if(!( obj instanceof Executable )) {
             return null;
         }
-        return (Program) obj;
+        return (Executable) obj;
     }
 
     private JEditorPane initAboutPanel() {
@@ -386,7 +386,7 @@ public class LauncherFrame extends JFrame {
             if(in == null) {
                 return;
             }
-            Repository r = Repository.get(in);
+            Repository r = Repository.fromIndex(in);
             Launcher.addRepository(r);
             updateList();
         }
