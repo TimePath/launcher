@@ -68,10 +68,13 @@ public class LauncherFrame extends JFrame {
         setJMenuBar(new JMenuBar() {{
             add(new JMenu() {{
                 setText("Tools");
-                add(new JMenuItem(new AbstractAction("Add repository") {
+                add(new JMenuItem(new AbstractAction("Repository management") {
                     @Override
                     public void actionPerformed(final ActionEvent e) {
-                        JOptionPane.showMessageDialog(LauncherFrame.this, repositoryManager);
+                        JOptionPane.showMessageDialog(LauncherFrame.this,
+                                                      repositoryManager,
+                                                      "Repository manager",
+                                                      JOptionPane.PLAIN_MESSAGE);
                     }
                 }));
                 add(new JMenuItem(new AbstractAction("Preferences") {
@@ -122,7 +125,7 @@ public class LauncherFrame extends JFrame {
                     int i = repositoryManager.model.getRowCount();
                     while(i > 0) { repositoryManager.model.removeRow(--i); }
                     for(final Repository repo : repos) {
-                        repositoryManager.model.addRow(new Object[] { repo, repo.isEnabled() });
+                        repositoryManager.model.addRow(new Object[] { repo });
                         DefaultMutableTreeNode repoNode = rootNode;
                         if(repos.size() > 1) {
                             repoNode = new DefaultMutableTreeNode(repo.getName());
@@ -383,7 +386,7 @@ public class LauncherFrame extends JFrame {
             if(in == null) {
                 return;
             }
-            Repository r = new Repository(in);
+            Repository r = Repository.get(in);
             Launcher.addRepository(r);
             updateList();
         }

@@ -50,14 +50,14 @@ public class Launcher {
 
     public List<Repository> getRepositories() {
         List<Repository> lists = new LinkedList<>();
-        Repository main = new Repository("http://dl.dropboxusercontent.com/u/42745598/" + REPO_MAIN);
+        Repository main = Repository.get("http://dl.dropboxusercontent.com/u/42745598/" + REPO_MAIN);
         self = main.self;
         lists.add(main);
         Preferences repos = PREFS.node("repositories");
         try {
             for(String repo : repos.keys()) {
                 if(repos.getBoolean(repo, false)) {
-                    lists.add(new Repository(repo));
+                    lists.add(Repository.get(repo));
                 }
             }
         } catch(BackingStoreException ex) {

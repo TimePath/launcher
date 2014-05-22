@@ -16,118 +16,49 @@ import java.io.*;
 import java.net.URL;
 import java.net.URLConnection;
 import java.text.MessageFormat;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Repository {
 
     private static final Logger LOG = Logger.getLogger(Repository.class.getName());
-    final String location;
-    private final Map<String, Program> libs = new HashMap<>(0);
-    Program self;
-    private boolean       enabled;
-    private String        name;
-    private List<Program> packages;
+    Map<String, Program> libs = new HashMap<>(0);
+    String        location;
+    Program       self;
+    String        name;
+    List<Program> packages;
 
-    public Repository(String s) {
-        location = s;
-        name = s;
-        enabled = true;
-        if(enabled) {
-            connect();
-        }
-    }
-
-    private static List<PackageFile> getDownloads(Node entry) {
-        List<PackageFile> downloads = new LinkedList<>();
-        // downloadURL
-        for(Node node : XMLUtils.getElements("download", entry)) {
-            Node checksum = XMLUtils.last(XMLUtils.getElements("checksum", entry));
-            String dlu = XMLUtils.getAttribute(node, "url");
-            if(dlu == null) {
-                continue;
-            }
-            String csu = null;
-            if(checksum != null) {
-                csu = XMLUtils.getAttribute(checksum, "url");
-            }
-            PackageFile file = new PackageFile(dlu, csu);
-            file.nested = getDownloads(node);
-            downloads.add(file);
-        }
-        return downloads;
-    }
-
-    public void connect() {
+    public static Repository get(String location) {
         InputStream is = null;
         if(Utils.DEBUG) {
             try {
                 is = new FileInputStream(System.getProperty("user.home") + "/Dropbox/Public/" + JARUtils.name(location));
-            } catch(FileNotFoundException ex) {
-                LOG.log(Level.SEVERE, null, ex);
+            } catch(FileNotFoundException ignored) {
             }
         }
         if(is == null) {
             try {
-                long listingStart = System.currentTimeMillis();
-                LOG.log(Level.INFO, "Resolving...");
                 URL u = new URL(location);
-                LOG.log(Level.INFO, "Resolved in {0}ms", System.currentTimeMillis() - listingStart);
-                LOG.log(Level.INFO, "Connecting...");
                 URLConnection connection = u.openConnection();
-                LOG.log(Level.INFO, "Connected in {0}ms", System.currentTimeMillis() - listingStart);
-                LOG.log(Level.INFO, "Streaming...");
                 is = connection.getInputStream();
             } catch(IOException ex) {
                 LOG.log(Level.SEVERE, null, ex);
             }
         }
-        LOG.log(Level.INFO, "Stream opened at {0}ms", System.currentTimeMillis() - Utils.START_TIME);
-        LOG.log(Level.INFO, "Parsing...");
-        parse(is);
-        LOG.log(Level.INFO, "Parsed at {0}ms", System.currentTimeMillis() - Utils.START_TIME);
+        Repository r = RepositoryParser.parse(findCompatible(is));
+        r.location = location;
+        r.name = r.name == null ? location : r.name;
+        return r;
     }
 
     /**
-     * @return the packages
+     * @return a compatible configuration node
      */
-    public List<Program> getPackages() {
-        if(packages == null) {
-            connect();
-        }
-        return Collections.unmodifiableList(packages);
-    }
-
-    /**
-     * @return the enabled
-     */
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    /**
-     * @param enabled
-     *         the enabled to set
-     */
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    @Override
-    public String toString() {
-        return MessageFormat.format("{0} ({1})", name, location);
-    }
-
-    /**
-     * @return the name
-     */
-    public String getName() {
-        return name;
-    }
-
-    private void parse(InputStream is) {
-        packages = new LinkedList<>();
+    private static Node findCompatible(InputStream is) {
         try {
             DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
@@ -156,53 +87,29 @@ public class Repository {
                 }
             }
             LOG.log(Level.FINE, "\n{0}", XMLUtils.printTree(version, 0));
-            List<Node> meta = XMLUtils.getElements("meta", version);
-            String nameCandidate = XMLUtils.getAttribute(meta.get(0), "name");
-            name = nameCandidate != null ? nameCandidate : name;
-            String[] nodes = { "self", "libs", "programs" };
-            for(String s1 : nodes) {
-                List<Node> programs = XMLUtils.getElements(s1 + "/entry", version);
-                for(Node entry : programs) {
-                    Program p = new Program();
-                    p.title = XMLUtils.getAttribute(entry, "name");
-                    String depends = XMLUtils.getAttribute(entry, "depends");
-                    if(depends != null) {
-                        String[] dependencies = depends.split(",");
-                        for(String s : dependencies) {
-                            p.depends.add(libs.get(s.trim()));
-                        }
-                    }
-                    p.fileName = XMLUtils.getAttribute(entry, "file");
-                    Node java = XMLUtils.last(XMLUtils.getElements("java", entry));
-                    if(java != null) {
-                        p.main = XMLUtils.getAttribute(java, "main");
-                        p.args = Utils.argParse(XMLUtils.getAttribute(java, "args"));
-                        String daemon = XMLUtils.getAttribute(java, "daemon");
-                        if(daemon != null) {
-                            p.daemon = Boolean.parseBoolean(daemon);
-                        }
-                    }
-                    Node news = XMLUtils.last(XMLUtils.getElements("newsfeed", entry));
-                    if(news != null) {
-                        p.newsfeedURL = XMLUtils.getAttribute(news, "url");
-                    }
-                    p.downloads = getDownloads(entry);
-                    if(s1.equals(nodes[0])) {
-                        for(PackageFile file : p.downloads) {
-                            file.fileName = JARUtils.UPDATE_NAME;
-                        }
-                        p.setSelf(true);
-                        self = p;
-                        packages.add(p);
-                    } else if(s1.equals(nodes[1])) {
-                        libs.put(p.title, p);
-                    } else if(s1.equals(nodes[2])) {
-                        packages.add(p);
-                    }
-                }
-            }
+            return version;
         } catch(IOException | ParserConfigurationException | SAXException ex) {
             LOG.log(Level.SEVERE, null, ex);
         }
+        return null;
+    }
+
+    /**
+     * @return the packages
+     */
+    public List<Program> getPackages() {
+        return Collections.unmodifiableList(packages);
+    }
+
+    @Override
+    public String toString() {
+        return MessageFormat.format("{0} ({1})", name, location);
+    }
+
+    /**
+     * @return the name
+     */
+    public String getName() {
+        return name;
     }
 }
