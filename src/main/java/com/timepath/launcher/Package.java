@@ -6,10 +6,6 @@ import com.timepath.launcher.util.Utils;
 import com.timepath.launcher.util.Utils.DaemonThreadFactory;
 import com.timepath.launcher.util.XMLUtils;
 import com.timepath.maven.MavenResolver;
-import org.apache.maven.model.Dependency;
-import org.apache.maven.model.Model;
-import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
-import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
@@ -17,7 +13,6 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.dom.DOMSource;
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
@@ -98,27 +93,6 @@ public class Package {
         if(ret == null) {
             return XMLUtils.get(last(XMLUtils.getElements(root, "parent")), name);
         }
-        return ret;
-    }
-
-    public static Package fromDependency(Model m, Dependency d) throws IOException, SAXException, ParserConfigurationException {
-        Node root = MavenResolver.resolvePom(depGroup(m, d), d.getArtifactId(), depVersion(m, d), null);
-        LOG.log(Level.INFO, "Got rootnode: {0}", root);
-        return new Package(root);
-    }
-
-    /**
-     * TODO: dependencyManagement/dependencies/dependency/version
-     */
-    private static String depVersion(Model parent, Dependency d) {
-        String ret = d.getVersion() == null ? "3.2.1" : d.getVersion();
-        if(parent.getVersion() != null) ret.replace("${project.version}", parent.getVersion());
-        return ret;
-    }
-
-    private static String depGroup(Model parent, Dependency d) {
-        String ret = d.getGroupId();
-        if(parent.getGroupId() != null) ret.replace("${project.groupId}", parent.getGroupId());
         return ret;
     }
 
@@ -204,25 +178,24 @@ public class Package {
         LOG.log(Level.INFO, "initDownloads: {0}", this);
         downloads.add(this);
         try {
-            final Model m = new MavenXpp3Reader().read(MavenResolver.resolvePomStream(gid, aid, ver, null));
+            Node m = XMLUtils.rootNode(MavenResolver.resolvePomStream(gid, aid, ver, null), "project");
             ExecutorService pool = Executors.newCachedThreadPool(new DaemonThreadFactory());
-            Map<Dependency, Future<Set<Package>>> futures = new HashMap<>();
-            for(final Dependency d : m.getDependencies()) {
+            Map<Node, Future<Set<Package>>> futures = new HashMap<>();
+            for(final Node d : XMLUtils.getElements(m, "dependencies/dependency")) {
                 futures.put(d, pool.submit(new Callable<Set<Package>>() {
                     @Override
                     public Set<Package> call() throws Exception {
                         try {
-                            Package pkg = Package.fromDependency(m, d);
+                            Package pkg = new Package(d);
                             return pkg.getDownloads();
-                        } catch(SAXException | ParserConfigurationException | MalformedURLException | IllegalArgumentException
-                                e) {
+                        } catch(IllegalArgumentException e) {
                             LOG.log(Level.SEVERE, null, e);
                         }
                         return null;
                     }
                 }));
             }
-            for(Entry<Dependency, Future<Set<Package>>> e : futures.entrySet()) {
+            for(Entry<Node, Future<Set<Package>>> e : futures.entrySet()) {
                 try {
                     Set<Package> result = e.getValue().get();
                     if(result != null) downloads.addAll(result);
@@ -231,7 +204,7 @@ public class Package {
                     LOG.log(Level.SEVERE, null, ex);
                 }
             }
-        } catch(IOException | XmlPullParserException e) {
+        } catch(IOException | ParserConfigurationException | SAXException e) {
             LOG.log(Level.SEVERE, null, e);
         }
         return downloads;
