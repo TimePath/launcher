@@ -6,8 +6,6 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.channels.Channels;
@@ -20,55 +18,85 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * Breaks the {@code ClassLoader} contract to first delegate to other {@code ClassLoader}s before its parent
+ *
  * @author TimePath
  * @see <a href="http://www.jdotsoft.com/JarClassLoader.php">JarClassLoader</a>
  */
 public class CompositeClassLoader extends ClassLoader {
 
     private static final Logger                        LOG          = Logger.getLogger(CompositeClassLoader.class.getName());
-    private final        Map<String, Class<?>>         classes      = new HashMap<>(0);
-    private final        Map<String, Enumeration<URL>> enumerations = new HashMap<>(0);
-    private final        Map<URI, ClassLoader>         jars         = new HashMap<>(0);
-    private final        Map<String, String>           libraries    = new HashMap<>(0);
+    private final        Map<String, Class<?>>         classes      = new HashMap<>();
+    private final        Map<String, Enumeration<URL>> enumerations = new HashMap<>();
+    private final        Map<URL, ClassLoader>         jars         = new HashMap<>();
+    private final        Map<String, String>           libraries    = new HashMap<>();
     private final        List<ClassLoader>             loaders      = Collections.synchronizedList(new LinkedList<ClassLoader>());
-    private final        Map<String, URL>              resources    = new HashMap<>(0);
+    private final        Map<String, URL>              resources    = new HashMap<>();
 
     public CompositeClassLoader() {
-        add(Object.class.getClassLoader()); // bootstrap
-        add(getClass().getClassLoader());   // whichever classloader loaded this jar
+        add(getClass().getClassLoader()); // our parent classloader
     }
 
+    /**
+     * Registers a {@code ClassLoader} on the top of the stack
+     *
+     * @param loader
+     *         the {@code ClassLoader}
+     */
     public void add(ClassLoader loader) {
-        loaders.add(0, loader); // newest on top
+        if(loader == null) {
+            throw new IllegalArgumentException("ClassLoader must not be null");
+        }
+        synchronized(loaders) {
+            loaders.add(0, loader);
+        }
     }
 
-    public void start(String name, String[] args, URI[] urls) {
+    /**
+     * Start the specified main class with {@code args} using {@code urls}
+     *
+     * @param main
+     *         the main class name
+     * @param args
+     *         the command line arguments. Converted to an empty array if null
+     * @param urls
+     *         additional resources
+     */
+    public void start(String main, String[] args, Iterable<URL> urls) {
+        if(args == null) {
+            args = new String[0];
+        }
         LOG.log(Level.INFO, "{0} {1} {2}", new Object[] {
-                name, Arrays.toString(args), Arrays.toString(urls)
+                main, Arrays.toString(args), urls
         });
         add(urls);
         try {
-            invokeMain(name, args);
+            invokeMain(main, args);
         } catch(Throwable t) {
             LOG.log(Level.SEVERE, null, t);
         }
     }
 
-    public void add(URI[] urls) {
-        for(URI u : urls) {
+    /**
+     * Registers {@code URLClassLoader}s for the {@code urls}
+     *
+     * @param urls
+     *         the URLs
+     */
+    public void add(Iterable<URL> urls) {
+        for(URL u : urls) {
             add(u);
         }
     }
 
-    public void add(URI uri) {
-        if(jars.containsKey(uri)) {
-            return;
-        }
-        final URL url;
-        try {
-            url = uri.toURL();
-        } catch(MalformedURLException ex) {
-            LOG.log(Level.SEVERE, null, ex);
+    /**
+     * Registers a new URLClassLoader for the specified {@code url}
+     *
+     * @param url
+     *         the URL
+     */
+    public void add(final URL url) {
+        if(jars.containsKey(url)) {
             return;
         }
         ClassLoader cl = AccessController.doPrivileged(new PrivilegedAction<URLClassLoader>() {
@@ -77,28 +105,19 @@ public class CompositeClassLoader extends ClassLoader {
                 return URLClassLoader.newInstance(new URL[] { url }, CompositeClassLoader.this);
             }
         });
-        jars.put(uri, cl);
+        jars.put(url, cl);
         add(cl);
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    public void invokeMain(String name, String[] args)
-    throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException
+    private void invokeMain(String name, String[] args)
+    throws ClassNotFoundException, IllegalAccessException, InvocationTargetException, NoSuchMethodException
     {
-        Class<?> clazz = loadClass(name);
-        Method method = clazz.getMethod("main", String[].class);
-        int mods = method.getModifiers();
-        if(( method.getReturnType() != void.class ) || !Modifier.isStatic(mods) || !Modifier.isPublic(mods)) {
+        Method method = loadClass(name).getMethod("main", String[].class);
+        int modifiers = method.getModifiers();
+        if(( method.getReturnType() != void.class ) || !Modifier.isStatic(modifiers) || !Modifier.isPublic(modifiers)) {
             throw new NoSuchMethodException("main");
         }
-        try {
-            String[] argv = args;
-            if(args == null) {
-                argv = new String[0];
-            }
-            method.invoke(null, new Object[] { argv });
-        } catch(IllegalAccessException ignored) {
-        }
+        method.invoke(null, new Object[] { args }); // varargs call
     }
 
     @Override
@@ -110,35 +129,47 @@ public class CompositeClassLoader extends ClassLoader {
         return super.findClass(name);
     }
 
+    /**
+     * @param cache
+     *         the cache variable
+     * @param methodStr
+     *         the parent method name
+     * @param key
+     *         the key
+     * @param <A>
+     *         type of key
+     * @param <B>
+     *         type of value
+     *
+     * @return the first found value
+     */
     @SuppressWarnings("unchecked")
     private <A, B> B reflect(Map<A, B> cache, String methodStr, A key) {
         LOG.log(Level.FINE, "{0}: {1}", new Object[] { methodStr, key });
         B ret = cache.get(key);
-        if(cache.containsKey(key)) {
+        if(ret != null) {
             return ret;
         }
-        cache.put(key, ret);
-        for(ClassLoader cl : loaders) {
-            if(cl == null) {
-                continue;
-            }
-            try {
-                Method method = ClassLoader.class.getDeclaredMethod(methodStr, key.getClass());
-                method.setAccessible(true);
-                B u = (B) method.invoke(cl, key);
-                if(u != null) {
-                    cache.put(key, u);
-                    return u;
-                }
-            } catch(InvocationTargetException ite) { // Caused by underlying method
+        synchronized(loaders) {
+            for(ClassLoader cl : loaders) {
                 try {
-                    throw ite.getCause();
-                } catch(ClassNotFoundException ignored) {
+                    Method method = ClassLoader.class.getDeclaredMethod(methodStr, key.getClass());
+                    method.setAccessible(true);
+                    B u = (B) method.invoke(cl, key);
+                    if(u != null) { // return with first result
+                        cache.put(key, u);
+                        return u;
+                    }
+                } catch(InvocationTargetException ite) { // caused by underlying method
+                    try {
+                        throw ite.getCause();
+                    } catch(ClassNotFoundException ignored) { // ignore this one, keep trying other classloaders
+                    } catch(Throwable t) {
+                        LOG.log(Level.SEVERE, null, t);
+                    }
                 } catch(Throwable t) {
                     LOG.log(Level.SEVERE, null, t);
                 }
-            } catch(Throwable t) {
-                LOG.log(Level.SEVERE, null, t);
             }
         }
         return null;
@@ -155,13 +186,6 @@ public class CompositeClassLoader extends ClassLoader {
 
     /**
      * TODO: calling class's jar only
-     *
-     * @param name
-     *         *
-     *
-     * @return *
-     *
-     * @throws IOException
      */
     @Override
     protected Enumeration<URL> findResources(String name) throws IOException {
@@ -178,6 +202,7 @@ public class CompositeClassLoader extends ClassLoader {
         if(res != null) {
             return res;
         }
+        // limitation: libraries must be files. Copy to temp file
         String s = System.mapLibraryName(libname);
         URL u = findResource(s);
         try {

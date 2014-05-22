@@ -9,7 +9,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.URI;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
@@ -54,18 +54,22 @@ public class Program extends PackageFile {
         }
     }
 
-    public Set<URI> calculateClassPath() {
-        Set<URI> h = new HashSet<>(downloads.size() * depends.size());
+    public Set<URL> calculateClassPath() {
+        Set<URL> h = new HashSet<>(downloads.size() * depends.size());
         for(PackageFile download : downloads) {
-            h.add(download.getFile().toURI());
-            for(PackageFile extract : download.nested) {
-                try {
-                    URL u = new URL("jar", "", download.getFile().toURI() + "!/" + extract.downloadURL);
-                    UpdateUtils.extract(u, extract.getFile());
-                    h.add(extract.getFile().toURI());
-                } catch(IOException ex) {
-                    LOG.log(Level.SEVERE, null, ex);
+            try {
+                h.add(download.getFile().toURI().toURL());
+                for(PackageFile extract : download.nested) {
+                    try {
+                        URL u = new URL("jar", "", download.getFile().toURI() + "!/" + extract.downloadURL);
+                        UpdateUtils.extract(u, extract.getFile());
+                        h.add(extract.getFile().toURI().toURL());
+                    } catch(IOException e) {
+                        LOG.log(Level.SEVERE, null, e);
+                    }
                 }
+            } catch(MalformedURLException e) {
+                LOG.log(Level.SEVERE, null, e);
             }
         }
         for(Program p : depends) {
@@ -76,7 +80,11 @@ public class Program extends PackageFile {
         }
         File file = getFile();
         if(file != null) {
-            h.add(file.toURI());
+            try {
+                h.add(file.toURI().toURL());
+            } catch(MalformedURLException e) {
+                LOG.log(Level.SEVERE, null, e);
+            }
         }
         return h;
     }
@@ -155,8 +163,8 @@ public class Program extends PackageFile {
                     if(args != null) {
                         argv = args.toArray(new String[args.size()]);
                     }
-                    Set<URI> cp = calculateClassPath();
-                    cl.start(main, argv, cp.toArray(new URI[cp.size()]));
+                    Set<URL> cp = calculateClassPath();
+                    cl.start(main, argv, cp);
                 } catch(Exception ex) {
                     LOG.log(Level.SEVERE, null, ex);
                 }
