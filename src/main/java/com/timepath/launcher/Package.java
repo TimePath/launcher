@@ -128,7 +128,7 @@ public class Package {
             LOG.log(Level.INFO, "Version file: {0}", existing);
             LOG.log(Level.INFO, "Version url: {0}", getChecksumURL());
             if(!existing.exists()) {
-                LOG.log(Level.INFO, "Don't have {0}, not latest", existing);
+                LOG.log(Level.INFO, "Don''t have {0}, not latest", existing);
                 return false;
             }
             String expected = Utils.loadPage(new URL(getChecksumURL())).trim();
@@ -198,8 +198,9 @@ public class Package {
             for(Entry<Node, Future<Set<Package>>> e : futures.entrySet()) {
                 try {
                     Set<Package> result = e.getValue().get();
-                    if(result != null) downloads.addAll(result);
-                    else LOG.log(Level.SEVERE, "Download enumeration failed: {0}", e.getKey());
+                    if(result != null) { downloads.addAll(result); } else {
+                        LOG.log(Level.SEVERE, "Download enumeration failed: {0}", e.getKey());
+                    }
                 } catch(InterruptedException | ExecutionException ex) {
                     LOG.log(Level.SEVERE, null, ex);
                 }
@@ -257,6 +258,7 @@ public class Package {
     }
 
     public void setLocked(final boolean locked) {
+        if(locked) { LOG.log(Level.INFO, "Locking {0}", this); } else { LOG.log(Level.INFO, "unlocking {0}", this); }
         this.locked = locked;
     }
 

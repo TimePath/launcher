@@ -1,13 +1,17 @@
 package com.timepath.launcher;
 
 import com.timepath.classloader.CompositeClassLoader;
+import com.timepath.launcher.util.SwingUtils;
+import com.timepath.launcher.util.Utils;
 
 import javax.swing.*;
+import java.awt.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -91,19 +95,43 @@ public class Program {
         return main;
     }
 
-    public String getNewsfeedURL() {
-        return newsfeedURL;
-    }
-
     public void setDaemon(final boolean daemon) {
         this.daemon = daemon;
     }
 
     public JPanel getPanel() {
-        return panel;
-    }
+        if(panel != null) return panel;
+        panel = new JPanel(new BorderLayout());
+        // create placeholder
+        String str = ( newsfeedURL == null ) ? "No newsfeed available" : "Loading...";
+        final JEditorPane initial = new JEditorPane("text", str);
+        initial.setEditable(false);
+        panel.add(initial);
+        // load real feed asynchronously
+        if(newsfeedURL != null) {
+            new SwingWorker<JEditorPane, Void>() {
+                @Override
+                protected JEditorPane doInBackground() throws Exception {
+                    String s = Utils.loadPage(new URL(newsfeedURL));
+                    JEditorPane editorPane = new JEditorPane("text/html", s);
+                    editorPane.setEditable(false);
+                    editorPane.addHyperlinkListener(SwingUtils.HYPERLINK_LISTENER);
+                    return editorPane;
+                }
 
-    public void setPanel(final JPanel panel) {
-        this.panel = panel;
+                @Override
+                protected void done() {
+                    try {
+                        panel.remove(initial);
+                        panel.add(get());
+                        panel.updateUI();
+                        LOG.log(Level.INFO, "Loaded {0}", newsfeedURL);
+                    } catch(InterruptedException | ExecutionException ex) {
+                        LOG.log(Level.SEVERE, null, ex);
+                    }
+                }
+            }.execute();
+        }
+        return panel;
     }
 }

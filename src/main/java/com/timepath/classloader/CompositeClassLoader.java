@@ -11,11 +11,12 @@ import java.net.URLClassLoader;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
-import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static java.security.AccessController.doPrivileged;
 
 /**
  * Breaks the {@code ClassLoader} contract to first delegate to other {@code ClassLoader}s before its parent
@@ -50,6 +51,15 @@ public class CompositeClassLoader extends ClassLoader {
         synchronized(loaders) {
             loaders.add(0, loader);
         }
+    }
+
+    public static CompositeClassLoader createPrivileged() {
+        return doPrivileged(new PrivilegedAction<CompositeClassLoader>() {
+            @Override
+            public CompositeClassLoader run() {
+                return new CompositeClassLoader();
+            }
+        });
     }
 
     /**
@@ -99,7 +109,7 @@ public class CompositeClassLoader extends ClassLoader {
         if(jars.containsKey(url)) {
             return;
         }
-        ClassLoader cl = AccessController.doPrivileged(new PrivilegedAction<URLClassLoader>() {
+        ClassLoader cl = doPrivileged(new PrivilegedAction<URLClassLoader>() {
             @Override
             public URLClassLoader run() {
                 return URLClassLoader.newInstance(new URL[] { url }, CompositeClassLoader.this);

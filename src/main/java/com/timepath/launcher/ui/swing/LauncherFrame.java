@@ -20,11 +20,11 @@ import java.awt.*;
 import java.awt.event.*;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.net.URL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
@@ -46,25 +46,23 @@ public class LauncherFrame extends JFrame {
     private   JTree                 programList;
     private   JSplitPane            programSplit;
 
-    public LauncherFrame(final Launcher launcher) {
-        this.launcher = launcher;
+    public LauncherFrame(Launcher l) {
+        launcher = l;
         launcher.getDownloadManager().addListener(new DownloadMonitor() {
             @Override
-            public void submit(Package pkgFile) {
-                downloadPanel.getTableModel().add(pkgFile);
+            public void submit(Package pkg) {
+                downloadPanel.getTableModel().add(pkg);
             }
 
             @Override
-            public void update(Package pkgFile) {
-                downloadPanel.getTableModel().update(pkgFile);
+            public void update(Package pkg) {
+                downloadPanel.getTableModel().update(pkg);
             }
         });
         repositoryManager = new RepositoryManagerImpl();
         initComponents();
-        LOG.log(Level.INFO, "Created UI at {0}ms", System.currentTimeMillis() - Utils.START_TIME);
         updateList();
-        setTitle("TimePath's program hub");
-        setBounds(0, 0, 650, 510);
+        // set frame properties
         setJMenuBar(new JMenuBar() {{
             add(new JMenu() {{
                 setText("Tools");
@@ -97,16 +95,13 @@ public class LauncherFrame extends JFrame {
                 }));
             }});
         }});
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                launcher.shutdown();
-                LauncherFrame.this.dispose();
-            }
-        });
+        setTitle("TimePath's program hub");
+        setBounds(0, 0, 700, 500);
+        setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         Point mid = GraphicsEnvironment.getLocalGraphicsEnvironment().getCenterPoint();
         setSize(new Dimension(mid.x, mid.y));
         setLocationRelativeTo(null);
+        LOG.log(Level.INFO, "Created UI at {0}ms", System.currentTimeMillis() - Utils.START_TIME);
     }
 
     private void updateList() {
@@ -119,14 +114,19 @@ public class LauncherFrame extends JFrame {
             @Override
             protected void done() {
                 try {
+                    LOG.log(Level.INFO, "Listing at {0}ms", System.currentTimeMillis() - Utils.START_TIME);
                     List<Repository> repos = get();
-                    DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode();
-                    TreeModel listM = new DefaultTreeModel(rootNode);
+                    // update the repository manager
                     int i = repositoryManager.model.getRowCount();
                     while(i > 0) { repositoryManager.model.removeRow(--i); }
-                    for(final Repository repo : repos) {
+                    for(Repository repo : repos) {
                         repositoryManager.model.addRow(new Object[] { repo });
+                    }
+                    // update the program list
+                    DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode();
+                    for(Repository repo : repos) {
                         DefaultMutableTreeNode repoNode = rootNode;
+                        // create a new pseudo root node if there are multiple repositories
                         if(repos.size() > 1) {
                             repoNode = new DefaultMutableTreeNode(repo.getName());
                             rootNode.add(repoNode);
@@ -135,8 +135,12 @@ public class LauncherFrame extends JFrame {
                             repoNode.add(new DefaultMutableTreeNode(p));
                         }
                     }
-                    setListModel(listM);
+                    programList.setModel(new DefaultTreeModel(rootNode));
+                    // hack to pack the SplitPane
                     PropertyChangeListener pcl = new PropertyChangeListener() {
+                        /**
+                         * Flag to ignore the first event
+                         */
                         boolean ignore = true;
 
                         @Override
@@ -152,8 +156,8 @@ public class LauncherFrame extends JFrame {
                     };
                     programSplit.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, pcl);
                     programSplit.setDividerLocation(-1);
-                    LOG.log(Level.INFO, "Listing at {0}ms", System.currentTimeMillis() - Utils.START_TIME);
-                    if(!DEBUG && launcher.updateRequired()) {
+                    // show update notification
+                    if(launcher.updateRequired() && !DEBUG) {
                         JOptionPane.showMessageDialog(LauncherFrame.this,
                                                       "Please update",
                                                       "A new version is available",
@@ -167,15 +171,11 @@ public class LauncherFrame extends JFrame {
         }.execute();
     }
 
-    public void setListModel(TreeModel model) {
-        programList.setModel(model);
-    }
-
     private void initComponents() {
         aboutPanel = new JPanel(new BorderLayout()) {{
             add(initAboutPanel(), BorderLayout.CENTER);
         }};
-        JTabbedPane tabbedPane = new JTabbedPane() {{
+        setContentPane(new JTabbedPane() {{
             addTab("Programs", programSplit = new JSplitPane() {{
                 setLeftComponent(new JScrollPane(programList = new JTree((TreeModel) null) {{
                     setRootVisible(false);
@@ -189,8 +189,7 @@ public class LauncherFrame extends JFrame {
                         @Override
                         public void keyPressed(KeyEvent e) {
                             if(e.getKeyCode() == KeyEvent.VK_ENTER) {
-                                Program p = getSelected(getLastSelectedPathComponent());
-                                start(p);
+                                start(getSelected(getLastSelectedPathComponent()));
                             }
                         }
                     });
@@ -238,79 +237,57 @@ public class LauncherFrame extends JFrame {
                 }});
             }});
             addTab("Downloads", downloadPanel = new DownloadPanel());
-        }};
-        GroupLayout layout = new GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                                        .addComponent(tabbedPane, GroupLayout.Alignment.TRAILING));
-        layout.setVerticalGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                                      .addComponent(tabbedPane, GroupLayout.Alignment.TRAILING));
+        }});
     }
 
-    public void news(final Program p) {
+    public void news(Program p) {
+        // handle things other than programs
         if(p == null) {
-            display(null);
+            newsScroll.setViewportView(null);
             launchButton.setEnabled(false);
-            return;
+        } else {
+            newsScroll.setViewportView(p.getPanel());
+            launchButton.setEnabled(!p.getPackage().isLocked());
         }
-        launchButton.setEnabled(!p.getPackage().isLocked());
-        if(p.getPanel() != null) {
-            display(p.getPanel());
-            return;
-        }
-        p.setPanel(new JPanel(new BorderLayout()));
-        display(p.getPanel());
-        String str = ( p.getNewsfeedURL() == null ) ? "No newsfeed available" : "Loading...";
-        final JEditorPane initial = new JEditorPane("text", str);
-        initial.setEditable(false);
-        p.getPanel().add(initial);
-        if(p.getNewsfeedURL() != null) {
-            new SwingWorker<JEditorPane, Void>() {
-                @Override
-                protected JEditorPane doInBackground() throws Exception {
-                    String s = Utils.loadPage(new URL(p.getNewsfeedURL()));
-                    JEditorPane editorPane = new JEditorPane("text/html", s);
-                    editorPane.setEditable(false);
-                    editorPane.addHyperlinkListener(SwingUtils.HYPERLINK_LISTENER);
-                    return editorPane;
-                }
-
-                @Override
-                protected void done() {
-                    try {
-                        p.getPanel().remove(initial);
-                        p.getPanel().add(get());
-                    } catch(InterruptedException | ExecutionException ex) {
-                        LOG.log(Level.SEVERE, null, ex);
-                    }
-                }
-            }.execute();
-        }
-    }
-
-    public void display(Component component) {
-        newsScroll.setViewportView(component);
     }
 
     public void start(final Program program) {
-        if(program == null) {
-            return;
-        }
-        new SwingWorker<Void, Void>() {
+        // handle things other than programs
+        if(program == null) return;
+        launchButton.setEnabled(false);
+        new SwingWorker<Set<Package>, Void>() {
             @Override
-            protected Void doInBackground() {
-                launchButton.setEnabled(false);
-                try {
-                    launcher.start(program);
-                } catch(Throwable t) {
-                    LOG.log(Level.SEVERE, null, t);
-                }
-                return null;
+            protected Set<Package> doInBackground() {
+                return launcher.update(program);
             }
 
             @Override
             protected void done() {
-                launchButton.setEnabled(true);
+                try {
+                    Set<Package> updates = get();
+                    if(updates != null) { // ready to start
+                        Package parent = program.getPackage();
+                        if(parent.isSelf()) { // alert on self update
+                            if(updates.contains(parent)) {
+                                JOptionPane.showMessageDialog(null,
+                                                              "Restart to apply",
+                                                              "Update downloaded",
+                                                              JOptionPane.INFORMATION_MESSAGE,
+                                                              null);
+                            } else {
+                                JOptionPane.showMessageDialog(null,
+                                                              "Launcher is up to date",
+                                                              "Launcher is up to date",
+                                                              JOptionPane.INFORMATION_MESSAGE,
+                                                              null);
+                            }
+                        }
+                        launcher.start(program);
+                        launchButton.setEnabled(true);
+                    }
+                } catch(InterruptedException | ExecutionException e) {
+                    LOG.log(Level.SEVERE, null, e);
+                }
             }
         }.execute();
     }

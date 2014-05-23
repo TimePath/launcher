@@ -45,7 +45,7 @@ public class Main extends JApplet {
             logfileLevel = Level.parse(Utils.SETTINGS.get("logfileLevel", logfileLevel.getName()));
         } catch(IllegalArgumentException | NullPointerException ignore) {
         }
-        // Choose finest level
+        // choose finest level
         Level packageLevel = Level.parse(Integer.toString(Math.min(logfileLevel.intValue(), consoleLevel.intValue())));
         Logger.getLogger("com.timepath").setLevel(packageLevel);
         Logger globalLogger = Logger.getLogger("");
@@ -82,15 +82,9 @@ public class Main extends JApplet {
                 perms.add(new AllPermission());
                 return perms;
             }
-
-            @Override
-            public void refresh() {
-            }
         });
         System.setSecurityManager(null);
     }
-
-    public Main() {}
 
     @Override
     public void init() {

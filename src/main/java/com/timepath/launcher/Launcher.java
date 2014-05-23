@@ -2,8 +2,6 @@ package com.timepath.launcher;
 
 import com.timepath.classloader.CompositeClassLoader;
 
-import javax.swing.*;
-import java.security.PrivilegedAction;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -12,19 +10,12 @@ import java.util.logging.Logger;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
-import static java.security.AccessController.doPrivileged;
-
 public class Launcher {
 
     public static final  Preferences          PREFS           = Preferences.userNodeForPackage(Launcher.class);
     public static final  String               REPO_MAIN       = "public.xml";
     private static final Logger               LOG             = Logger.getLogger(Launcher.class.getName());
-    private final        CompositeClassLoader cl              = doPrivileged(new PrivilegedAction<CompositeClassLoader>() {
-        @Override
-        public CompositeClassLoader run() {
-            return new CompositeClassLoader();
-        }
-    });
+    private final        CompositeClassLoader cl              = CompositeClassLoader.createPrivileged();
     private final        DownloadManager      downloadManager = new DownloadManager();
     private Package self;
 
@@ -70,59 +61,51 @@ public class Launcher {
         return !self.isLatest();
     }
 
-    public void shutdown() {
-        downloadManager.shutdown();
+    /**
+     * Starts a program on another {@code Thread}. Returns after started
+     *
+     * @param program
+     */
+    public void start(Program program) {
+        program.createThread(cl).start();
     }
 
-    public void start(Program run) {
-        Package pkg = run.getPackage();
-        if(pkg.isLocked()) {
-            LOG.log(Level.INFO, "Package {0} locked, aborting: {1}", new Object[] { pkg, run });
-            return;
+    /**
+     * @param program
+     *
+     * @return a Set of updated {@code Package}s, or null if currently updating
+     */
+    public Set<Package> update(Program program) {
+        Package parent = program.getPackage();
+        if(parent.isLocked()) {
+            LOG.log(Level.INFO, "Package {0} locked, aborting: {1}", new Object[] { parent, program });
+            return null;
         }
-        LOG.log(Level.INFO, "Locking {0}", pkg);
-        pkg.setLocked(true);
-        Collection<Package> updates = pkg.getUpdates();
-        if(pkg.isSelf() && !updates.contains(pkg)) {
-            JOptionPane.showMessageDialog(null,
-                                          "Launcher is up to date",
-                                          "Launcher is up to date",
-                                          JOptionPane.INFORMATION_MESSAGE,
-                                          null);
-        }
+        parent.setLocked(true);
+        // check what needs updating
+        Set<Package> updates = parent.getUpdates();
+        // map to futures
         Map<Package, List<Future<?>>> downloads = new HashMap<>(updates.size());
-        for(Package p : updates) {
-            downloads.put(p, download(p));
+        for(Package pkg : updates) {
+            List<Future<?>> pkgDownloads = new LinkedList<>();
+            for(Package pkgDownload : pkg.getDownloads()) {
+                pkgDownloads.add(downloadManager.submit(pkgDownload));
+            }
+            downloads.put(pkg, pkgDownloads);
         }
-        boolean selfupdated = false;
+        // wait for completion
         for(Map.Entry<Package, List<Future<?>>> e : downloads.entrySet()) {
-            Package p = e.getKey();
-            List<Future<?>> futures = e.getValue();
+            Package pkg = e.getKey();
             try {
-                for(Future<?> future : futures) {
-                    future.get(); // Wait for download
+                for(Future<?> future : e.getValue()) {
+                    future.get();
                 }
-                LOG.log(Level.INFO, "Updated {0}", p);
-                if(p.isSelf()) {
-                    selfupdated = true;
-                }
+                LOG.log(Level.INFO, "Updated {0}", pkg);
             } catch(InterruptedException | ExecutionException ex) {
                 LOG.log(Level.SEVERE, null, ex);
             }
         }
-        if(( run.getMain() == null ) && selfupdated) {
-            JOptionPane.showMessageDialog(null, "Restart to apply", "Update downloaded", JOptionPane.INFORMATION_MESSAGE, null);
-        } else {
-            run.createThread(cl).start();
-            pkg.setLocked(false);
-        }
-    }
-
-    private List<Future<?>> download(Package p) {
-        List<Future<?>> arr = new LinkedList<>();
-        for(Package pkgFile : p.getDownloads()) {
-            arr.add(downloadManager.submit(pkgFile));
-        }
-        return arr;
+        parent.setLocked(false);
+        return downloads.keySet();
     }
 }
