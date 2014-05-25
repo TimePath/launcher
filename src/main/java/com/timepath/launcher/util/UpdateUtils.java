@@ -42,17 +42,17 @@ public class UpdateUtils {
             //<editor-fold defaultstate="collapsed" desc="on user restart">
             if(!JARUtils.CURRENT_FILE.equals(updateFile)) {
                 try {
-                    File updateChecksum = new File(updateFile.getPath() + ".MD5");
+                    File updateChecksum = new File(updateFile.getPath() + ".sha1");
                     if(updateChecksum.exists()) {
-                        String expectedMd5;
+                        String cksumExpected;
                         try(InputStreamReader isr = new InputStreamReader(new FileInputStream(updateChecksum),
                                                                           StandardCharsets.UTF_8)) {
-                            expectedMd5 = new BufferedReader(isr).readLine();
+                            cksumExpected = new BufferedReader(isr).readLine();
                         }
-                        LOG.log(Level.INFO, "Expecting checksum = {0}", expectedMd5);
-                        String md5 = checksum(updateFile, "MD5");
-                        LOG.log(Level.INFO, "Actual checksum = {0}", md5);
-                        if(md5.equals(expectedMd5)) {
+                        LOG.log(Level.INFO, "Expecting checksum = {0}", cksumExpected);
+                        String cksum = checksum(updateFile, "SHA1");
+                        LOG.log(Level.INFO, "Actual checksum = {0}", cksum);
+                        if(cksum.equals(cksumExpected)) {
                             Collection<String> cmds = new LinkedList<>();
                             cmds.add("-jar");
                             cmds.add(updateFile.getPath());
@@ -100,7 +100,7 @@ public class UpdateUtils {
                             destination.close();
                         }
                     }
-                    new File(updateFile.getPath() + ".MD5").delete();
+                    new File(updateFile.getPath() + ".sha1").delete();
                     sourceFile.deleteOnExit();
                     return destFile.getName();// Can continue running from temp file
                 } catch(IOException ex) {

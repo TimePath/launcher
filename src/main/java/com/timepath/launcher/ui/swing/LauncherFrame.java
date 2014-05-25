@@ -267,14 +267,17 @@ public class LauncherFrame extends JFrame {
                     Set<Package> updates = get();
                     if(updates != null) { // ready to start
                         Package parent = program.getPackage();
+                        boolean run = true;
                         if(parent.isSelf()) { // alert on self update
                             if(updates.contains(parent)) {
+                                run = false;
                                 JOptionPane.showMessageDialog(null,
                                                               "Restart to apply",
                                                               "Update downloaded",
                                                               JOptionPane.INFORMATION_MESSAGE,
                                                               null);
                             } else {
+                                run = false;
                                 JOptionPane.showMessageDialog(null,
                                                               "Launcher is up to date",
                                                               "Launcher is up to date",
@@ -282,7 +285,9 @@ public class LauncherFrame extends JFrame {
                                                               null);
                             }
                         }
-                        launcher.start(program);
+                        if(run) {
+                            launcher.start(program);
+                        }
                         launchButton.setEnabled(true);
                     }
                 } catch(InterruptedException | ExecutionException e) {

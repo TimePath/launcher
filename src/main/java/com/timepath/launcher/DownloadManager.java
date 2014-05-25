@@ -1,5 +1,6 @@
 package com.timepath.launcher;
 
+import com.timepath.launcher.util.JARUtils;
 import com.timepath.launcher.util.Utils;
 import com.timepath.launcher.util.Utils.DaemonThreadFactory;
 
@@ -65,8 +66,14 @@ public class DownloadManager {
         @Override
         public void run() {
             try {
-                download(new URI(pkgFile.getDownloadURL()).toURL(), pkgFile.getFile());
-                download(new URI(pkgFile.getChecksumURL()).toURL(), pkgFile.getChecksumFile());
+                File downloadFile = pkgFile.getFile();
+                File checksumFile = pkgFile.getChecksumFile();
+                if(downloadFile.equals(JARUtils.CURRENT_FILE)) { // edge case for updating current file
+                    downloadFile = new File(JARUtils.UPDATE_NAME);
+                    checksumFile = new File(JARUtils.UPDATE_NAME + ".sha1");
+                }
+                download(new URI(pkgFile.getChecksumURL()).toURL(), checksumFile);
+                download(new URI(pkgFile.getDownloadURL()).toURL(), downloadFile);
             } catch(IOException | URISyntaxException ex) {
                 LOG.log(Level.SEVERE, null, ex);
             }

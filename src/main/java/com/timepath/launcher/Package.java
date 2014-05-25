@@ -22,7 +22,6 @@ import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static com.timepath.launcher.util.JARUtils.UPDATE_NAME;
 import static com.timepath.launcher.util.XMLUtils.last;
 
 /**
@@ -52,7 +51,6 @@ public class Package {
     private List<Program> executions = new LinkedList<>();
     private boolean locked;
     private boolean self;
-    private Package parent;
 
     /**
      * Instantiate a Program instance from XML
@@ -124,9 +122,6 @@ public class Package {
         LOG.log(Level.INFO, "Checking {0} for updates...", this);
         try {
             File existing = getFile();
-            if(UPDATE_NAME.equals(existing.getName())) { // edge case for current file
-                existing = JARUtils.CURRENT_FILE;
-            }
             LOG.log(Level.INFO, "Version file: {0}", existing);
             LOG.log(Level.INFO, "Version url: {0}", getChecksumURL());
             if(!existing.exists()) {
@@ -230,6 +225,7 @@ public class Package {
     }
 
     public File getFile() {
+        if(this.isSelf()) return JARUtils.CURRENT_FILE;
         return new File(getProgramDirectory(), getFileName());
     }
 
@@ -255,7 +251,7 @@ public class Package {
     }
 
     public boolean isSelf() {
-        return self;
+        return self || ("launcher".equals(aid) && "com.timepath".equals(gid));
     }
 
     public void setSelf(final boolean self) {
