@@ -64,32 +64,24 @@ public class DownloadManager {
 
         @Override
         public void run() {
-            String[] dl = { pkgFile.getDownloadURL(), pkgFile.getChecksumURL() };
             try {
-                for(String s : dl) {
-                    if(s == null) {
-                        continue;
-                    }
-                    URL u = new URI(s).toURL();
-                    File file = ( s == dl[0] ) ? pkgFile.getFile() : pkgFile.getChecksumFile();
-                    download(u, file);
-                }
+                download(new URI(pkgFile.getDownloadURL()).toURL(), pkgFile.getFile());
+                download(new URI(pkgFile.getChecksumURL()).toURL(), pkgFile.getChecksumFile());
             } catch(IOException | URISyntaxException ex) {
                 LOG.log(Level.SEVERE, null, ex);
             }
         }
 
         private void download(URL u, File file) throws IOException {
+            LOG.log(Level.INFO, "Downloading {0} > {1}", new Object[] { u, file });
             URLConnection connection = u.openConnection();
             pkgFile.size = connection.getContentLengthLong();
-            LOG.log(Level.INFO, "Downloading {0} > {1}", new Object[] { u, file });
             Utils.createFile(file);
-            byte[] buffer = new byte[81920];
-            try(InputStream is = new BufferedInputStream(connection.getInputStream(), buffer.length);
-                OutputStream fos = new BufferedOutputStream(new FileOutputStream(file), buffer.length)) {
-                int read;
+            byte[] buffer = new byte[8192];
+            try(InputStream is = new BufferedInputStream(connection.getInputStream());
+                OutputStream fos = new BufferedOutputStream(new FileOutputStream(file))) {
                 long total = 0;
-                while(( read = is.read(buffer) ) > -1) {
+                for(int read; ( read = is.read(buffer) ) > -1; ) {
                     fos.write(buffer, 0, read);
                     total += read;
                     pkgFile.progress = total;

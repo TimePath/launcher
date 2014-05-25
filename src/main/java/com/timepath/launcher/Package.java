@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.security.NoSuchAlgorithmException;
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.*;
@@ -29,7 +30,7 @@ import static com.timepath.launcher.util.XMLUtils.last;
  */
 public class Package {
 
-    public static final  String PROGRAM_DIRECTORY = Utils.SETTINGS.get("progStoreDir",
+    private static final String PROGRAM_DIRECTORY = Utils.SETTINGS.get("progStoreDir",
                                                                        new File(JARUtils.CURRENT_FILE.getParentFile(),
                                                                                 "bin").getPath()
                                                                       );
@@ -51,6 +52,7 @@ public class Package {
     private List<Program> executions = new LinkedList<>();
     private boolean locked;
     private boolean self;
+    private Package parent;
 
     /**
      * Instantiate a Program instance from XML
@@ -178,15 +180,18 @@ public class Package {
         LOG.log(Level.INFO, "initDownloads: {0}", this);
         downloads.add(this);
         try {
-            Node m = XMLUtils.rootNode(MavenResolver.resolvePomStream(gid, aid, ver, null), "project");
+            // pull the pom
+            Node pom = XMLUtils.rootNode(MavenResolver.resolvePomStream(gid, aid, ver, null), "project");
             ExecutorService pool = Executors.newCachedThreadPool(new DaemonThreadFactory());
             Map<Node, Future<Set<Package>>> futures = new HashMap<>();
-            for(final Node d : XMLUtils.getElements(m, "dependencies/dependency")) {
+            for(final Node d : XMLUtils.getElements(pom, "dependencies/dependency")) {
                 futures.put(d, pool.submit(new Callable<Set<Package>>() {
                     @Override
                     public Set<Package> call() throws Exception {
                         try {
                             Package pkg = new Package(d);
+                            pkg.gid = pkg.gid.replace("${project.groupId}", gid);
+                            pkg.ver = pkg.ver.replace("${project.version}", ver);
                             return pkg.getDownloads();
                         } catch(IllegalArgumentException e) {
                             LOG.log(Level.SEVERE, null, e);
@@ -225,11 +230,15 @@ public class Package {
     }
 
     public File getFile() {
-        return new File(PROGRAM_DIRECTORY, getFileName());
+        return new File(getProgramDirectory(), getFileName());
     }
 
     public File getChecksumFile() {
-        return new File(PROGRAM_DIRECTORY, JARUtils.name(getChecksumURL()));
+        return new File(getProgramDirectory(), JARUtils.name(getChecksumURL()));
+    }
+
+    public String getProgramDirectory() {
+        return MessageFormat.format("{0}/{1}/{2}/{3}", PROGRAM_DIRECTORY, gid.replace('.', '/'), aid, ver);
     }
 
     /**
