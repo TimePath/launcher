@@ -1,9 +1,9 @@
 package com.timepath.launcher;
 
+import com.timepath.launcher.util.IOUtils;
 import com.timepath.launcher.util.JARUtils;
-import com.timepath.launcher.util.UpdateUtils;
 import com.timepath.launcher.util.Utils;
-import com.timepath.launcher.util.Utils.DaemonThreadFactory;
+import com.timepath.launcher.util.DaemonThreadFactory;
 import com.timepath.launcher.util.XMLUtils;
 import com.timepath.maven.MavenResolver;
 import org.w3c.dom.Node;
@@ -21,8 +21,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static com.timepath.launcher.util.XMLUtils.last;
 
 /**
  * @author TimePath
@@ -65,7 +63,7 @@ public class Package {
         LOG.log(Level.FINE, "{0}", Utils.pprint(new DOMSource(root), 2));
         name = XMLUtils.get(root, "name");
         for(Node execution : XMLUtils.getElements(root, "executions/execution")) {
-            Node cfg = last(XMLUtils.getElements(execution, "configuration"));
+            Node cfg = XMLUtils.last(XMLUtils.getElements(execution, "configuration"));
             Program e = new Program(this,
                                     XMLUtils.get(execution, "name"),
                                     XMLUtils.get(execution, "url"),
@@ -91,7 +89,7 @@ public class Package {
     private static String inherit(Node root, String name) {
         String ret = XMLUtils.get(root, name);
         if(ret == null) {
-            return XMLUtils.get(last(XMLUtils.getElements(root, "parent")), name);
+            return XMLUtils.get(XMLUtils.last(XMLUtils.getElements(root, "parent")), name);
         }
         return ret;
     }
@@ -110,7 +108,7 @@ public class Package {
 
     @Override
     public String toString() {
-        return name == null ? JARUtils.name(baseURL) : name;
+        return name == null ? IOUtils.name(baseURL) : name;
     }
 
     /**
@@ -128,8 +126,8 @@ public class Package {
                 LOG.log(Level.INFO, "Don''t have {0}, not latest", existing);
                 return false;
             }
-            String expected = Utils.loadPage(new URL(getChecksumURL())).trim();
-            String actual = UpdateUtils.checksum(existing, "SHA1");
+            String expected = IOUtils.loadPage(new URL(getChecksumURL())).trim();
+            String actual = IOUtils.checksum(existing, "SHA1");
             if(!expected.equals(actual)) {
                 LOG.log(Level.INFO,
                         "Checksum mismatch for {0}, not latest. {1} vs {2}",
@@ -221,7 +219,7 @@ public class Package {
     }
 
     public String getFileName() {
-        return JARUtils.name(getDownloadURL());
+        return IOUtils.name(getDownloadURL());
     }
 
     public File getFile() {
@@ -230,7 +228,7 @@ public class Package {
     }
 
     public File getChecksumFile() {
-        return new File(getProgramDirectory(), JARUtils.name(getChecksumURL()));
+        return new File(getProgramDirectory(), IOUtils.name(getChecksumURL()));
     }
 
     public String getProgramDirectory() {

@@ -36,6 +36,10 @@ public class Launcher {
         return downloadManager;
     }
 
+    /**
+     * TODO: in parallel
+     * @return fetch and return a list of all repositories
+     * */
     public List<Repository> getRepositories() {
         List<Repository> lists = new LinkedList<>();
         Repository main = Repository.fromIndex("http://dl.dropboxusercontent.com/u/42745598/" + REPO_MAIN);

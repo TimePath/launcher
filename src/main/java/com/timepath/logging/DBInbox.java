@@ -37,11 +37,9 @@ public class DBInbox {
             out.flush();
         }
         try(BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
-            StringBuilder sb = new StringBuilder(0);
-            for(String line; ( line = br.readLine() ) != null; ) {
-                sb.append('\n').append(line);
-            }
-            return sb.toString();
+            StringBuilder sb = new StringBuilder();
+            for(String line; ( line = br.readLine() ) != null; sb.append('\n').append(line)) ;
+            return sb.substring(1);
         }
     }
 }

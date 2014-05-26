@@ -1,6 +1,6 @@
 package com.timepath.maven;
 
-import com.timepath.launcher.util.Utils;
+import com.timepath.launcher.util.IOUtils;
 import com.timepath.launcher.util.XMLUtils;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
@@ -15,8 +15,6 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-
-import static com.timepath.launcher.util.XMLUtils.last;
 
 /**
  * @author TimePath
@@ -86,7 +84,7 @@ public class MavenResolver {
                     if(!( e instanceof FileNotFoundException )) LOG.log(Level.WARNING, "{0}", e.toString());
                     continue;
                 }
-                Node snap = last(XMLUtils.getElements(meta, "versioning/snapshot"));
+                Node snap = XMLUtils.last(XMLUtils.getElements(meta, "versioning/snapshot"));
                 return MessageFormat.format("{0}{1}-{2}-{3}-{4}{5}",
                                             baseVersion,
                                             artifactId,
@@ -130,7 +128,7 @@ public class MavenResolver {
         String pom = pomCache.get(key);
         if(pom == null) {
             LOG.log(Level.INFO, "Resolving POM: Missed cache");
-            pom = Utils.loadPage(new URL(resolve(groupId, artifactId, version, classifier, "pom")));
+            pom = IOUtils.loadPage(new URL(resolve(groupId, artifactId, version, classifier, "pom")));
             if(pom == null) {
                 return null;
             }

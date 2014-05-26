@@ -4,8 +4,8 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import com.timepath.launcher.Launcher;
+import com.timepath.launcher.util.DaemonThreadFactory;
 import com.timepath.launcher.util.SwingUtils;
-import com.timepath.launcher.util.Utils;
 
 import javax.swing.event.HyperlinkEvent;
 import java.io.IOException;
@@ -45,7 +45,7 @@ public class Server implements Runnable {
             ADDRESS = server.getAddress();
             LOG.log(Level.INFO, "Starting server on port {0}", ADDRESS);
             final CountDownLatch latch = new CountDownLatch(1);
-            ExecutorService threadPool = Executors.newCachedThreadPool(new Utils.DaemonThreadFactory());
+            ExecutorService threadPool = Executors.newCachedThreadPool(new DaemonThreadFactory());
             server.setExecutor(threadPool);
             server.createContext("/", new WebHandler(launcher));
             server.createContext(ENDPOINT_SSE, new SSEHandler());

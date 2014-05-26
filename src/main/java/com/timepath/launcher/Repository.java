@@ -1,5 +1,6 @@
 package com.timepath.launcher;
 
+import com.timepath.launcher.util.IOUtils;
 import com.timepath.launcher.util.JARUtils;
 import com.timepath.launcher.util.Utils;
 import com.timepath.launcher.util.XMLUtils;
@@ -12,6 +13,7 @@ import org.xml.sax.SAXException;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.dom.DOMSource;
 import java.io.*;
 import java.net.URL;
 import java.net.URLConnection;
@@ -61,7 +63,7 @@ public class Repository {
         InputStream is = null;
         if(Utils.DEBUG) { // try loading from local file
             try {
-                is = new FileInputStream(System.getProperty("user.home") + "/Dropbox/Public/" + JARUtils.name(location));
+                is = new FileInputStream(System.getProperty("user.home") + "/Dropbox/Public/" + IOUtils.name(location));
             } catch(FileNotFoundException ignored) {
             }
         }
@@ -132,7 +134,7 @@ public class Repository {
                     }
                 }
             }
-            LOG.log(Level.FINE, "\n{0}", XMLUtils.printTree(version, 0));
+            LOG.log(Level.FINE, "\n{0}", Utils.pprint(new DOMSource(version), 2));
             return version;
         } catch(IOException | ParserConfigurationException | SAXException ex) {
             LOG.log(Level.SEVERE, null, ex);

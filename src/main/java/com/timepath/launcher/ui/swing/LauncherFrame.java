@@ -5,6 +5,7 @@ import com.timepath.launcher.Launcher;
 import com.timepath.launcher.Package;
 import com.timepath.launcher.Program;
 import com.timepath.launcher.Repository;
+import com.timepath.launcher.util.IOUtils;
 import com.timepath.launcher.util.JARUtils;
 import com.timepath.launcher.util.SwingUtils;
 import com.timepath.launcher.util.Utils;
@@ -30,8 +31,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-
-import static com.timepath.launcher.util.Utils.DEBUG;
 
 @SuppressWarnings("serial")
 public class LauncherFrame extends JFrame {
@@ -157,7 +156,7 @@ public class LauncherFrame extends JFrame {
                     programSplit.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, pcl);
                     programSplit.setDividerLocation(-1);
                     // show update notification
-                    if(launcher.updateRequired() && !DEBUG) {
+                    if(launcher.updateRequired() && !Utils.DEBUG) {
                         JOptionPane.showMessageDialog(LauncherFrame.this,
                                                       "Please update",
                                                       "A new version is available",
@@ -322,7 +321,7 @@ public class LauncherFrame extends JFrame {
         if(time != 0) {
             buildDate = df.format(new Date(time));
         }
-        String aboutText = Utils.loadPage(getClass().getResource("/com/timepath/launcher/swing/about.html"))
+        String aboutText = IOUtils.loadPage(getClass().getResource("/com/timepath/launcher/swing/about.html"))
                                 .replace("${buildDate}", buildDate)
                                 .replace("${steamGroup}", "steam://friends/joinchat/103582791434775526");
         final String[] split = aboutText.split(Pattern.quote("${localtime}"));

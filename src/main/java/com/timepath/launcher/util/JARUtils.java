@@ -59,12 +59,4 @@ public class JARUtils {
         Attributes attr = uc.getMainAttributes();
         return ( attr != null ) ? attr.getValue(Attributes.Name.MAIN_CLASS) : null;
     }
-
-    public static String name(URL u) {
-        return name(u.getFile());
-    }
-
-    public static String name(String s) {
-        return s.substring(s.lastIndexOf('/') + 1);
-    }
 }

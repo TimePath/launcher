@@ -1,7 +1,10 @@
 package com.timepath.launcher.util;
 
+import com.timepath.logging.DBInbox;
+
 import java.io.*;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -18,11 +21,11 @@ import java.util.logging.Logger;
 /**
  * @author TimePath
  */
-public class UpdateUtils {
+public class IOUtils {
 
-    private static final Logger LOG = Logger.getLogger(UpdateUtils.class.getName());
+    private static final Logger LOG = Logger.getLogger(IOUtils.class.getName());
 
-    private UpdateUtils() {}
+    private IOUtils() {}
 
     /**
      * Checks for an update file and starts it if necessary
@@ -44,11 +47,7 @@ public class UpdateUtils {
                 try {
                     File updateChecksum = new File(updateFile.getPath() + ".sha1");
                     if(updateChecksum.exists()) {
-                        String cksumExpected;
-                        try(InputStreamReader isr = new InputStreamReader(new FileInputStream(updateChecksum),
-                                                                          StandardCharsets.UTF_8)) {
-                            cksumExpected = new BufferedReader(isr).readLine();
-                        }
+                        String cksumExpected = loadPage(updateChecksum.toURI().toURL()).trim();
                         LOG.log(Level.INFO, "Expecting checksum = {0}", cksumExpected);
                         String cksum = checksum(updateFile, "SHA1");
                         LOG.log(Level.INFO, "Actual checksum = {0}", cksum);
@@ -63,11 +62,12 @@ public class UpdateUtils {
                             System.exit(0);
                             return null;
                         } else {
+                            LOG.log(Level.WARNING, "Checksum mismatch");
                             updateChecksum.delete();
+                            updateFile.delete();
+                            throw new Exception("Corrupt update file");
                         }
                     }
-                    updateFile.delete();
-                    throw new Exception("Corrupt update file");
                 } catch(Exception ex) {
                     LOG.log(Level.SEVERE, null, ex);
                 }
@@ -83,28 +83,16 @@ public class UpdateUtils {
                     LOG.log(Level.INFO, "Updating {0}", destFile);
                     destFile.delete();
                     destFile.createNewFile();
-                    FileChannel source = null;
-                    FileChannel destination = null;
-                    try {
-                        source = new RandomAccessFile(sourceFile, "rw").getChannel();
-                        destination = new RandomAccessFile(destFile, "rw").getChannel();
-                        long position = 0;
-                        long count = source.size();
-                        source.transferTo(position, count, destination);
-                    } finally {
-                        if(source != null) {
-                            source.close();
-                        }
-                        if(destination != null) {
-                            destination.force(true);
-                            destination.close();
-                        }
+                    // TODO: assert checksums again
+                    try(FileChannel source = new RandomAccessFile(sourceFile, "rw").getChannel();
+                        FileChannel destination = new RandomAccessFile(destFile, "rw").getChannel()) {
+                        source.transferTo(0, source.size(), destination);
                     }
                     new File(updateFile.getPath() + ".sha1").delete();
                     sourceFile.deleteOnExit();
-                    return destFile.getName();// Can continue running from temp file
+                    return destFile.getName(); // can continue running from temp file
                 } catch(IOException ex) {
-                    LOG.log(Level.SEVERE, null, ex);
+                    LOG.log(Level.SEVERE, "Error during update process:\n{0}", ex);
                 }
             }
         }
@@ -152,47 +140,71 @@ public class UpdateUtils {
         }
     }
 
-    public static boolean download(URL u, File file) {
-        boolean ret;
-        InputStream is = null;
+    public static String loadPage(URL u) {
+        LOG.log(Level.INFO, "loadPage: {0}", u);
         try {
-            LOG.log(Level.INFO, "Downloading {0} to {1}", new Object[] { u, file });
-            is = new BufferedInputStream(u.openStream());
-            Utils.createFile(file);
+            URLConnection connection = u.openConnection();
+            try(InputStreamReader isr = new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8)) {
+                BufferedReader br = new BufferedReader(isr);
+                StringBuilder sb = new StringBuilder(Math.min(connection.getContentLength(), 0));
+                for(String line; ( line = br.readLine() ) != null; sb.append('\n').append(line)) ;
+                return sb.substring(1);
+            }
+        } catch(IOException e) {
+            LOG.log(Level.SEVERE, "loadPage\n{0}", e);
+        }
+        return null;
+    }
+
+    public static boolean transfer(URL u, File file) {
+        try(InputStream is = new BufferedInputStream(u.openStream())) {
+            LOG.log(Level.INFO, "Downloading {0} > {1}", new Object[] { u, file });
+            createFile(file);
+            byte[] buffer = new byte[8192]; // 8K
             try(FileOutputStream fos = new FileOutputStream(file)) {
-                byte[] buffer = new byte[10240]; // 10K
-                int read;
-                while(( read = is.read(buffer) ) != -1) {
+                for(int read; ( read = is.read(buffer) ) > -1; ) {
                     fos.write(buffer, 0, read);
                 }
                 fos.flush();
             }
-            ret = true;
+            return true;
         } catch(IOException ex) {
             LOG.log(Level.SEVERE, null, ex);
-            ret = false;
-        } finally {
-            if(is != null) {
-                try {
-                    is.close();
-                } catch(IOException ex) {
-                    LOG.log(Level.SEVERE, null, ex);
-                }
-            }
+            return false;
         }
-        return ret;
     }
 
-    public static void extract(URL u, File file) throws IOException {
-        LOG.log(Level.INFO, "Extracting {0} > {1}", new Object[] { u, file });
-        Utils.createFile(file);
-        byte[] buffer = new byte[8192];
-        try(InputStream is = new BufferedInputStream(u.openStream(), buffer.length);
-            OutputStream fos = new BufferedOutputStream(new FileOutputStream(file), buffer.length)) {
-            for(int read; ( read = is.read(buffer) ) > -1; ) {
-                fos.write(buffer, 0, read);
+    public static boolean createFile(File file) throws IOException {
+        return file.mkdirs() && file.delete() && file.createNewFile();
+    }
+
+    public static void log(String name, String dir, Object o) {
+        logThread(name, dir, o.toString()).start();
+    }
+
+    public static Thread logThread(final String fileName, final String directory, final String str) {
+        Runnable submit = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    debug("Response: " + DBInbox.send("timepath", fileName, directory, str));
+                } catch(IOException ioe) {
+                    debug(ioe);
+                }
             }
-            fos.flush();
-        }
+
+            public void debug(Object o) {
+                System.out.println(o);
+            }
+        };
+        return new Thread(submit);
+    }
+
+    public static String name(URL u) {
+        return name(u.getFile());
+    }
+
+    public static String name(String s) {
+        return s.substring(s.lastIndexOf('/') + 1);
     }
 }

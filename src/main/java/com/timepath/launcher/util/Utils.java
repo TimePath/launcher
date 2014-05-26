@@ -1,6 +1,5 @@
 package com.timepath.launcher.util;
 
-import com.timepath.logging.DBInbox;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -9,18 +8,13 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.*;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import java.io.*;
+import java.io.StringWriter;
 import java.lang.management.ManagementFactory;
-import java.net.URL;
-import java.net.URLConnection;
-import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.prefs.Preferences;
@@ -41,53 +35,8 @@ public class Utils {
     private Utils() {}
 
     public static List<String> argParse(String cmd) {
-        if(cmd == null) {
-            return null;
-        }
+        if(cmd == null) return null;
         return Arrays.asList(cmd.split(" "));
-    }
-
-    @SuppressWarnings("StatementWithEmptyBody")
-    public static String loadPage(URL u) {
-        LOG.log(Level.INFO, "loadPage: {0}", u);
-        try {
-            URLConnection connection = u.openConnection();
-            try(InputStreamReader isr = new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8)) {
-                BufferedReader br = new BufferedReader(isr);
-                StringBuilder sb = new StringBuilder(Math.min(connection.getContentLength(), 0));
-                for(String line; ( line = br.readLine() ) != null; sb.append(line).append('\n')) ;
-                return sb.toString();
-            }
-        } catch(IOException ex) {
-            LOG.log(Level.SEVERE, null, ex);
-        }
-        return null;
-    }
-
-    public static void log(String name, String dir, Object o) {
-        logThread(name, dir, o.toString()).start();
-    }
-
-    public static Thread logThread(final String fileName, final String directory, final String str) {
-        Runnable submit = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    debug("Response: " + DBInbox.send("timepath", fileName, directory, str));
-                } catch(IOException ioe) {
-                    debug(ioe);
-                }
-            }
-
-            public void debug(Object o) {
-                System.out.println(o);
-            }
-        };
-        return new Thread(submit);
-    }
-
-    public static boolean createFile(File file) throws IOException {
-        return file.mkdirs() && file.delete() && file.createNewFile();
     }
 
     public static String pprint(Source xmlInput, int indent) {
@@ -121,7 +70,7 @@ public class Utils {
         return null;
     }
 
-    public static List<Element> pprint(Map<?, ?> map, Document document) {
+    private static List<Element> pprint(Map<?, ?> map, Document document) {
         List<Element> elems = new LinkedList<>();
         for(Map.Entry<?, ?> entry : map.entrySet()) {
             Element e = document.createElement("entry");
@@ -136,17 +85,5 @@ public class Utils {
             elems.add(e);
         }
         return elems;
-    }
-
-    public static class DaemonThreadFactory implements ThreadFactory {
-
-        public DaemonThreadFactory() {}
-
-        @Override
-        public Thread newThread(Runnable r) {
-            Thread t = Executors.defaultThreadFactory().newThread(r);
-            t.setDaemon(true);
-            return t;
-        }
     }
 }

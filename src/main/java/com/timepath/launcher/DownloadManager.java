@@ -1,8 +1,8 @@
 package com.timepath.launcher;
 
+import com.timepath.launcher.util.IOUtils;
 import com.timepath.launcher.util.JARUtils;
-import com.timepath.launcher.util.Utils;
-import com.timepath.launcher.util.Utils.DaemonThreadFactory;
+import com.timepath.launcher.util.DaemonThreadFactory;
 
 import java.io.*;
 import java.net.URI;
@@ -83,7 +83,7 @@ public class DownloadManager {
             LOG.log(Level.INFO, "Downloading {0} > {1}", new Object[] { u, file });
             URLConnection connection = u.openConnection();
             pkgFile.size = connection.getContentLengthLong();
-            Utils.createFile(file);
+            IOUtils.createFile(file);
             byte[] buffer = new byte[8192];
             try(InputStream is = new BufferedInputStream(connection.getInputStream());
                 OutputStream fos = new BufferedOutputStream(new FileOutputStream(file))) {
