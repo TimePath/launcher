@@ -176,9 +176,10 @@ public class LauncherFrame extends JFrame {
             add(initAboutPanel(), BorderLayout.CENTER);
         }};
         setContentPane(new JTabbedPane() {{
-            addTab("Programs", programSplit = new JSplitPane() {{
+            addTab("Programs", programSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, true) {{
                 setLeftComponent(new JScrollPane(programList = new JTree((TreeModel) null) {{
                     setRootVisible(false);
+                    setShowsRootHandles(true);
                     getSelectionModel().addTreeSelectionListener(new TreeSelectionListener() {
                         @Override
                         public void valueChanged(TreeSelectionEvent e) {
