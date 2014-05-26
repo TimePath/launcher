@@ -14,8 +14,9 @@ import java.util.logging.*;
 public class LogIOHandler extends StreamHandler {
 
     private static final Logger           LOG         = Logger.getLogger(LogIOHandler.class.getName());
-    protected final      String           node        = ManagementFactory.getRuntimeMXBean().getName(); // unique
-    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection") // pollLast()
+    /** unique */
+    protected final      String           node        = ManagementFactory.getRuntimeMXBean().getName();
+    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection") // pollLast() actually does get
     private final        Deque<LogRecord> recordDeque = new LinkedList<>();
     private PrintWriter pw;
 
@@ -23,14 +24,19 @@ public class LogIOHandler extends StreamHandler {
         setFormatter(new LogIOFormatter());
     }
 
-    public LogIOHandler connect(String host, int port) {
-        try {
-            Socket sock = new Socket(host, port);
-            pw = new PrintWriter(sock.getOutputStream(), true);
-            send("+node|" + node);
-        } catch(IOException ex) {
-            LOG.log(Level.SEVERE, null, ex);
-        }
+    public LogIOHandler connect(final String host, final int port) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Socket sock = new Socket(host, port);
+                    pw = new PrintWriter(sock.getOutputStream(), true);
+                    send("+node|" + node);
+                } catch(IOException ex) {
+                    LOG.log(Level.SEVERE, null, ex);
+                }
+            }
+        }).start();
         return this;
     }
 
@@ -44,7 +50,7 @@ public class LogIOHandler extends StreamHandler {
         recordDeque.addLast(record);
         if(pw != null) {
             send(getFormatter().format(record));
-            recordDeque.pollLast(); // Remove it after sending
+            recordDeque.pollLast(); // remove it after sending
         }
     }
 
