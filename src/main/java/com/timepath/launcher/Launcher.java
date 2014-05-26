@@ -13,7 +13,7 @@ import java.util.prefs.Preferences;
 public class Launcher {
 
     public static final  Preferences          PREFS           = Preferences.userNodeForPackage(Launcher.class);
-    public static final  String               REPO_MAIN       = "index.xml";
+    public static final  String               REPO_MAIN       = "public.xml";
     private static final Logger               LOG             = Logger.getLogger(Launcher.class.getName());
     private final        CompositeClassLoader cl              = CompositeClassLoader.createPrivileged();
     private final        DownloadManager      downloadManager = new DownloadManager();
