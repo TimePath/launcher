@@ -86,9 +86,9 @@ public class Launcher {
             return null;
         }
         parent.setLocked(true);
-        // check what needs updating
+        LOG.log(Level.INFO, "Checking for updates");
         Set<Package> updates = parent.getUpdates();
-        // map to futures
+        LOG.log(Level.INFO, "Submitting downloads");
         Map<Package, List<Future<?>>> downloads = new HashMap<>(updates.size());
         for(Package pkg : updates) {
             List<Future<?>> pkgDownloads = new LinkedList<>();
@@ -97,16 +97,16 @@ public class Launcher {
             }
             downloads.put(pkg, pkgDownloads);
         }
-        // wait for completion
+        LOG.log(Level.INFO, "Waiting for completion");
         for(Map.Entry<Package, List<Future<?>>> e : downloads.entrySet()) {
             Package pkg = e.getKey();
-            try {
-                for(Future<?> future : e.getValue()) {
+            for(Future<?> future : e.getValue()) {
+                try {
                     future.get();
+                    LOG.log(Level.INFO, "Updated {0}", pkg);
+                } catch(InterruptedException | ExecutionException ex) {
+                    LOG.log(Level.SEVERE, null, ex);
                 }
-                LOG.log(Level.INFO, "Updated {0}", pkg);
-            } catch(InterruptedException | ExecutionException ex) {
-                LOG.log(Level.SEVERE, null, ex);
             }
         }
         parent.setLocked(false);

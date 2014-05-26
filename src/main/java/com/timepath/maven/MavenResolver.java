@@ -1,5 +1,6 @@
 package com.timepath.maven;
 
+import com.timepath.launcher.Package;
 import com.timepath.launcher.util.IOUtils;
 import com.timepath.launcher.util.XMLUtils;
 import org.w3c.dom.Node;
@@ -28,17 +29,19 @@ public class MavenResolver {
     private static final Collection<String> repos;
     private static final Logger              LOG      = Logger.getLogger(MavenResolver.class.getName());
     private static       Map<String, String> pomCache = Collections.synchronizedMap(new HashMap<String, String>());
+    private static       Map<String, String> urlCache = Collections.synchronizedMap(new HashMap<String, String>());
 
     static {
         repos = new LinkedHashSet<>();
         addRepository(REPO_CENTRAL);
         addRepository(REPO_CUSTOM);
-        String temp;
+        String temp = null;
         try {
-            temp = new File(getLocal()).toURI().toURL().toExternalForm();
+//            String dir = getLocal();
+            String dir = Package.PROGRAM_DIRECTORY;
+            temp = new File(dir).toURI().toURL().toExternalForm();
         } catch(MalformedURLException e) {
             LOG.log(Level.SEVERE, "Error creating URL to local repo: {0}", e);
-            temp = "bin";
         }
         REPO_LOCAL = temp;
     }
@@ -59,7 +62,14 @@ public class MavenResolver {
      */
     public static String resolve(String groupId, String artifactId, String version, String classifier) {
         groupId = groupId.replace("${project.groupId}", "com.timepath"); // TODO: variables
-        LOG.log(Level.INFO, "artifact: {0}:{1}:{2}", new Object[] { groupId, artifactId, version, classifier });
+        String coords = coordinate(groupId, artifactId, version, classifier);
+        LOG.log(Level.INFO, "artifact: {0}", new Object[] { coords });
+        String cached = urlCache.get(coords);
+        if(cached != null) {
+            LOG.log(Level.INFO, "Resolving URL: Hit cache");
+            return cached;
+        }
+        LOG.log(Level.INFO, "Resolving URL: Missed cache");
         if(groupId == null) {
             throw new IllegalArgumentException("groupId cannot be null");
         }
@@ -75,28 +85,41 @@ public class MavenResolver {
             String baseArtifact = repository + groupId + artifactId + '/';
             // TODO: Check version ranges at new URL(baseArtifact + "maven-metadata.xml")
             String baseVersion = baseArtifact + version + '/';
+            String url;
             if(version.endsWith("-SNAPSHOT")) {
                 Node meta;
                 // TODO: Handle when using REPO_LOCAL
                 try {
                     meta = XMLUtils.rootNode(new URL(baseVersion + "maven-metadata.xml").openStream(), "metadata");
                 } catch(IOException | ParserConfigurationException | SAXException e) {
-                    if(!( e instanceof FileNotFoundException )) LOG.log(Level.WARNING, "{0}", e.toString());
+                    if(!( e instanceof FileNotFoundException )) {
+                        LOG.log(Level.WARNING, "Unable to resolve {0}\n{1}", new Object[] { coords, e });
+                    }
                     continue;
                 }
                 Node snap = XMLUtils.last(XMLUtils.getElements(meta, "versioning/snapshot"));
-                return MessageFormat.format("{0}{1}-{2}-{3}-{4}{5}",
-                                            baseVersion,
-                                            artifactId,
-                                            version.substring(0, version.lastIndexOf("-SNAPSHOT")),
-                                            XMLUtils.get(snap, "timestamp"),
-                                            XMLUtils.get(snap, "buildNumber"),
-                                            classifier);
+                url = MessageFormat.format("{0}{1}-{2}-{3}-{4}{5}",
+                                           baseVersion,
+                                           artifactId,
+                                           version.substring(0, version.lastIndexOf("-SNAPSHOT")),
+                                           XMLUtils.get(snap, "timestamp"),
+                                           XMLUtils.get(snap, "buildNumber"),
+                                           classifier);
             } else {
-                return MessageFormat.format("{0}{1}-{2}{3}", baseVersion, artifactId, version, classifier);
+                url = MessageFormat.format("{0}{1}-{2}{3}", baseVersion, artifactId, version, classifier);
             }
+            urlCache.put(coords, url);
+            return url;
         }
         return null;
+    }
+
+    public static String coordinate(final String groupId,
+                                    final String artifactId,
+                                    final String version,
+                                    final String classifier)
+    {
+        return MessageFormat.format("{0}:{1}:{2}:{3}", groupId, artifactId, version, classifier);
     }
 
     public static Collection<String> getRepositories() {

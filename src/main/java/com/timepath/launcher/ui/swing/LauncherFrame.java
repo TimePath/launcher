@@ -156,7 +156,7 @@ public class LauncherFrame extends JFrame {
                     programSplit.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, pcl);
                     programSplit.setDividerLocation(-1);
                     // show update notification
-                    if(launcher.updateRequired() && !Utils.DEBUG) {
+                    if(!Utils.DEBUG && launcher.updateRequired()) {
                         JOptionPane.showMessageDialog(LauncherFrame.this,
                                                       "Please update",
                                                       "A new version is available",
@@ -268,7 +268,7 @@ public class LauncherFrame extends JFrame {
                     if(updates != null) { // ready to start
                         Package parent = program.getPackage();
                         boolean run = true;
-                        if(parent.isSelf()) { // alert on self update
+                        if(!Utils.DEBUG && parent.isSelf()) { // alert on self update
                             if(updates.contains(parent)) {
                                 run = false;
                                 JOptionPane.showMessageDialog(null,

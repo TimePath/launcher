@@ -1,9 +1,6 @@
 package com.timepath.launcher;
 
-import com.timepath.launcher.util.IOUtils;
-import com.timepath.launcher.util.JARUtils;
-import com.timepath.launcher.util.Utils;
-import com.timepath.launcher.util.DaemonThreadFactory;
+import com.timepath.launcher.util.*;
 import com.timepath.launcher.util.XMLUtils;
 import com.timepath.maven.MavenResolver;
 import org.w3c.dom.Node;
@@ -27,7 +24,7 @@ import java.util.logging.Logger;
  */
 public class Package {
 
-    private static final String PROGRAM_DIRECTORY = Utils.SETTINGS.get("progStoreDir",
+    public static final String PROGRAM_DIRECTORY = Utils.SETTINGS.get("progStoreDir",
                                                                        new File(JARUtils.CURRENT_FILE.getParentFile(),
                                                                                 "bin").getPath()
                                                                       );
@@ -51,7 +48,7 @@ public class Package {
     private boolean self;
 
     /**
-     * Instantiate a Program instance from XML
+     * Instantiate a Package instance from an XML node
      *
      * @param root
      */
@@ -75,15 +72,26 @@ public class Package {
                 e.setDaemon(Boolean.parseBoolean(daemonStr));
             }
         }
+        initMaven(root);
+    }
+
+    private void initMaven(Node root) {
         gid = inherit(root, "groupId");
-        if(gid == null) return; // invalid pom
+        if(gid == null) { // invalid pom
+            LOG.log(Level.WARNING, "Invalid POM, no groupId");
+            return;
+        }
         aid = XMLUtils.get(root, "artifactId");
         ver = inherit(root, "version");
         if(ver == null) { // TODO: dependencyManagement/dependencies/dependency/version
             ver = "3.2.1";
         }
         baseURL = MavenResolver.resolve(gid, aid, ver, null);
-        LOG.log(Level.INFO, "Resolved to {0}", baseURL);
+        if(baseURL != null) {
+            LOG.log(Level.INFO, "Resolved to {0}", baseURL);
+        } else {
+            LOG.log(Level.WARNING, "Could not resolve {0}", MavenResolver.coordinate(gid, aid, ver, null));
+        }
     }
 
     private static String inherit(Node root, String name) {
@@ -249,7 +257,7 @@ public class Package {
     }
 
     public boolean isSelf() {
-        return self || ("launcher".equals(aid) && "com.timepath".equals(gid));
+        return self || ( "launcher".equals(aid) && "com.timepath".equals(gid) );
     }
 
     public void setSelf(final boolean self) {

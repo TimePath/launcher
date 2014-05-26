@@ -15,8 +15,9 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.dom.DOMSource;
 import java.io.*;
+import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -60,25 +61,24 @@ public class Repository {
      * @return
      */
     public static Repository fromIndex(String location) {
-        InputStream is = null;
-        if(Utils.DEBUG) { // try loading from local file
-            try {
-                is = new FileInputStream(System.getProperty("user.home") + "/Dropbox/Public/" + IOUtils.name(location));
-            } catch(FileNotFoundException ignored) {
+        try {
+            byte[] data;
+locate:
+            {
+                if(Utils.DEBUG) { // try loading from local file
+                    File local = new File(System.getProperty("user.home") + "/Dropbox/Public/" + IOUtils.name(location));
+                    data = IOUtils.loadPage(local.toURI().toURL()).getBytes(StandardCharsets.UTF_8);
+                    break locate;
+                }
+                data = IOUtils.loadPage(new URL(location)).getBytes(StandardCharsets.UTF_8);
             }
+            Repository r = parse(findCompatible(new ByteArrayInputStream(data)));
+            r.location = location;
+            return r;
+        } catch(MalformedURLException e) {
+            LOG.log(Level.SEVERE, "fromIndex: {0}", e);
         }
-        if(is == null) {
-            try {
-                URL u = new URL(location);
-                URLConnection connection = u.openConnection();
-                is = connection.getInputStream();
-            } catch(IOException ex) {
-                LOG.log(Level.SEVERE, null, ex);
-            }
-        }
-        Repository r = parse(findCompatible(is));
-        r.location = location;
-        return r;
+        return null;
     }
 
     /**
@@ -98,7 +98,8 @@ public class Repository {
         r.self.setSelf(true);
         r.executions = new LinkedList<>(r.self.getExecutions());
         for(Node entry : XMLUtils.getElements(root, "programs/program")) {
-            r.executions.addAll(new Package(entry).getExecutions());
+            Package p = new Package(entry);
+            r.executions.addAll(p.getExecutions());
         }
         return r;
     }
