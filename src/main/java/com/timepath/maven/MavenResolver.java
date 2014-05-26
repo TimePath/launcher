@@ -23,20 +23,27 @@ import static com.timepath.launcher.util.XMLUtils.last;
  */
 public class MavenResolver {
 
-    public static final  String  REPO_CENTRAL = "http://repo.maven.apache.org/maven2";
-    public static final  String  REPO_CUSTOM  = "https://dl.dropboxusercontent.com/u/42745598/maven2";
-    public static final  String  REPO_LOCAL   = "file://" + getLocal();
-    private static final Pattern RE_VERSION   = Pattern.compile("(\\d*)\\.(\\d*)\\.(\\d*)");
+    public static final String REPO_CENTRAL = "http://repo.maven.apache.org/maven2";
+    public static final String REPO_CUSTOM  = "https://dl.dropboxusercontent.com/u/42745598/maven2";
+    public static final String REPO_LOCAL;
+    private static final Pattern RE_VERSION = Pattern.compile("(\\d*)\\.(\\d*)\\.(\\d*)");
     private static final Collection<String> repos;
+    private static final Logger              LOG      = Logger.getLogger(MavenResolver.class.getName());
+    private static       Map<String, String> pomCache = Collections.synchronizedMap(new HashMap<String, String>());
 
     static {
         repos = new LinkedHashSet<>();
         addRepository(REPO_CENTRAL);
         addRepository(REPO_CUSTOM);
+        String temp;
+        try {
+            temp = new File(getLocal()).toURI().toURL().toExternalForm();
+        } catch(MalformedURLException e) {
+            LOG.log(Level.SEVERE, "Error creating URL to local repo: {0}", e);
+            temp = "bin";
+        }
+        REPO_LOCAL = temp;
     }
-
-    private static final Logger              LOG      = Logger.getLogger(MavenResolver.class.getName());
-    private static       Map<String, String> pomCache = Collections.synchronizedMap(new HashMap<String, String>());
 
     private MavenResolver() {}
 
