@@ -1,17 +1,15 @@
 package com.timepath.launcher;
 
+import com.timepath.launcher.util.DaemonThreadFactory;
 import com.timepath.launcher.util.IOUtils;
 import com.timepath.launcher.util.JARUtils;
-import com.timepath.launcher.util.DaemonThreadFactory;
 
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -20,9 +18,10 @@ import java.util.logging.Logger;
 
 public class DownloadManager {
 
-    private static final Logger                LOG      = Logger.getLogger(DownloadManager.class.getName());
-    private final        List<DownloadMonitor> monitors = Collections.synchronizedList(new LinkedList<DownloadMonitor>());
-    private final        ExecutorService       pool     = Executors.newCachedThreadPool(new DaemonThreadFactory());
+    private static final Logger                  LOG      = Logger.getLogger(DownloadManager.class.getName());
+    private final        List<DownloadMonitor>   monitors = Collections.synchronizedList(new LinkedList<DownloadMonitor>());
+    private final        ExecutorService         pool     = Executors.newCachedThreadPool(new DaemonThreadFactory());
+    private final        Map<Package, Future<?>> tasks    = Collections.synchronizedMap(new HashMap<Package, Future<?>>());
 
     public DownloadManager() {
     }
@@ -40,12 +39,16 @@ public class DownloadManager {
     }
 
     public Future<?> submit(Package pkgFile) {
+        Future<?> future = tasks.get(pkgFile);
+        if(future != null) return future;
         synchronized(monitors) {
             for(DownloadMonitor monitor : monitors) {
                 monitor.submit(pkgFile);
             }
         }
-        return pool.submit(new DownloadTask(pkgFile));
+        future = pool.submit(new DownloadTask(pkgFile));
+        tasks.put(pkgFile, future);
+        return future;
     }
 
     public interface DownloadMonitor {
