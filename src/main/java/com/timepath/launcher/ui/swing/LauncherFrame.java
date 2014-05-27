@@ -323,7 +323,8 @@ public class LauncherFrame extends JFrame {
         }
         String aboutText = IOUtils.loadPage(getClass().getResource("/com/timepath/launcher/swing/about.html"))
                                 .replace("${buildDate}", buildDate)
-                                .replace("${steamGroup}", "steam://friends/joinchat/103582791434775526");
+                                .replace("${steamGroup}", "http://steamcommunity.com/gid/103582791434775526")
+                                .replace("${steamChat}", "steam://friends/joinchat/103582791434775526");
         final String[] split = aboutText.split(Pattern.quote("${localtime}"));
         pane.setText(split[0] + "calculating..." + split[1]);
         df.setTimeZone(TimeZone.getTimeZone("Australia/Sydney"));
