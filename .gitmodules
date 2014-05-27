@@ -1,0 +1,6 @@
+[submodule "lib/bootstrap"]
+	path = lib/bootstrap
+	url = https://github.com/twbs/bootstrap.git
+[submodule "lib/jquery-searchable"]
+	path = lib/jquery-searchable
+	url = https://github.com/stidges/jquery-searchable.git

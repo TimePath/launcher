@@ -50,6 +50,51 @@
                     </execution>
                 </executions>
             </plugin>
+            <!--Copy resources-->
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>2.6</version>
+                <executions>
+                    <execution>
+                        <id>copy-bootstrap</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${basedir}/target/classes/com/timepath/launcher/ui/web</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${basedir}/lib/bootstrap/dist</directory>
+                                    <includes>
+                                        <include>**/*.min.css</include>
+                                        <include>**/*.min.js</include>
+                                        <include>fonts/*</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-jquery-searchable</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${basedir}/target/classes/com/timepath/launcher/ui/web/js</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${basedir}/lib/jquery-searchable/dist</directory>
+                                    <includes>
+                                        <include>jquery.searchable-1.1.0.min.js</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <!--Enable assembly plugin-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
