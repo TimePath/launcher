@@ -39,7 +39,7 @@ public class IOUtils {
         LOG.log(Level.INFO, "Current file = {0}", JARUtils.CURRENT_FILE);
         File cwd = JARUtils.CURRENT_FILE.getParentFile();
         LOG.log(Level.INFO, "Working directory = {0}", cwd.getAbsoluteFile());
-        File updateFile = new File(cwd, "update.tmp");
+        final File updateFile = new File(cwd, JARUtils.UPDATE_NAME);
         if(updateFile.exists()) {
             LOG.log(Level.INFO, "Update file = {0}", updateFile);
             //<editor-fold defaultstate="collapsed" desc="on user restart">
@@ -52,13 +52,18 @@ public class IOUtils {
                         String cksum = checksum(updateFile, "SHA1");
                         LOG.log(Level.INFO, "Actual checksum = {0}", cksum);
                         if(cksum.equals(cksumExpected)) {
-                            Collection<String> cmds = new LinkedList<>();
+                            final Collection<String> cmds = new LinkedList<>();
                             cmds.add("-jar");
                             cmds.add(updateFile.getPath());
                             cmds.add("-u");
                             cmds.add(updateFile.getPath());
                             cmds.add(JARUtils.CURRENT_FILE.getPath());
-                            fork(updateFile, cmds, null);
+                            Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    fork(updateFile, cmds, null);
+                                }
+                            }));
                             System.exit(0);
                             return null;
                         } else {

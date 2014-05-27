@@ -33,6 +33,18 @@ public class Main extends JApplet {
                 Logger.getLogger(t.getName()).log(Level.SEVERE, "Uncaught Exception", e);
             }
         });
+        Policy.setPolicy(new Policy() {
+            @Override
+            public PermissionCollection getPermissions(CodeSource codesource) {
+                Permissions perms = new Permissions();
+                perms.add(new AllPermission());
+                return perms;
+            }
+        });
+        System.setSecurityManager(null);
+    }
+
+    static void initLogging() {
         Level consoleLevel = Level.CONFIG;
         try {
             consoleLevel = Level.parse(Utils.SETTINGS.get("consoleLevel", consoleLevel.getName()));
@@ -73,15 +85,6 @@ public class Main extends JApplet {
         LOG.log(Level.INFO, "Console level: {0}", consoleLevel);
         LOG.log(Level.INFO, "Logfile level: {0}", logfileLevel);
         LOG.log(Level.INFO, "Package level: {0}", packageLevel);
-        Policy.setPolicy(new Policy() {
-            @Override
-            public PermissionCollection getPermissions(CodeSource codesource) {
-                Permissions perms = new Permissions();
-                perms.add(new AllPermission());
-                return perms;
-            }
-        });
-        System.setSecurityManager(null);
     }
 
     @Override
@@ -89,11 +92,11 @@ public class Main extends JApplet {
         main(new String[0]);
     }
 
-    @SuppressWarnings("MethodNamesDifferingOnlyByCase")
     public static void main(String[] args) {
         LOG.log(Level.INFO, "Initial: {0}ms", System.currentTimeMillis() - Utils.START_TIME);
         LOG.log(Level.INFO, "Args = {0}", Arrays.toString(args));
         IOUtils.checkForUpdate(args);
+        initLogging();
         Map<String, Object> dbg = new HashMap<>(3);
         dbg.put("name", ManagementFactory.getRuntimeMXBean().getName());
         dbg.put("env", System.getenv());
