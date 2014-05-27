@@ -189,7 +189,9 @@ public class Package {
             for(Entry<Node, Future<Set<Package>>> e : futures.entrySet()) {
                 try {
                     Set<Package> result = e.getValue().get();
-                    if(result != null) { downloads.addAll(result); } else {
+                    if(result != null) {
+                        downloads.addAll(result);
+                    } else {
                         LOG.log(Level.SEVERE, "Download enumeration failed: {0}", e.getKey());
                     }
                 } catch(InterruptedException | ExecutionException ex) {

@@ -106,6 +106,11 @@ public class MavenResolver {
                                            classifier);
             } else {
                 url = MessageFormat.format("{0}{1}-{2}{3}", baseVersion, artifactId, version, classifier);
+                try {
+                    if(IOUtils.loadPage(new URL(url + ".pom")) == null) continue;
+                } catch(MalformedURLException e) {
+                    continue;
+                }
             }
             urlCache.put(coords, url);
             return url;
@@ -136,16 +141,10 @@ public class MavenResolver {
         return System.getProperty("maven.repo.local", System.getProperty("user.home") + "/.m2/repository");
     }
 
-    public static Node resolvePom(String groupId, String artifactId, String version, String classifier)
-    throws IOException, SAXException, ParserConfigurationException
-    {
-        return XMLUtils.rootNode(resolvePomStream(groupId, artifactId, version, classifier), "project");
-    }
-
     public static InputStream resolvePomStream(String groupId, String artifactId, String version, String classifier)
     throws MalformedURLException
     {
-        String key = MessageFormat.format("{0}:{1}:{2}:{3}", groupId, artifactId, version, classifier);
+        String key = coordinate(groupId, artifactId, version, classifier);
         LOG.log(Level.INFO, "Resolving POM: {0}", key);
         String pom = pomCache.get(key);
         if(pom == null) {
