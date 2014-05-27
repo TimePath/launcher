@@ -1,6 +1,5 @@
 package com.timepath.maven;
 
-import com.timepath.launcher.Package;
 import com.timepath.launcher.util.IOUtils;
 import com.timepath.launcher.util.XMLUtils;
 import org.w3c.dom.Node;

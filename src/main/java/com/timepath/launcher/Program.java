@@ -3,11 +3,13 @@ package com.timepath.launcher;
 import com.timepath.classloader.CompositeClassLoader;
 import com.timepath.launcher.util.IOUtils;
 import com.timepath.launcher.util.SwingUtils;
+import com.timepath.maven.Package;
 
 import javax.swing.*;
 import java.awt.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.MessageFormat;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -21,13 +23,13 @@ import java.util.logging.Logger;
 public class Program {
 
     private static final Logger LOG = Logger.getLogger(Program.class.getName());
-    private final String       main;
-    private final List<String> args;
-    private       String       newsfeedURL;
-    private       boolean      daemon;
-    private       JPanel       panel;
-    private       String       title;
-    private       Package      parent;
+    private final String                     main;
+    private final List<String>               args;
+    private       String                     newsfeedURL;
+    private       boolean                    daemon;
+    private       JPanel                     panel;
+    private       String                     title;
+    private       com.timepath.maven.Package parent;
 
     public Program(final Package parent,
                    final String title,
@@ -54,15 +56,17 @@ public class Program {
             @Override
             public void run() {
                 LOG.log(Level.INFO, "Starting {0} ({1})", new Object[] { this, main });
+                String[] argv = null;
+                if(args != null) {
+                    argv = args.toArray(new String[args.size()]);
+                }
+                Set<URL> cp = getClassPath();
                 try {
-                    String[] argv = null;
-                    if(args != null) {
-                        argv = args.toArray(new String[args.size()]);
-                    }
-                    Set<URL> cp = getClassPath();
                     cl.start(main, argv, cp);
-                } catch(Exception ex) {
-                    LOG.log(Level.SEVERE, null, ex);
+                } catch(Throwable t) {
+                    String msg = MessageFormat.format("Error starting {0}", Program.this);
+                    LOG.log(Level.SEVERE, msg, t);
+                    JOptionPane.showMessageDialog(null, msg + '\n' + t, "A fatal exception has occurred", JOptionPane.ERROR_MESSAGE);
                 }
             }
         });

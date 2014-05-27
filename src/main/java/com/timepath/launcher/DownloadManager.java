@@ -3,6 +3,7 @@ package com.timepath.launcher;
 import com.timepath.launcher.util.DaemonThreadFactory;
 import com.timepath.launcher.util.IOUtils;
 import com.timepath.launcher.util.JARUtils;
+import com.timepath.maven.Package;
 
 import java.io.*;
 import java.net.URI;
@@ -18,10 +19,14 @@ import java.util.logging.Logger;
 
 public class DownloadManager {
 
-    private static final Logger                  LOG      = Logger.getLogger(DownloadManager.class.getName());
-    private final        List<DownloadMonitor>   monitors = Collections.synchronizedList(new LinkedList<DownloadMonitor>());
-    private final        ExecutorService         pool     = Executors.newCachedThreadPool(new DaemonThreadFactory());
-    private final        Map<Package, Future<?>> tasks    = Collections.synchronizedMap(new HashMap<Package, Future<?>>());
+    private static final Logger                                     LOG      = Logger.getLogger(DownloadManager.class.getName());
+    private final        List<DownloadMonitor>                      monitors
+                                                                             = Collections.synchronizedList(new LinkedList<DownloadMonitor>());
+    private final        ExecutorService                            pool
+                                                                             = Executors.newCachedThreadPool(new DaemonThreadFactory());
+    private final        Map<com.timepath.maven.Package, Future<?>> tasks
+                                                                             = Collections.synchronizedMap(new HashMap<Package,
+            Future<?>>());
 
     public DownloadManager() {
     }

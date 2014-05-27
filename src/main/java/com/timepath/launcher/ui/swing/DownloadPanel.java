@@ -1,6 +1,6 @@
 package com.timepath.launcher.ui.swing;
 
-import com.timepath.launcher.Package;
+import com.timepath.maven.Package;
 import com.timepath.swing.table.ObjectBasedTableModel;
 
 import javax.swing.*;
@@ -53,7 +53,7 @@ public class DownloadPanel extends JPanel {
                                );
     }
 
-    public ObjectBasedTableModel<com.timepath.launcher.Package> getTableModel() {
+    public ObjectBasedTableModel<Package> getTableModel() {
         return tableModel;
     }
 }

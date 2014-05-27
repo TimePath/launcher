@@ -2,7 +2,7 @@ package com.timepath.launcher.ui.swing;
 
 import com.timepath.launcher.DownloadManager.DownloadMonitor;
 import com.timepath.launcher.Launcher;
-import com.timepath.launcher.Package;
+import com.timepath.maven.Package;
 import com.timepath.launcher.Program;
 import com.timepath.launcher.Repository;
 import com.timepath.launcher.util.IOUtils;

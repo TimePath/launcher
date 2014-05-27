@@ -1,6 +1,7 @@
 package com.timepath.launcher;
 
 import com.timepath.classloader.CompositeClassLoader;
+import com.timepath.maven.Package;
 
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -17,7 +18,7 @@ public class Launcher {
     private static final Logger               LOG             = Logger.getLogger(Launcher.class.getName());
     private final        CompositeClassLoader cl              = CompositeClassLoader.createPrivileged();
     private final        DownloadManager      downloadManager = new DownloadManager();
-    private Package self;
+    private com.timepath.maven.Package self;
 
     public Launcher() {}
 

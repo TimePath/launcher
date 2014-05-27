@@ -72,7 +72,7 @@ public class CompositeClassLoader extends ClassLoader {
      * @param urls
      *         additional resources
      */
-    public void start(String main, String[] args, Iterable<URL> urls) {
+    public void start(String main, String[] args, Iterable<URL> urls) throws Throwable {
         if(args == null) {
             args = new String[0];
         }
@@ -80,11 +80,7 @@ public class CompositeClassLoader extends ClassLoader {
                 main, Arrays.toString(args), urls
         });
         add(urls);
-        try {
-            invokeMain(main, args);
-        } catch(Throwable t) {
-            LOG.log(Level.SEVERE, null, t);
-        }
+        invokeMain(main, args);
     }
 
     /**

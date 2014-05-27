@@ -110,7 +110,7 @@ class WebHandler implements HttpHandler {
             Element e = document.createElement("entry");
             e.setAttribute("name", p.getTitle());
             StringBuilder sb = new StringBuilder(0);
-            for(com.timepath.launcher.Package dep : p.getPackage().getDownloads()) {
+            for(com.timepath.maven.Package dep : p.getPackage().getDownloads()) {
                 sb.append(',').append(dep.getName());
             }
             String deps = sb.substring(Math.min(1, sb.length()));

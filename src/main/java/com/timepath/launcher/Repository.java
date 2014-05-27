@@ -4,6 +4,7 @@ import com.timepath.launcher.util.IOUtils;
 import com.timepath.launcher.util.JARUtils;
 import com.timepath.launcher.util.Utils;
 import com.timepath.launcher.util.XMLUtils;
+import com.timepath.maven.Package;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
@@ -36,20 +37,20 @@ public class Repository {
     /**
      * URL to the index file
      */
-    private String        location;
+    private String                     location;
     /**
      * The package representing this repository. Mostly only relevant to the main repository so that the main launcher has a way
      * of updating itself
      */
-    private Package       self;
+    private com.timepath.maven.Package self;
     /**
      * The name of this repository
      */
-    private String        name;
+    private String                     name;
     /**
      * A list of all program entry points
      */
-    private List<Program> executions;
+    private List<Program>              executions;
 
     private Repository() {}
 
@@ -94,12 +95,23 @@ locate:
         }
         Repository r = new Repository();
         r.name = XMLUtils.get(root, "name");
-        r.self = new Package(root);
-        r.self.setSelf(true);
-        r.executions = new LinkedList<>(r.self.getExecutions());
+        r.self = Package.parse(root);
+        if(r.self != null) r.self.setSelf(true);
+        r.executions = new LinkedList<>();
         for(Node entry : XMLUtils.getElements(root, "programs/program")) {
-            Package p = new Package(entry);
-            r.executions.addAll(p.getExecutions());
+            Package pkg = Package.parse(entry);
+            // extended format with execution data
+            for(Node execution : XMLUtils.getElements(entry, "executions/execution")) {
+                Node cfg = XMLUtils.last(XMLUtils.getElements(execution, "configuration"));
+                Program p = new Program(pkg,
+                                        XMLUtils.get(execution, "name"),
+                                        XMLUtils.get(execution, "url"),
+                                        XMLUtils.get(cfg, "main"),
+                                        Utils.argParse(XMLUtils.get(cfg, "args")));
+                r.executions.add(p);
+                String daemonStr = XMLUtils.get(cfg, "daemon");
+                if(daemonStr != null) p.setDaemon(Boolean.parseBoolean(daemonStr));
+            }
         }
         return r;
     }

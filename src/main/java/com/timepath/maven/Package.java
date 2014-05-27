@@ -1,8 +1,7 @@
-package com.timepath.launcher;
+package com.timepath.maven;
 
 import com.timepath.launcher.util.*;
 import com.timepath.launcher.util.XMLUtils;
-import com.timepath.maven.MavenResolver;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
@@ -20,21 +19,23 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * Handles maven packages
+ *
  * @author TimePath
  */
 public class Package {
 
-    public static final String PROGRAM_DIRECTORY = Utils.SETTINGS.get("progStoreDir",
-                                                                       new File(JARUtils.CURRENT_FILE.getParentFile(),
-                                                                                "bin").getPath()
-                                                                      );
-    private static final Logger LOG               = Logger.getLogger(Package.class.getName());
-    private final String name;
-    private final Set<Package> downloads = Collections.synchronizedSet(new HashSet<Package>());
+    public static final  String       PROGRAM_DIRECTORY = Utils.SETTINGS.get("progStoreDir",
+                                                                             new File(JARUtils.CURRENT_FILE.getParentFile(),
+                                                                                      "bin").getPath()
+                                                                            );
+    private static final Logger       LOG               = Logger.getLogger(Package.class.getName());
+    private final        Set<Package> downloads         = Collections.synchronizedSet(new HashSet<Package>());
     /**
      * Download status
      */
-    public        long         progress  = -1, size = -1;
+    public               long         progress          = -1, size = -1;
+    private String name;
     /**
      * Maven coordinates
      */
@@ -42,8 +43,7 @@ public class Package {
     /**
      * Base URL in maven repo
      */
-    private String baseURL;
-    private List<Program> executions = new LinkedList<>();
+    private String  baseURL;
     private boolean locked;
     private boolean self;
 
@@ -52,46 +52,31 @@ public class Package {
      *
      * @param root
      */
-    public Package(Node root) {
+    public static Package parse(Node root) {
         if(root == null) {
-            throw new IllegalArgumentException("The root node must not be null");
+            throw new IllegalArgumentException("The root node cannot be null");
         }
+        Package p = new Package();
         LOG.log(Level.INFO, "Constructing Package from node");
         LOG.log(Level.FINE, "{0}", Utils.pprint(new DOMSource(root), 2));
-        name = XMLUtils.get(root, "name");
-        for(Node execution : XMLUtils.getElements(root, "executions/execution")) {
-            Node cfg = XMLUtils.last(XMLUtils.getElements(execution, "configuration"));
-            Program e = new Program(this,
-                                    XMLUtils.get(execution, "name"),
-                                    XMLUtils.get(execution, "url"),
-                                    XMLUtils.get(cfg, "main"),
-                                    Utils.argParse(XMLUtils.get(cfg, "args")));
-            executions.add(e);
-            String daemonStr = XMLUtils.get(cfg, "daemon");
-            if(daemonStr != null) {
-                e.setDaemon(Boolean.parseBoolean(daemonStr));
-            }
-        }
-        initMaven(root);
-    }
-
-    private void initMaven(Node root) {
-        gid = inherit(root, "groupId");
-        if(gid == null) { // invalid pom
+        p.name = XMLUtils.get(root, "name");
+        p.gid = inherit(root, "groupId");
+        if(p.gid == null) { // invalid pom
             LOG.log(Level.WARNING, "Invalid POM, no groupId");
-            return;
+            return null;
         }
-        aid = XMLUtils.get(root, "artifactId");
-        ver = inherit(root, "version");
-        if(ver == null) { // TODO: dependencyManagement/dependencies/dependency/version
-            ver = "3.2.1";
+        p.aid = XMLUtils.get(root, "artifactId");
+        p.ver = inherit(root, "version");
+        if(p.ver == null) {
+            throw new UnsupportedOperationException("TODO: dependencyManagement/dependencies/dependency/version");
         }
-        baseURL = MavenResolver.resolve(gid, aid, ver, null);
-        if(baseURL != null) {
-            LOG.log(Level.INFO, "Resolved to {0}", baseURL);
+        p.baseURL = MavenResolver.resolve(p.gid, p.aid, p.ver, null);
+        if(p.baseURL != null) {
+            LOG.log(Level.INFO, "Resolved to {0}", p.baseURL);
         } else {
-            LOG.log(Level.WARNING, "Could not resolve {0}", MavenResolver.coordinate(gid, aid, ver, null));
+            LOG.log(Level.WARNING, "Could not resolve {0}", MavenResolver.coordinate(p.gid, p.aid, p.ver, null));
         }
+        return p;
     }
 
     private static String inherit(Node root, String name) {
@@ -190,7 +175,7 @@ public class Package {
                     @Override
                     public Set<Package> call() throws Exception {
                         try {
-                            Package pkg = new Package(d);
+                            Package pkg = Package.parse(d);
                             pkg.gid = pkg.gid.replace("${project.groupId}", gid);
                             pkg.ver = pkg.ver.replace("${project.version}", ver);
                             return pkg.getDownloads();
@@ -250,10 +235,6 @@ public class Package {
      */
     public String getChecksumURL() {
         return baseURL + ".jar.sha1";
-    }
-
-    public List<Program> getExecutions() {
-        return executions;
     }
 
     public boolean isSelf() {
