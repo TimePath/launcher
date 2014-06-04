@@ -153,6 +153,7 @@ public class IOUtils {
                 BufferedReader br = new BufferedReader(isr);
                 StringBuilder sb = new StringBuilder(Math.min(connection.getContentLength(), 0));
                 for(String line; ( line = br.readLine() ) != null; sb.append('\n').append(line)) ;
+                if(sb.length() < 1) return null;
                 return sb.substring(1);
             }
         } catch(IOException e) {

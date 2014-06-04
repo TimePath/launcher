@@ -119,9 +119,10 @@ public class Package {
                 LOG.log(Level.INFO, "Don''t have {0}, not latest", existing);
                 return false;
             }
-            String expected = IOUtils.loadPage(new URL(getChecksumURL())).trim();
+            String expected = IOUtils.loadPage(new URL(getChecksumURL()));
+            if(expected != null) expected = expected.trim();
             String actual = IOUtils.checksum(existing, "SHA1");
-            if(!expected.equals(actual)) {
+            if(!actual.equals(expected)) {
                 LOG.log(Level.INFO,
                         "Checksum mismatch for {0}, not latest. {1} vs {2}",
                         new Object[] { existing, expected, actual });
