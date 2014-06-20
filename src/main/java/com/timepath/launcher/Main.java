@@ -84,7 +84,7 @@ public class Main extends JApplet implements Protocol {
     }
 
     private static Protocol initRMI(int port) {
-        String endpoint = "com.timepath.launcher";
+        String endpoint = "com/timepath/launcher";
         Registry registry;
         Protocol stub = null;
         try {
