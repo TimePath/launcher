@@ -199,8 +199,8 @@ public class Package {
                     LOG.log(Level.SEVERE, null, ex);
                 }
             }
-        } catch(IOException | ParserConfigurationException | SAXException e) {
-            LOG.log(Level.SEVERE, null, e);
+        } catch(IOException | ParserConfigurationException | SAXException | IllegalArgumentException e) {
+            LOG.log(Level.SEVERE, "initDownloads", e);
         }
         return downloads;
     }

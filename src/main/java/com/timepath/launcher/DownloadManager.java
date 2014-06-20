@@ -82,8 +82,8 @@ public class DownloadManager {
                 }
                 download(new URI(pkgFile.getChecksumURL()).toURL(), checksumFile);
                 download(new URI(pkgFile.getDownloadURL()).toURL(), downloadFile);
-            } catch(IOException | URISyntaxException ex) {
-                LOG.log(Level.SEVERE, null, ex);
+            } catch(IOException | URISyntaxException e) {
+                LOG.log(Level.SEVERE, "run", e);
             }
         }
 

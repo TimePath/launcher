@@ -156,8 +156,10 @@ public class IOUtils {
                 if(sb.length() < 1) return null;
                 return sb.substring(1);
             }
+        } catch(FileNotFoundException e) {
+            LOG.log(Level.FINE, "Exception in loadPage", e);
         } catch(IOException e) {
-            LOG.log(Level.SEVERE, "loadPage\n{0}", e);
+            LOG.log(Level.SEVERE, "Exception in loadPage", e);
         }
         return null;
     }

@@ -109,6 +109,9 @@ public class XMLUtils {
     public static Node rootNode(final InputStream is, String name)
             throws ParserConfigurationException, IOException, SAXException
     {
+        if(is == null) {
+            throw new IllegalArgumentException("InputStream cannot be null");
+        }
         LOG.log(Level.INFO, "Getting root {0} node", name);
         DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
