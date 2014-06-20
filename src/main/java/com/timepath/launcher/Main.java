@@ -12,6 +12,15 @@ import com.timepath.logging.LogIOHandler;
 import javax.swing.*;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.RMIClientSocketFactory;
+import java.rmi.server.UnicastRemoteObject;
 import java.security.*;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -22,7 +31,7 @@ import java.util.logging.*;
  * @author TimePath
  */
 @SuppressWarnings("serial")
-public class Main extends JApplet {
+public class Main extends JApplet implements Protocol {
 
     private static final Logger LOG = Logger.getLogger(Main.class.getName());
 
@@ -44,7 +53,74 @@ public class Main extends JApplet {
         System.setSecurityManager(null);
     }
 
-    static void initLogging() {
+    Launcher launcher;
+
+    @Override
+    public void init() {
+        main(new String[0]);
+    }
+
+    public static void main(String[] args) {
+        Protocol stub = initRMI(1099);
+        LOG.log(Level.INFO, "Initial: {0}ms", System.currentTimeMillis() - Utils.START_TIME);
+        LOG.log(Level.INFO, "Args = {0}", Arrays.toString(args));
+        IOUtils.checkForUpdate(args);
+        initLogging();
+        Map<String, Object> dbg = new HashMap<>(3);
+        dbg.put("name", ManagementFactory.getRuntimeMXBean().getName());
+        dbg.put("env", System.getenv());
+        dbg.put("properties", System.getProperties());
+        String pprint = Utils.pprint(dbg);
+        LOG.info(pprint);
+        if(!Utils.DEBUG) {
+            IOUtils.log(Utils.USER + ".xml.gz", "launcher/" + JARUtils.CURRENT_VERSION + "/connects", pprint);
+        }
+        LOG.log(Level.INFO, "Startup: {0}ms", System.currentTimeMillis() - Utils.START_TIME);
+        try {
+            stub.newFrame();
+        } catch(RemoteException e) {
+            LOG.log(Level.SEVERE, null, e);
+        }
+    }
+
+    private static Protocol initRMI(int port) {
+        String endpoint = "com.timepath.launcher";
+        Registry registry;
+        Protocol stub = null;
+        try {
+            class RMIServerSocketFactory implements java.rmi.server.RMIServerSocketFactory {
+
+                ServerSocket socket;
+
+                public ServerSocket createServerSocket(int port) throws IOException {
+                    return ( socket = new ServerSocket(port, 0, InetAddress.getByName(null)) );
+                }
+            }
+            RMIServerSocketFactory serverFactory = new RMIServerSocketFactory();
+            registry = LocateRegistry.createRegistry(port, new RMIClientSocketFactory() {
+                public Socket createSocket(String host, int port) throws IOException {
+                    return new Socket(host, port);
+                }
+            }, serverFactory);
+            port = serverFactory.socket.getLocalPort();
+            LOG.log(Level.INFO, "RMI server listening on port {0}", port);
+            Main obj = new Main();
+            stub = (Protocol) UnicastRemoteObject.exportObject(obj, 0);
+            registry.rebind(endpoint, stub);
+        } catch(RemoteException e) {
+            LOG.log(Level.FINE, "RMI server already started, connecting...");
+            try {
+                registry = LocateRegistry.getRegistry(port);
+                stub = (Protocol) registry.lookup(endpoint);
+            } catch(RemoteException | NotBoundException e1) {
+                LOG.log(Level.SEVERE, "Unable to connect to RMI server", e1);
+                System.exit(-1);
+            }
+        }
+        return stub;
+    }
+
+    private static void initLogging() {
         Level consoleLevel = Level.CONFIG;
         try {
             consoleLevel = Level.parse(Utils.SETTINGS.get("consoleLevel", consoleLevel.getName()));
@@ -88,26 +164,8 @@ public class Main extends JApplet {
     }
 
     @Override
-    public void init() {
-        main(new String[0]);
-    }
-
-    public static void main(String[] args) {
-        LOG.log(Level.INFO, "Initial: {0}ms", System.currentTimeMillis() - Utils.START_TIME);
-        LOG.log(Level.INFO, "Args = {0}", Arrays.toString(args));
-        IOUtils.checkForUpdate(args);
-        initLogging();
-        Map<String, Object> dbg = new HashMap<>(3);
-        dbg.put("name", ManagementFactory.getRuntimeMXBean().getName());
-        dbg.put("env", System.getenv());
-        dbg.put("properties", System.getProperties());
-        String pprint = Utils.pprint(dbg);
-        LOG.info(pprint);
-        if(!Utils.DEBUG) {
-            IOUtils.log(Utils.USER + ".xml.gz", "launcher/" + JARUtils.CURRENT_VERSION + "/connects", pprint);
-        }
-        LOG.log(Level.INFO, "Startup: {0}ms", System.currentTimeMillis() - Utils.START_TIME);
-        final Launcher launcher = new Launcher();
+    public void newFrame() throws RemoteException {
+        launcher = ( ( launcher == null ) ? ( new Launcher() ) : launcher );
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
