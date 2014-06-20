@@ -104,6 +104,7 @@ public class LauncherFrame extends JFrame {
     }
 
     private void updateList() {
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         new SwingWorker<List<Repository>, Void>() {
             @Override
             protected List<Repository> doInBackground() throws Exception {
@@ -166,6 +167,7 @@ public class LauncherFrame extends JFrame {
                 } catch(InterruptedException | ExecutionException ex) {
                     LOG.log(Level.SEVERE, null, ex);
                 }
+                setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
             }
         }.execute();
     }
@@ -254,6 +256,7 @@ public class LauncherFrame extends JFrame {
     public void start(final Program program) {
         // handle things other than programs
         if(program == null) return;
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         launchButton.setEnabled(false);
         new SwingWorker<Set<Package>, Void>() {
             @Override
@@ -293,6 +296,7 @@ public class LauncherFrame extends JFrame {
                 } catch(InterruptedException | ExecutionException e) {
                     LOG.log(Level.SEVERE, null, e);
                 }
+                setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
             }
         }.execute();
     }
