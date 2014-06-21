@@ -110,7 +110,7 @@ public class Main extends JApplet implements Protocol {
         } catch(RemoteException e) {
             LOG.log(Level.FINE, "RMI server already started, connecting...");
             try {
-                registry = LocateRegistry.getRegistry(port);
+                registry = LocateRegistry.getRegistry("localhost", port);
                 stub = (Protocol) registry.lookup(endpoint);
             } catch(RemoteException | NotBoundException e1) {
                 LOG.log(Level.SEVERE, "Unable to connect to RMI server", e1);
