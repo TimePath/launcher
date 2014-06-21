@@ -165,13 +165,14 @@ public class Main extends JApplet implements Protocol {
 
     @Override
     public void newFrame() throws RemoteException {
-        launcher = ( ( launcher == null ) ? ( new Launcher() ) : launcher );
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                SwingUtils.lookAndFeel();
+                if(launcher == null) {
+                    SwingUtils.lookAndFeel();
+                    launcher = new Launcher();
+                }
                 new LauncherFrame(launcher).setVisible(true);
-                LOG.log(Level.INFO, "Visible at {0}ms", System.currentTimeMillis() - Utils.START_TIME);
             }
         });
     }
