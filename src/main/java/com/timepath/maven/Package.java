@@ -8,6 +8,7 @@ import org.xml.sax.SAXException;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.dom.DOMSource;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.security.NoSuchAlgorithmException;
@@ -25,16 +26,12 @@ import java.util.logging.Logger;
  */
 public class Package {
 
-    public static final  String       PROGRAM_DIRECTORY = Utils.SETTINGS.get("progStoreDir",
-                                                                             new File(JARUtils.CURRENT_FILE.getParentFile(),
-                                                                                      "bin").getPath()
-                                                                            );
-    private static final Logger       LOG               = Logger.getLogger(Package.class.getName());
-    private final        Set<Package> downloads         = Collections.synchronizedSet(new HashSet<Package>());
+    private static final Logger       LOG       = Logger.getLogger(Package.class.getName());
+    private final        Set<Package> downloads = Collections.synchronizedSet(new HashSet<Package>());
     /**
      * Download status
      */
-    public               long         progress          = -1, size = -1;
+    public               long         progress  = -1, size = -1;
     private String name;
     /**
      * Maven coordinates
@@ -70,11 +67,11 @@ public class Package {
         if(p.ver == null) {
             throw new UnsupportedOperationException("TODO: dependencyManagement/dependencies/dependency/version");
         }
-        p.baseURL = MavenResolver.resolve(p.gid, p.aid, p.ver, null);
-        if(p.baseURL != null) {
+        try {
+            p.baseURL = MavenResolver.resolve(p.gid, p.aid, p.ver, null);
             LOG.log(Level.INFO, "Resolved to {0}", p.baseURL);
-        } else {
-            LOG.log(Level.WARNING, "Could not resolve {0}", MavenResolver.coordinate(p.gid, p.aid, p.ver, null));
+        } catch(FileNotFoundException e) {
+            LOG.log(Level.SEVERE, null, e);
         }
         return p;
     }
@@ -228,7 +225,7 @@ public class Package {
     }
 
     public String getProgramDirectory() {
-        return MessageFormat.format("{0}/{1}/{2}/{3}", PROGRAM_DIRECTORY, gid.replace('.', '/'), aid, ver);
+        return MessageFormat.format("{0}/{1}/{2}/{3}", MavenResolver.getLocal(), gid.replace('.', '/'), aid, ver);
     }
 
     /**
