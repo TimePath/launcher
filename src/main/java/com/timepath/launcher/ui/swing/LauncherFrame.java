@@ -325,7 +325,7 @@ public class LauncherFrame extends JDialog {
         if(time != 0) {
             buildDate = df.format(new Date(time));
         }
-        String aboutText = IOUtils.loadPage(getClass().getResource("/com/timepath/launcher/swing/about.html"))
+        String aboutText = IOUtils.loadPage(getClass().getResource("/com/timepath/launcher/ui/swing/about.html"))
                                 .replace("${buildDate}", buildDate)
                                 .replace("${steamGroup}", "http://steamcommunity.com/gid/103582791434775526")
                                 .replace("${steamChat}", "steam://friends/joinchat/103582791434775526");
