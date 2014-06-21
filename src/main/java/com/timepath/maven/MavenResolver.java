@@ -220,12 +220,18 @@ public class MavenResolver {
                     continue;
                 }
                 Node snapshot = XMLUtils.last(XMLUtils.getElements(metadata, "versioning/snapshot"));
-                url = MessageFormat.format("{0}{1}-{2}-{3}-{4}{5}",
+                String timestamp = XMLUtils.get(snapshot, "timestamp");
+                timestamp = ( ( timestamp != null ) ? ( "-" + timestamp ) : "" );
+                String buildNumber = XMLUtils.get(snapshot, "buildNumber");
+                buildNumber = ( ( buildNumber != null ) ? ( "-" + buildNumber ) : "" );
+                String versionNumber = version.substring(0, version.lastIndexOf("-SNAPSHOT"));
+                String versionSuffix = ( buildNumber.length() == 0 ) ? "-SNAPSHOT" : "";
+                url = MessageFormat.format("{0}{1}-{2}{3}{4}{5}",
                                            baseVersion,
                                            artifactId,
-                                           version.substring(0, version.lastIndexOf("-SNAPSHOT")),
-                                           XMLUtils.get(snapshot, "timestamp"),
-                                           XMLUtils.get(snapshot, "buildNumber"),
+                                           versionNumber + versionSuffix,
+                                           timestamp,
+                                           buildNumber,
                                            classifier);
                 cachedNode.put("url", url);
                 cachedNode.putLong("expires", System.currentTimeMillis() + META_LIFETIME);

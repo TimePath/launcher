@@ -119,7 +119,11 @@ public class Package {
 
     @Override
     public int hashCode() {
-        return baseURL.hashCode();
+        if(baseURL != null) {
+            return baseURL.hashCode();
+        }
+        LOG.log(Level.SEVERE, "baseURL not set: {0}", this);
+        return 0;
     }
 
     @Override
