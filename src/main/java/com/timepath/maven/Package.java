@@ -140,6 +140,77 @@ public class Package {
         return true;
     }
 
+    public File getFile() {
+        if(this.isSelf()) return JARUtils.CURRENT_FILE;
+        return new File(getProgramDirectory(), getFileName());
+    }
+
+    public String getFileName() {
+        return IOUtils.name(getDownloadURL());
+    }
+
+    /**
+     * TODO: other package types
+     *
+     * @return
+     */
+    public String getDownloadURL() {
+        return baseURL + ".jar";
+    }
+
+    public String getProgramDirectory() {
+        return MessageFormat.format("{0}/{1}/{2}/{3}", MavenResolver.getLocal(), gid.replace('.', '/'), aid, ver);
+    }
+
+    public boolean isSelf() {
+        return self || ( "launcher".equals(aid) && "com.timepath".equals(gid) );
+    }
+
+    public void setSelf(final boolean self) {
+        this.self = self;
+    }
+
+    /**
+     * TODO: other checksum types
+     *
+     * @return
+     */
+    public String getChecksumURL() {
+        return baseURL + ".jar.sha1";
+    }
+
+    /**
+     * Check the integrity of a single package
+     *
+     * @return true if matches SHA1 checksum
+     */
+    public boolean verify() {
+        LOG.log(Level.INFO, "Checking integrity of {0}", this);
+        try {
+            File existing = getFile();
+            File checksum = new File(existing.getParent(), existing.getName() + ".sha1");
+            if(!checksum.exists() || !existing.exists()) {
+                LOG.log(Level.INFO, "Don''t have {0}, reacquire", existing);
+                return false;
+            }
+            String expected = IOUtils.loadPage(checksum.toURI().toURL());
+            if(expected == null) return false;
+            expected = expected.trim();
+            String actual = IOUtils.checksum(existing, "SHA1");
+            if(!actual.equals(expected)) {
+                LOG.log(Level.INFO,
+                        "Checksum mismatch for {0}, reacquire. {1} vs {2}",
+                        new Object[] { existing, expected, actual });
+                return false;
+            }
+        } catch(IOException | NoSuchAlgorithmException ex) {
+            LOG.log(Level.SEVERE, null, ex);
+            return false;
+        }
+        LOG.log(Level.INFO, "Verified {0}", this);
+        return true;
+    }
+
     /**
      * @return all updates, flattened
      */
@@ -148,7 +219,7 @@ public class Package {
         Set<Package> outdated = new HashSet<>();
         LOG.log(Level.INFO, "Download list: {0}", downloads.toString());
         for(Package p : downloads) {
-            if(!p.isLatest()) {
+            if(!p.verify()) {
                 LOG.log(Level.INFO, "{0} is outdated", p);
                 outdated.add(p);
             }
@@ -207,47 +278,8 @@ public class Package {
         return downloads;
     }
 
-    /**
-     * TODO: other package types
-     *
-     * @return
-     */
-    public String getDownloadURL() {
-        return baseURL + ".jar";
-    }
-
-    public String getFileName() {
-        return IOUtils.name(getDownloadURL());
-    }
-
-    public File getFile() {
-        if(this.isSelf()) return JARUtils.CURRENT_FILE;
-        return new File(getProgramDirectory(), getFileName());
-    }
-
     public File getChecksumFile() {
         return new File(getProgramDirectory(), IOUtils.name(getChecksumURL()));
-    }
-
-    public String getProgramDirectory() {
-        return MessageFormat.format("{0}/{1}/{2}/{3}", MavenResolver.getLocal(), gid.replace('.', '/'), aid, ver);
-    }
-
-    /**
-     * TODO: other checksum types
-     *
-     * @return
-     */
-    public String getChecksumURL() {
-        return baseURL + ".jar.sha1";
-    }
-
-    public boolean isSelf() {
-        return self || ( "launcher".equals(aid) && "com.timepath".equals(gid) );
-    }
-
-    public void setSelf(final boolean self) {
-        this.self = self;
     }
 
     public boolean isLocked() {
