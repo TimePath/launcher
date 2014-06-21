@@ -181,7 +181,6 @@ public class MavenResolver {
             throws FileNotFoundException
     {
         validate(groupId, artifactId, version);
-        groupId = groupId.replace("${project.groupId}", "com.timepath"); // TODO: variables
         String coordinate = coordinate(groupId, artifactId, version, classifier);
         LOG.log(Level.INFO, "Resolving artifact: {0}", coordinate);
         String cached = urlCache.get(coordinate);

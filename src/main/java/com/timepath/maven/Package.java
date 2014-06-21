@@ -48,8 +48,11 @@ public class Package {
      * Instantiate a Package instance from an XML node
      *
      * @param root
+     *         the root node
+     * @param context
+     *         the parent package
      */
-    public static Package parse(Node root) {
+    public static Package parse(Node root, Package context) {
         if(root == null) {
             throw new IllegalArgumentException("The root node cannot be null");
         }
@@ -66,6 +69,10 @@ public class Package {
         p.ver = inherit(root, "version");
         if(p.ver == null) {
             throw new UnsupportedOperationException("TODO: dependencyManagement/dependencies/dependency/version");
+        }
+        if(context != null) { // TODO: recursion
+            p.gid = p.gid.replace("${project.groupId}", context.gid);
+            p.ver = p.ver.replace("${project.version}", context.ver);
         }
         try {
             p.baseURL = MavenResolver.resolve(p.gid, p.aid, p.ver, null);
@@ -173,9 +180,7 @@ public class Package {
                     @Override
                     public Set<Package> call() throws Exception {
                         try {
-                            Package pkg = Package.parse(d);
-                            pkg.gid = pkg.gid.replace("${project.groupId}", gid);
-                            pkg.ver = pkg.ver.replace("${project.version}", ver);
+                            Package pkg = Package.parse(d, Package.this);
                             return pkg.getDownloads();
                         } catch(IllegalArgumentException e) {
                             LOG.log(Level.SEVERE, null, e);

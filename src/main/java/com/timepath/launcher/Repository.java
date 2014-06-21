@@ -95,11 +95,11 @@ locate:
         }
         Repository r = new Repository();
         r.name = XMLUtils.get(root, "name");
-        r.self = Package.parse(root);
+        r.self = Package.parse(root, null);
         if(r.self != null) r.self.setSelf(true);
         r.executions = new LinkedList<>();
         for(Node entry : XMLUtils.getElements(root, "programs/program")) {
-            Package pkg = Package.parse(entry);
+            Package pkg = Package.parse(entry, null);
             // extended format with execution data
             for(Node execution : XMLUtils.getElements(entry, "executions/execution")) {
                 Node cfg = XMLUtils.last(XMLUtils.getElements(execution, "configuration"));
