@@ -64,7 +64,7 @@ public class Server implements Runnable {
             // Block until shutdown
             try {
                 latch.await();
-            } catch(InterruptedException ignore) {
+            } catch(InterruptedException ignored) {
             }
             LOG.log(Level.INFO, "Exiting");
         } catch(IOException ex) {

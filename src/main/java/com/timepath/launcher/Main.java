@@ -124,12 +124,12 @@ public class Main extends JApplet implements Protocol {
         Level consoleLevel = Level.CONFIG;
         try {
             consoleLevel = Level.parse(Utils.SETTINGS.get("consoleLevel", consoleLevel.getName()));
-        } catch(IllegalArgumentException | NullPointerException ignore) {
+        } catch(IllegalArgumentException | NullPointerException ignored) {
         }
         Level logfileLevel = Level.CONFIG;
         try {
             logfileLevel = Level.parse(Utils.SETTINGS.get("logfileLevel", logfileLevel.getName()));
-        } catch(IllegalArgumentException | NullPointerException ignore) {
+        } catch(IllegalArgumentException | NullPointerException ignored) {
         }
         // choose finest level
         Level packageLevel = Level.parse(Integer.toString(Math.min(logfileLevel.intValue(), consoleLevel.intValue())));

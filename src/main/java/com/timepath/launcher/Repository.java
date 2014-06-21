@@ -143,7 +143,7 @@ locate:
                         if(Utils.DEBUG || ( JARUtils.CURRENT_VERSION >= Long.parseLong(v) )) {
                             version = iter;
                         }
-                    } catch(NumberFormatException ignore) {
+                    } catch(NumberFormatException ignored) {
                     }
                 }
             }
