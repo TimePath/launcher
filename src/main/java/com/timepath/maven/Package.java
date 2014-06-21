@@ -18,6 +18,8 @@ import java.util.Map.Entry;
 import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Handles maven packages
@@ -43,6 +45,7 @@ public class Package {
     private String  baseURL;
     private boolean locked;
     private boolean self;
+    private Node    pom;
 
     /**
      * Instantiate a Package instance from an XML node
@@ -58,7 +61,8 @@ public class Package {
         }
         Package p = new Package();
         LOG.log(Level.INFO, "Constructing Package from node");
-        LOG.log(Level.FINE, "{0}", Utils.pprint(new DOMSource(root), 2));
+        String pprint = Utils.pprint(new DOMSource(root), 2);
+        LOG.log(Level.FINE, "{0}", pprint);
         p.name = XMLUtils.get(root, "name");
         p.gid = inherit(root, "groupId");
         if(p.gid == null) { // invalid pom
@@ -70,9 +74,8 @@ public class Package {
         if(p.ver == null) {
             throw new UnsupportedOperationException("TODO: dependencyManagement/dependencies/dependency/version");
         }
-        if(context != null) { // TODO: recursion
-            p.gid = p.gid.replace("${project.groupId}", context.gid);
-            p.ver = p.ver.replace("${project.version}", context.ver);
+        if(context != null) {
+            p.expand(context);
         }
         try {
             p.baseURL = MavenResolver.resolve(p.gid, p.aid, p.ver, null);
@@ -89,6 +92,29 @@ public class Package {
             return XMLUtils.get(XMLUtils.last(XMLUtils.getElements(root, "parent")), name);
         }
         return ret;
+    }
+
+    /**
+     * Expands properties
+     * TODO: recursion
+     */
+    public void expand(Package context) {
+        gid = expand(context, gid.replace("${project.groupId}", context.gid));
+        ver = expand(context, ver.replace("${project.version}", context.ver));
+    }
+
+    private String expand(Package context, String string) {
+        Matcher matcher = Pattern.compile("\\$\\{(.*?)}").matcher(string);
+        while(matcher.find()) {
+            String property = matcher.group(1);
+            List<Node> properties = XMLUtils.getElements(context.pom, "properties");
+            Node propertyNodes = properties.get(0);
+            for(Node n : XMLUtils.get(propertyNodes, Node.ELEMENT_NODE)) {
+                String value = n.getFirstChild().getNodeValue();
+                string = string.replace("${" + property + "}", value);
+            }
+        }
+        return string;
     }
 
     @Override
@@ -243,7 +269,7 @@ public class Package {
         downloads.add(this);
         try {
             // pull the pom
-            Node pom = XMLUtils.rootNode(MavenResolver.resolvePomStream(gid, aid, ver, null), "project");
+            pom = XMLUtils.rootNode(MavenResolver.resolvePomStream(gid, aid, ver, null), "project");
             ExecutorService pool = Executors.newCachedThreadPool(new DaemonThreadFactory());
             Map<Node, Future<Set<Package>>> futures = new HashMap<>();
             for(final Node d : XMLUtils.getElements(pom, "dependencies/dependency")) {
