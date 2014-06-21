@@ -25,20 +25,23 @@ import java.util.regex.Pattern;
  */
 public class MavenResolver {
 
-    public static final  String  REPO_CENTRAL = "http://repo.maven.apache.org/maven2";
-    public static final  String  REPO_CUSTOM  = "https://dl.dropboxusercontent.com/u/42745598/maven2";
-    private static final Pattern RE_VERSION   = Pattern.compile("(\\d*)\\.(\\d*)\\.(\\d*)");
     private static final Collection<String> repositories;
-    private static final Logger              LOG           = Logger.getLogger(MavenResolver.class.getName());
-    private static final long                META_LIFETIME = 10 * 60 * 1000;
-    private static       Map<String, String> pomCache      = Collections.synchronizedMap(new HashMap<String, String>());
-    private static       Map<String, String> urlCache      = Collections.synchronizedMap(new HashMap<String, String>());
+    private static final String  REPO_CENTRAL   = "http://repo.maven.apache.org/maven2";
+    private static final String  REPO_CUSTOM    = "https://dl.dropboxusercontent.com/u/42745598/maven2";
+    private static final String  REPO_JETBRAINS = "http://repository.jetbrains.com/all";
+    private static final Pattern RE_VERSION     = Pattern.compile("(\\d*)\\.(\\d*)\\.(\\d*)");
+    private static final Logger  LOG            = Logger.getLogger(MavenResolver.class.getName());
+    private static final long    META_LIFETIME  = 10 * 60 * 1000;
 
     static {
         repositories = new LinkedHashSet<>();
         addRepository(REPO_CUSTOM);
+        addRepository(REPO_JETBRAINS);
         addRepository(REPO_CENTRAL);
     }
+
+    private static Map<String, String> pomCache = Collections.synchronizedMap(new HashMap<String, String>());
+    private static Map<String, String> urlCache = Collections.synchronizedMap(new HashMap<String, String>());
 
     private MavenResolver() {}
 
