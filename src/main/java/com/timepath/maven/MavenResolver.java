@@ -271,7 +271,11 @@ public class MavenResolver {
      */
     private static Collection<String> getRepositories() {
         LinkedHashSet<String> repositories = new LinkedHashSet<>();
-        repositories.add(getLocal()); // To allow for changes at runtime
+        try { // To allow for changes at runtime
+            repositories.add(new File(getLocal()).toURI().toURL().toExternalForm());
+        } catch(MalformedURLException e) {
+            LOG.log(Level.SEVERE, null, e);
+        }
         repositories.addAll(MavenResolver.repositories);
         return Collections.unmodifiableCollection(repositories);
     }
@@ -283,11 +287,6 @@ public class MavenResolver {
         String local;
         local = Utils.SETTINGS.get("progStoreDir", new File(JARUtils.CURRENT_FILE.getParentFile(), "bin").getPath());
         // local = System.getProperty("maven.repo.local", System.getProperty("user.home") + "/.m2/repository");
-        try {
-            local = new File(local).toURI().toURL().toExternalForm();
-        } catch(MalformedURLException e) {
-            LOG.log(Level.SEVERE, null, e);
-        }
         return sanitize(local);
     }
 }
