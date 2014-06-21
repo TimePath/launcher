@@ -33,7 +33,7 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 @SuppressWarnings("serial")
-public class LauncherFrame extends JFrame {
+public class LauncherFrame extends JDialog {
 
     private static final Logger LOG = Logger.getLogger(LauncherFrame.class.getName());
     protected JPanel                aboutPanel;
