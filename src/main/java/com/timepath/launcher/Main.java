@@ -104,10 +104,10 @@ public class Main extends JApplet implements Protocol {
             }, serverFactory);
             port = serverFactory.socket.getLocalPort();
             LOG.log(Level.INFO, "RMI server listening on port {0}", port);
-            Main obj = new Main();
-            stub = (Protocol) UnicastRemoteObject.exportObject(obj, 0);
-            registry.rebind(endpoint, stub);
-        } catch(RemoteException e) {
+            stub = new Main();
+            Protocol obj = (Protocol) UnicastRemoteObject.exportObject(stub, 0);
+            registry.rebind(endpoint, obj);
+        } catch(IOException e) {
             LOG.log(Level.FINE, "RMI server already started, connecting...");
             try {
                 registry = LocateRegistry.getRegistry("localhost", port);
