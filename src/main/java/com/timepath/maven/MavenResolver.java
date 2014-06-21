@@ -16,6 +16,8 @@ import java.text.MessageFormat;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.prefs.BackingStoreException;
+import java.util.prefs.Preferences;
 import java.util.regex.Pattern;
 
 /**
@@ -27,9 +29,10 @@ public class MavenResolver {
     public static final  String  REPO_CUSTOM  = "https://dl.dropboxusercontent.com/u/42745598/maven2";
     private static final Pattern RE_VERSION   = Pattern.compile("(\\d*)\\.(\\d*)\\.(\\d*)");
     private static final Collection<String> repositories;
-    private static final Logger              LOG      = Logger.getLogger(MavenResolver.class.getName());
-    private static       Map<String, String> pomCache = Collections.synchronizedMap(new HashMap<String, String>());
-    private static       Map<String, String> urlCache = Collections.synchronizedMap(new HashMap<String, String>());
+    private static final Logger              LOG           = Logger.getLogger(MavenResolver.class.getName());
+    private static final long                META_LIFETIME = 10 * 60 * 1000;
+    private static       Map<String, String> pomCache      = Collections.synchronizedMap(new HashMap<String, String>());
+    private static       Map<String, String> urlCache      = Collections.synchronizedMap(new HashMap<String, String>());
 
     static {
         repositories = new LinkedHashSet<>();
@@ -192,6 +195,14 @@ public class MavenResolver {
             String baseVersion = baseArtifact + ( version + '/' );
             String url;
             if(version.endsWith("-SNAPSHOT")) {
+                Preferences cachedNode = getCached(coordinate);
+                if(System.currentTimeMillis() < cachedNode.getLong("expires", 0)) {
+                    cached = cachedNode.get("url", null);
+                    if(cached != null) {
+                        urlCache.put(coordinate, cached);
+                        return cached;
+                    }
+                }
                 Node metadata;
                 // TODO: Handle when using REPO_LOCAL
                 try {
@@ -214,15 +225,19 @@ public class MavenResolver {
                                            XMLUtils.get(snapshot, "timestamp"),
                                            XMLUtils.get(snapshot, "buildNumber"),
                                            classifier);
+                cachedNode.put("url", url);
+                cachedNode.putLong("expires", System.currentTimeMillis() + META_LIFETIME);
+                try {
+                    cachedNode.flush();
+                } catch(BackingStoreException ignored) { }
             } else {
                 url = MessageFormat.format("{0}{1}-{2}{3}", baseVersion, artifactId, version, classifier);
                 try {
-                    String pom = pomCache.get(coordinate);
-                    if(pom == null) {
-                        pom = IOUtils.loadPage(new URL(url + ".pom"));
+                    if(pomCache.get(coordinate) == null) {
+                        String pom = IOUtils.loadPage(new URL(url + ".pom"));
                         if(pom == null) continue;
+                        pomCache.put(coordinate, pom);
                     }
-                    pomCache.put(coordinate, pom);
                 } catch(MalformedURLException e) {
                     continue;
                 }
@@ -231,6 +246,22 @@ public class MavenResolver {
             return url;
         }
         throw new FileNotFoundException("Could not resolve " + coordinate);
+    }
+
+    /**
+     * Get the cached {@link java.util.prefs.Preferences} node from a coordinate
+     *
+     * @param coordinate
+     *         the coordinate
+     *
+     * @return the preferences node
+     */
+    private static Preferences getCached(String coordinate) {
+        Preferences cachedNode = Preferences.userNodeForPackage(MavenResolver.class);
+        for(String nodeName : coordinate.replaceAll("[.:-]", "/").split("/")) {
+            cachedNode = cachedNode.node(nodeName);
+        }
+        return cachedNode;
     }
 
     /**
