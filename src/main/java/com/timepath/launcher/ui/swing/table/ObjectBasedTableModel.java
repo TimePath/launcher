@@ -1,4 +1,4 @@
-package com.timepath.swing.table;
+package com.timepath.launcher.ui.swing.table;
 
 import javax.swing.table.AbstractTableModel;
 import java.util.Arrays;

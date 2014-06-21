@@ -1,7 +1,7 @@
 package com.timepath.launcher.ui.swing;
 
 import com.timepath.maven.Package;
-import com.timepath.swing.table.ObjectBasedTableModel;
+import com.timepath.launcher.ui.swing.table.ObjectBasedTableModel;
 
 import javax.swing.*;
 import java.util.logging.Logger;
