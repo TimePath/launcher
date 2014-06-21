@@ -147,6 +147,7 @@ public class IOUtils {
 
     public static String loadPage(URL u) {
         LOG.log(Level.INFO, "loadPage: {0}", u);
+        if(u == null) return null;
         try {
             URLConnection connection = u.openConnection();
             try(InputStreamReader isr = new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8)) {
