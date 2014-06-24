@@ -277,6 +277,16 @@ public class Package {
             ExecutorService pool = Executors.newCachedThreadPool(new DaemonThreadFactory());
             Map<Node, Future<Set<Package>>> futures = new HashMap<>();
             for(final Node d : XMLUtils.getElements(pom, "dependencies/dependency")) {
+                // Check scope
+                String type = XMLUtils.get(d, "scope");
+                if(type == null) type = "compile";
+                // TODO: 'import' scope
+                switch(type.toLowerCase()) {
+                    case "provided":
+                    case "test":
+                    case "system":
+                        continue;
+                }
                 futures.put(d, pool.submit(new Callable<Set<Package>>() {
                     @Override
                     public Set<Package> call() throws Exception {
