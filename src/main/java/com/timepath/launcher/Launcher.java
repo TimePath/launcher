@@ -43,7 +43,8 @@ public class Launcher {
      * */
     public List<Repository> getRepositories() {
         List<Repository> lists = new LinkedList<>();
-        Repository main = Repository.fromIndex("http://dl.dropboxusercontent.com/u/42745598/" + REPO_MAIN);
+        Repository main = Repository.fromIndex("http://oss.jfrog.org/artifactory/oss-snapshot-local/" +
+                                               "com/timepath/launcher/config/" + REPO_MAIN);
         self = main.getSelf();
         lists.add(main);
         Preferences repos = PREFS.node("repositories");

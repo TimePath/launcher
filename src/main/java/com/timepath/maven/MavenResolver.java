@@ -27,6 +27,7 @@ public class MavenResolver {
 
     private static final Collection<String> repositories;
     private static final String  REPO_CENTRAL   = "http://repo.maven.apache.org/maven2";
+    private static final String  REPO_JFROG     = "http://oss.jfrog.org/oss-snapshot-local";
     private static final String  REPO_CUSTOM    = "https://dl.dropboxusercontent.com/u/42745598/maven2";
     private static final String  REPO_JETBRAINS = "http://repository.jetbrains.com/all";
     private static final Pattern RE_VERSION     = Pattern.compile("(\\d*)\\.(\\d*)\\.(\\d*)");
@@ -35,6 +36,7 @@ public class MavenResolver {
 
     static {
         repositories = new LinkedHashSet<>();
+        addRepository(REPO_JFROG);
         addRepository(REPO_CUSTOM);
         addRepository(REPO_JETBRAINS);
         addRepository(REPO_CENTRAL);
