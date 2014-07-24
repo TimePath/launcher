@@ -40,7 +40,7 @@ public class ThemeSelector extends JComboBox<String> {
         }
         addActionListener(new ActionListener() {
             @Override
-            public void actionPerformed(ActionEvent e) {
+            public void actionPerformed(ActionEvent evt) {
                 String target = (String) model.getSelectedItem();
                 for(UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
                     if(target.equals(info.getName())) {
@@ -48,15 +48,15 @@ public class ThemeSelector extends JComboBox<String> {
                         try {
                             String usrTheme = info.getClassName();
                             UIManager.setLookAndFeel(usrTheme);
-                            for(Window w : Window.getWindows()) { // TODO: instrumentation to access detached components
+                            for(Window w : Window.getWindows()) { // TODO: Instrumentation to access detached components
                                 SwingUtilities.updateComponentTreeUI(w);
                             }
                             Utils.SETTINGS.put("laf", usrTheme);
                             return;
-                        } catch(InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException ex) {
-                            LOG.log(Level.SEVERE, null, ex);
-                        } catch(ClassNotFoundException ex) {
-                            LOG.log(Level.WARNING, "Unable to load user L&F\n{0}", ex);
+                        } catch(InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
+                            LOG.log(Level.SEVERE, null, e);
+                        } catch(ClassNotFoundException e) {
+                            LOG.log(Level.WARNING, "Unable to load user L&F", e);
                         }
                     }
                 }

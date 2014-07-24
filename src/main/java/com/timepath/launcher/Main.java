@@ -20,6 +20,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.RMIClientSocketFactory;
+import java.rmi.server.RMIServerSocketFactory;
 import java.rmi.server.UnicastRemoteObject;
 import java.security.*;
 import java.util.Arrays;
@@ -30,8 +31,7 @@ import java.util.logging.*;
 /**
  * @author TimePath
  */
-@SuppressWarnings("serial")
-public class Main extends JApplet implements Protocol {
+public class Main implements Protocol {
 
     private static final Logger LOG = Logger.getLogger(Main.class.getName());
 
@@ -53,71 +53,82 @@ public class Main extends JApplet implements Protocol {
         System.setSecurityManager(null);
     }
 
-    Launcher launcher;
-
-    @Override
-    public void init() {
-        main(new String[0]);
-    }
-
     public static void main(String[] args) {
-        Protocol stub = initRMI(1099);
-        LOG.log(Level.INFO, "Initial: {0}ms", System.currentTimeMillis() - Utils.START_TIME);
-        LOG.log(Level.INFO, "Args = {0}", Arrays.toString(args));
-        IOUtils.checkForUpdate(args);
-        initLogging();
-        Map<String, Object> dbg = new HashMap<>(3);
-        dbg.put("name", ManagementFactory.getRuntimeMXBean().getName());
-        dbg.put("env", System.getenv());
-        dbg.put("properties", System.getProperties());
-        String pprint = Utils.pprint(dbg);
-        LOG.info(pprint);
-        if(!Utils.DEBUG) {
-            IOUtils.log(Utils.USER + ".xml.gz", "launcher/" + JARUtils.CURRENT_VERSION + "/connects", pprint);
+        Protocol main = getInstance();
+        boolean local = main instanceof Main;
+        if(local) {
+            LOG.log(Level.INFO, "Initial: {0}ms", System.currentTimeMillis() - Utils.START_TIME);
+            LOG.log(Level.INFO, "Args = {0}", Arrays.toString(args));
+            IOUtils.checkForUpdate(args);
+            initLogging();
+            Map<String, Object> dbg = new HashMap<>(3);
+            dbg.put("name", ManagementFactory.getRuntimeMXBean().getName());
+            dbg.put("env", System.getenv());
+            dbg.put("properties", System.getProperties());
+            String pprint = Utils.pprint(dbg);
+            if(!Utils.DEBUG) {
+                IOUtils.log(Utils.USER + ".xml.gz", "launcher/" + JARUtils.CURRENT_VERSION + "/connects", pprint);
+            }
+            LOG.log(Level.INFO, "Startup: {0}ms", System.currentTimeMillis() - Utils.START_TIME);
         }
-        LOG.log(Level.INFO, "Startup: {0}ms", System.currentTimeMillis() - Utils.START_TIME);
         try {
-            stub.newFrame();
+            main.newFrame();
         } catch(RemoteException e) {
             LOG.log(Level.SEVERE, null, e);
         }
     }
 
-    private static Protocol initRMI(int port) {
-        String endpoint = "com/timepath/launcher";
-        Registry registry;
+    public static Protocol getInstance() {
+        int port = 1099; // FIXME: Hardcoded
         Protocol stub = null;
+        if(Launcher.PREFS.getBoolean("rmi", false)) {
+            if(( stub = createServer(port) ) == null) stub = createClient(port);
+        }
+        if(stub == null) stub = new Main(); // Legacy fallback
+        return stub;
+    }
+
+    private static String RMI_ENDPOINT = "com/timepath/launcher";
+
+    private static Protocol createClient(int port) {
+        LOG.log(Level.INFO, "RMI server already started, connecting...");
         try {
-            class RMIServerSocketFactory implements java.rmi.server.RMIServerSocketFactory {
+            Registry registry = LocateRegistry.getRegistry("localhost", port);
+            return (Protocol) registry.lookup(RMI_ENDPOINT);
+        } catch(RemoteException | NotBoundException e) {
+            LOG.log(Level.SEVERE, "Unable to connect to RMI server", e);
+        }
+        return null;
+    }
+
+    private static Protocol createServer(int port) {
+        try {
+            class LocalRMIServerSocketFactory implements RMIServerSocketFactory {
 
                 ServerSocket socket;
 
+                @Override
                 public ServerSocket createServerSocket(int port) throws IOException {
                     return ( socket = new ServerSocket(port, 0, InetAddress.getByName(null)) );
                 }
             }
-            RMIServerSocketFactory serverFactory = new RMIServerSocketFactory();
-            registry = LocateRegistry.createRegistry(port, new RMIClientSocketFactory() {
+            LocalRMIServerSocketFactory serverFactory = new LocalRMIServerSocketFactory();
+            Registry registry = LocateRegistry.createRegistry(port, new RMIClientSocketFactory() {
+                @Override
                 public Socket createSocket(String host, int port) throws IOException {
                     return new Socket(host, port);
                 }
             }, serverFactory);
             port = serverFactory.socket.getLocalPort();
             LOG.log(Level.INFO, "RMI server listening on port {0}", port);
-            stub = new Main();
-            Protocol obj = (Protocol) UnicastRemoteObject.exportObject(stub, 0);
-            registry.rebind(endpoint, obj);
+            Main main = new Main();
+            Protocol stub = (Protocol) UnicastRemoteObject.exportObject(main, 0);
+            registry.rebind(RMI_ENDPOINT, stub);
+            return main;
         } catch(IOException e) {
-            LOG.log(Level.FINE, "RMI server already started, connecting...");
-            try {
-                registry = LocateRegistry.getRegistry("localhost", port);
-                stub = (Protocol) registry.lookup(endpoint);
-            } catch(RemoteException | NotBoundException e1) {
-                LOG.log(Level.SEVERE, "Unable to connect to RMI server", e1);
-                System.exit(-1);
-            }
+            LOG.log(Level.WARNING, "Unable to start RMI server: {0}", e.getMessage());
+            return null;
         }
-        return stub;
     }
 
     private static void initLogging() {
@@ -131,7 +142,7 @@ public class Main extends JApplet implements Protocol {
             logfileLevel = Level.parse(Utils.SETTINGS.get("logfileLevel", logfileLevel.getName()));
         } catch(IllegalArgumentException | NullPointerException ignored) {
         }
-        // choose finest level
+        // Choose finest level
         Level packageLevel = Level.parse(Integer.toString(Math.min(logfileLevel.intValue(), consoleLevel.intValue())));
         Logger.getLogger("com.timepath").setLevel(packageLevel);
         Logger globalLogger = Logger.getLogger("");
@@ -162,6 +173,8 @@ public class Main extends JApplet implements Protocol {
         LOG.log(Level.INFO, "Logfile level: {0}", logfileLevel);
         LOG.log(Level.INFO, "Package level: {0}", packageLevel);
     }
+
+    private Launcher launcher;
 
     @Override
     public void newFrame() throws RemoteException {

@@ -13,68 +13,70 @@ import java.util.prefs.Preferences;
 
 public class Launcher {
 
+    public static final  String               REPO_MAIN       =
+            "http://oss.jfrog.org/artifactory/oss-snapshot-local/com/timepath/launcher/config/" + "public.xml";
     public static final  Preferences          PREFS           = Preferences.userNodeForPackage(Launcher.class);
-    public static final  String               REPO_MAIN       = "public.xml";
+    private static final Preferences          PREFS_REPOS     = PREFS.node("repositories");
     private static final Logger               LOG             = Logger.getLogger(Launcher.class.getName());
     private final        CompositeClassLoader cl              = CompositeClassLoader.createPrivileged();
     private final        DownloadManager      downloadManager = new DownloadManager();
-    private com.timepath.maven.Package self;
+    private Package self;
 
-    public Launcher() {}
+    public Launcher() { }
 
-    public static void addRepository(Repository r) {
-        PREFS.node("repositories").putBoolean(r.getLocation(), true);
-    }
+    public static void addRepository(Repository r) { PREFS_REPOS.put(String.valueOf(r.hashCode()), r.getLocation()); }
 
-    public static void removeRepository(Repository r) {
-        PREFS.node("repositories").putBoolean(r.getLocation(), false);
+    public static void removeRepository(Repository r) { PREFS_REPOS.remove(String.valueOf(r.hashCode())); }
+
+    private static List<String> getRepositoryLocations() {
+        List<String> locations = new LinkedList<>(); try {
+            for(String repo : PREFS_REPOS.keys()) {
+                String s = PREFS_REPOS.get(repo, null);
+                if("true".equalsIgnoreCase(s) || "false".equalsIgnoreCase(s)) { // Legacy schema
+                    PREFS_REPOS.remove(String.valueOf(s.hashCode()));
+                    continue;
+                }
+                if(s != null) locations.add(s);
+            }
+        } catch(BackingStoreException e) {
+            LOG.log(Level.SEVERE, null, e);
+        }
+        return locations;
     }
 
     /**
      * @return the downloadManager
      */
-    public DownloadManager getDownloadManager() {
-        return downloadManager;
-    }
+    public DownloadManager getDownloadManager() { return downloadManager; }
 
     /**
      * TODO: in parallel
+     *
      * @return fetch and return a list of all repositories
-     * */
+     */
     public List<Repository> getRepositories() {
-        List<Repository> lists = new LinkedList<>();
-        Repository main = Repository.fromIndex("http://oss.jfrog.org/artifactory/oss-snapshot-local/" +
-                                               "com/timepath/launcher/config/" + REPO_MAIN);
+        List<Repository> repositories = new LinkedList<>();
+        Repository main = Repository.fromIndex(REPO_MAIN);
         self = main.getSelf();
-        lists.add(main);
-        Preferences repos = PREFS.node("repositories");
-        try {
-            for(String repo : repos.keys()) {
-                if(repos.getBoolean(repo, false)) {
-                    lists.add(Repository.fromIndex(repo));
-                }
-            }
-        } catch(BackingStoreException ex) {
-            LOG.log(Level.SEVERE, null, ex);
+        repositories.add(main);
+        for(String repo : getRepositoryLocations()) {
+            Repository r = Repository.fromIndex(repo);
+            if(r != null) repositories.add(r);
         }
-        return lists;
+        return repositories;
     }
 
     /**
      * @return true if self is up to date
      */
-    public boolean updateRequired() {
-        return !self.isLatest();
-    }
+    public boolean updateRequired() { return !self.isLatest(); }
 
     /**
      * Starts a program on another {@code Thread}. Returns after started
      *
      * @param program
      */
-    public void start(Program program) {
-        program.createThread(cl).start();
-    }
+    public void start(Program program) { program.createThread(cl).start(); }
 
     /**
      * @param program

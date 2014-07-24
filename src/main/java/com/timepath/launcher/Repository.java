@@ -15,7 +15,10 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.dom.DOMSource;
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -39,7 +42,8 @@ public class Repository {
      */
     private String                     location;
     /**
-     * The package representing this repository. Mostly only relevant to the main repository so that the main launcher has a way
+     * The package representing this repository. Mostly only relevant to the main repository so that the main launcher
+     * has a way
      * of updating itself
      */
     private com.timepath.maven.Package self;
@@ -52,7 +56,7 @@ public class Repository {
      */
     private List<Program>              executions;
 
-    private Repository() {}
+    private Repository() { }
 
     /**
      * Constructs a repository from a compatible node within a larger document
@@ -63,21 +67,14 @@ public class Repository {
      */
     public static Repository fromIndex(String location) {
         try {
-            byte[] data;
-locate:
-            {
-                if(Utils.DEBUG) { // try loading from local file
-                    File local = new File(System.getProperty("user.home") + "/Dropbox/Public/" + IOUtils.name(location));
-                    data = IOUtils.loadPage(local.toURI().toURL()).getBytes(StandardCharsets.UTF_8);
-                    break locate;
-                }
-                data = IOUtils.loadPage(new URL(location)).getBytes(StandardCharsets.UTF_8);
-            }
+            String page = IOUtils.loadPage(new URL(location));
+            if(page == null) return null;
+            byte[] data = page.getBytes(StandardCharsets.UTF_8);
             Repository r = parse(findCompatible(new ByteArrayInputStream(data)));
             r.location = location;
             return r;
         } catch(MalformedURLException e) {
-            LOG.log(Level.SEVERE, "fromIndex: {0}", e);
+            LOG.log(Level.SEVERE, null, e);
         }
         return null;
     }
@@ -90,9 +87,7 @@ locate:
      * @return
      */
     private static Repository parse(Node root) {
-        if(root == null) {
-            throw new IllegalArgumentException("The root node must not be null");
-        }
+        if(root == null) throw new IllegalArgumentException("The root node must not be null");
         Repository r = new Repository();
         r.name = XMLUtils.get(root, "name");
         r.self = Package.parse(root, null);
@@ -129,14 +124,10 @@ locate:
             Node iter = null;
             NodeList versions = root.getChildNodes();
             for(int i = 0; i < versions.getLength(); iter = versions.item(i++)) {
-                if(( iter == null ) || !iter.hasAttributes()) {
-                    continue;
-                }
+                if(( iter == null ) || !iter.hasAttributes()) continue;
                 NamedNodeMap attributes = iter.getAttributes();
                 Node versionAttribute = attributes.getNamedItem("version");
-                if(versionAttribute == null) {
-                    continue;
-                }
+                if(versionAttribute == null) continue;
                 String v = versionAttribute.getNodeValue();
                 if(v != null) {
                     try {
@@ -158,27 +149,17 @@ locate:
     /**
      * @return the executions
      */
-    public List<Program> getExecutions() {
-        return Collections.unmodifiableList(executions);
-    }
+    public List<Program> getExecutions() { return Collections.unmodifiableList(executions); }
 
     @Override
-    public String toString() {
-        return MessageFormat.format("{0} ({1})", name, location);
-    }
+    public String toString() { return MessageFormat.format("{0} ({1})", name, location); }
 
     /**
      * @return the name
      */
-    public String getName() {
-        return name == null ? location : name;
-    }
+    public String getName() { return name == null ? location : name; }
 
-    public Package getSelf() {
-        return self;
-    }
+    public Package getSelf() { return self; }
 
-    public String getLocation() {
-        return location;
-    }
+    public String getLocation() { return location; }
 }
