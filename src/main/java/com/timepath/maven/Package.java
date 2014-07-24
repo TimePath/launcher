@@ -2,6 +2,7 @@ package com.timepath.maven;
 
 import com.timepath.launcher.util.*;
 import com.timepath.launcher.util.XMLUtils;
+import com.timepath.maven.MavenResolver.Coordinate;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
@@ -78,7 +79,7 @@ public class Package {
             p.expand(context);
         }
         try {
-            p.baseURL = MavenResolver.resolve(p.gid, p.aid, p.ver, null);
+            p.baseURL = MavenResolver.resolve(new Coordinate(p.gid, p.aid, p.ver, null));
             LOG.log(Level.INFO, "Resolved to {0}", p.baseURL);
         } catch(FileNotFoundException e) {
             LOG.log(Level.SEVERE, null, e);
@@ -273,7 +274,7 @@ public class Package {
         downloads.add(this);
         try {
             // pull the pom
-            pom = XMLUtils.rootNode(MavenResolver.resolvePomStream(gid, aid, ver, null), "project");
+            pom = XMLUtils.rootNode(MavenResolver.resolvePomStream(new Coordinate(gid, aid, ver, null)), "project");
             ExecutorService pool = Executors.newCachedThreadPool(new DaemonThreadFactory());
             Map<Node, Future<Set<Package>>> futures = new HashMap<>();
             for(final Node d : XMLUtils.getElements(pom, "dependencies/dependency")) {
