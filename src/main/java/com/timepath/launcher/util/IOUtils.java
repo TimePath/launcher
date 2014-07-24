@@ -3,6 +3,7 @@ package com.timepath.launcher.util;
 import com.timepath.logging.DBInbox;
 
 import java.io.*;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.ByteBuffer;
@@ -150,6 +151,12 @@ public class IOUtils {
         if(u == null) return null;
         try {
             URLConnection connection = u.openConnection();
+            if(connection instanceof HttpURLConnection) {
+                HttpURLConnection http = ( (HttpURLConnection) connection );
+                if(http.getResponseCode() == HttpURLConnection.HTTP_MOVED_TEMP) {
+                    connection = new URL(http.getHeaderField("Location")).openConnection();
+                }
+            }
             try(InputStreamReader isr = new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8)) {
                 BufferedReader br = new BufferedReader(isr);
                 StringBuilder sb = new StringBuilder(Math.min(connection.getContentLength(), 0));
