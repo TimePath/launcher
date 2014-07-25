@@ -41,18 +41,18 @@ public abstract class Cache<K, V> implements Map<K, V> {
         return m.containsValue(value);
     }
 
-    public V get(Object keyObject) {
+    public synchronized V get(Object keyObject) {
+        V value = null;
         try {
             @SuppressWarnings("unchecked") K key = (K) keyObject;
-            V value = m.get(key);
+            value = m.get(key);
             if(value == null || expire(key)) {
                 value = fill(key);
                 if(value != null) m.put(key, value);
-                return value;
             }
         } catch(ClassCastException ignored) {
         }
-        return null;
+        return value;
     }
 
     @Override
