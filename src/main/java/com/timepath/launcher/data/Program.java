@@ -1,4 +1,4 @@
-package com.timepath.launcher;
+package com.timepath.launcher.data;
 
 import com.timepath.classloader.CompositeClassLoader;
 import com.timepath.launcher.util.IOUtils;

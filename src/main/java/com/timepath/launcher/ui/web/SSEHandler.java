@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
-import java.util.logging.Logger;
 
 /**
  * Handles Server-Sent Events
@@ -17,9 +16,7 @@ import java.util.logging.Logger;
  */
 class SSEHandler implements HttpHandler {
 
-    private static final Logger LOG = Logger.getLogger(SSEHandler.class.getName());
-
-    SSEHandler() {}
+    SSEHandler() { }
 
     @Override
     public void handle(final HttpExchange exchange) throws IOException {
@@ -48,7 +45,7 @@ class SSEHandler implements HttpHandler {
         return event(message, null);
     }
 
-    private static String event(String message, String type) {
+    protected static String event(String message, String type) {
         /*
          * If a line doesn't contain a colon,
          * the entire line is treated as the field name,

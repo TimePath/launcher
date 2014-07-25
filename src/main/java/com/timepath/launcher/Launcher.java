@@ -1,8 +1,10 @@
 package com.timepath.launcher;
 
 import com.timepath.classloader.CompositeClassLoader;
-import com.timepath.launcher.util.DaemonThreadFactory;
+import com.timepath.launcher.data.Program;
+import com.timepath.launcher.data.Repository;
 import com.timepath.maven.Package;
+import com.timepath.util.concurrent.DaemonThreadFactory;
 
 import java.util.*;
 import java.util.concurrent.*;

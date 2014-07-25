@@ -1,4 +1,4 @@
-package com.timepath.logging;
+package com.timepath.util.logging;
 
 import com.timepath.launcher.util.IOUtils;
 import com.timepath.launcher.util.JARUtils;

@@ -1,6 +1,6 @@
 package com.timepath.launcher.util;
 
-import com.timepath.logging.DBInbox;
+import com.timepath.util.logging.DBInbox;
 
 import java.io.*;
 import java.net.HttpURLConnection;

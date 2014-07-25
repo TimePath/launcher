@@ -1,4 +1,4 @@
-package com.timepath.launcher.util;
+package com.timepath.util.concurrent;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;

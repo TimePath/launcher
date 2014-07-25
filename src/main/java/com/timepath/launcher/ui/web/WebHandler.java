@@ -4,8 +4,8 @@ import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.timepath.launcher.Launcher;
-import com.timepath.launcher.Program;
-import com.timepath.launcher.Repository;
+import com.timepath.launcher.data.Program;
+import com.timepath.launcher.data.Repository;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -40,7 +40,8 @@ class WebHandler implements HttpHandler {
             public void run() {
                 try {
                     Page p = new Page();
-                    String s = transform(new StreamSource(getStream("projects.xsl")), serialize(launcher.getRepositories()));
+                    String s = transform(new StreamSource(getStream("projects.xsl")),
+                                         serialize(launcher.getRepositories()));
                     p.data = s.getBytes(StandardCharsets.UTF_8);
                     p.expires = System.currentTimeMillis() + EXPIRES_INDEX * 1000;
                     cache.put("", p);
@@ -160,7 +161,8 @@ class WebHandler implements HttpHandler {
             }
         }
         if(proxyRequest != null) {
-            handleProxy(exchange, proxyRequest.substring(Server.ENDPOINT_PROXY.length() + 1)); // remove leading '/proxy/'
+            handleProxy(exchange,
+                        proxyRequest.substring(Server.ENDPOINT_PROXY.length() + 1)); // remove leading '/proxy/'
             return;
         }
         byte[] bytes = get(request.substring(1));
@@ -254,10 +256,8 @@ class WebHandler implements HttpHandler {
         byte[] data;
         long   expires;
 
-        private Page() {}
+        private Page() { }
 
-        boolean expired() {
-            return System.currentTimeMillis() >= expires;
-        }
+        boolean expired() { return System.currentTimeMillis() >= expires; }
     }
 }

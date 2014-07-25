@@ -1,4 +1,4 @@
-package com.timepath.launcher;
+package com.timepath.launcher.data;
 
 import com.timepath.launcher.util.IOUtils;
 import com.timepath.launcher.util.JARUtils;
@@ -43,8 +43,7 @@ public class Repository {
     private String                     location;
     /**
      * The package representing this repository. Mostly only relevant to the main repository so that the main launcher
-     * has a way
-     * of updating itself
+     * has a way of updating itself
      */
     private com.timepath.maven.Package self;
     /**

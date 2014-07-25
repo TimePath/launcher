@@ -1,7 +1,10 @@
 package com.timepath.maven;
 
-import com.timepath.launcher.util.*;
+import com.timepath.launcher.util.IOUtils;
+import com.timepath.launcher.util.JARUtils;
+import com.timepath.launcher.util.Utils;
 import com.timepath.launcher.util.XMLUtils;
+import com.timepath.util.concurrent.DaemonThreadFactory;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 

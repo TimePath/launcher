@@ -4,8 +4,8 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import com.timepath.launcher.Launcher;
-import com.timepath.launcher.util.DaemonThreadFactory;
 import com.timepath.launcher.util.SwingUtils;
+import com.timepath.util.concurrent.DaemonThreadFactory;
 
 import javax.swing.event.HyperlinkEvent;
 import java.io.IOException;
@@ -25,7 +25,7 @@ public class Server implements Runnable {
     private static final Logger LOG               = Logger.getLogger(Server.class.getName());
     private static InetSocketAddress ADDRESS;
 
-    public Server() {}
+    public Server() { }
 
     public static void main(String[] args) {
         new Server().run();

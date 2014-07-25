@@ -1,9 +1,9 @@
 package com.timepath.launcher;
 
-import com.timepath.launcher.util.DaemonThreadFactory;
 import com.timepath.launcher.util.IOUtils;
 import com.timepath.launcher.util.JARUtils;
 import com.timepath.maven.Package;
+import com.timepath.util.concurrent.DaemonThreadFactory;
 
 import java.io.*;
 import java.net.URI;

@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.timepath.launcher.ui.swing;
+package com.timepath.swing;
 
 import com.timepath.launcher.util.Utils;
 

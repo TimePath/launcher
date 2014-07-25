@@ -2,13 +2,14 @@ package com.timepath.launcher.ui.swing;
 
 import com.timepath.launcher.DownloadManager.DownloadMonitor;
 import com.timepath.launcher.Launcher;
-import com.timepath.launcher.Program;
-import com.timepath.launcher.Repository;
+import com.timepath.launcher.data.Program;
+import com.timepath.launcher.data.Repository;
 import com.timepath.launcher.util.IOUtils;
 import com.timepath.launcher.util.JARUtils;
 import com.timepath.launcher.util.SwingUtils;
 import com.timepath.launcher.util.Utils;
 import com.timepath.maven.Package;
+import com.timepath.swing.ThemeSelector;
 
 import javax.swing.*;
 import javax.swing.event.TreeSelectionEvent;

@@ -1,4 +1,4 @@
-package com.timepath.logging;
+package com.timepath.util.logging;
 
 import java.io.IOException;
 import java.io.PrintWriter;

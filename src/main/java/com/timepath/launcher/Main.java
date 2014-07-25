@@ -5,9 +5,9 @@ import com.timepath.launcher.util.IOUtils;
 import com.timepath.launcher.util.JARUtils;
 import com.timepath.launcher.util.SwingUtils;
 import com.timepath.launcher.util.Utils;
-import com.timepath.logging.LogAggregator;
-import com.timepath.logging.LogFileHandler;
-import com.timepath.logging.LogIOHandler;
+import com.timepath.util.logging.LogAggregator;
+import com.timepath.util.logging.LogFileHandler;
+import com.timepath.util.logging.LogIOHandler;
 
 import javax.swing.*;
 import java.io.IOException;

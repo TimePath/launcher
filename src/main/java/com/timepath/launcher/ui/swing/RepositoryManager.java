@@ -16,14 +16,7 @@ public abstract class RepositoryManager extends JPanel {
     protected JScrollPane jScrollPane1;
     protected JTable      jTable1;
 
-    /**
-     * Creates new form RepositoryManager
-     */
     protected RepositoryManager() {
-        initComponents();
-    }
-
-    private void initComponents() {
         jTable1 = new JTable(new DefaultTableModel(new Object[][] { }, new String[] { "Repository", "Enabled" }) {
             Class<?>[] types = { Object.class, Boolean.class };
 
