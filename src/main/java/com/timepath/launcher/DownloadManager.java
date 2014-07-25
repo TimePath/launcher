@@ -10,53 +10,57 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * @author TimePath
+ */
 public class DownloadManager {
 
-    private static final Logger                                     LOG      = Logger.getLogger(DownloadManager.class.getName());
-    private final        List<DownloadMonitor>                      monitors
-                                                                             = Collections.synchronizedList(new LinkedList<DownloadMonitor>());
-    private final        ExecutorService                            pool
-                                                                             = Executors.newCachedThreadPool(new DaemonThreadFactory());
-    private final        Map<com.timepath.maven.Package, Future<?>> tasks
-                                                                             = Collections.synchronizedMap(new HashMap<Package,
-            Future<?>>());
+    private static final Logger                  LOG      = Logger.getLogger(DownloadManager.class.getName());
+    private final        List<DownloadMonitor>   monitors = new LinkedList<>();
+    private final        ExecutorService         pool     = Executors.newCachedThreadPool(new DaemonThreadFactory());
+    private final        Map<Package, Future<?>> tasks    = new HashMap<>();
 
-    public DownloadManager() {
-    }
+    public DownloadManager() { }
 
     public void addListener(DownloadMonitor downloadMonitor) {
-        monitors.add(downloadMonitor);
+        synchronized(monitors) {
+            monitors.add(downloadMonitor);
+        }
     }
 
     public void removeListener(DownloadMonitor downloadMonitor) {
-        monitors.remove(downloadMonitor);
-    }
-
-    public void shutdown() {
-        pool.shutdown();
-    }
-
-    public Future<?> submit(Package pkgFile) {
-        Future<?> future = tasks.get(pkgFile);
-        if(future != null) return future;
         synchronized(monitors) {
-            for(DownloadMonitor monitor : monitors) {
-                monitor.submit(pkgFile);
-            }
+            monitors.remove(downloadMonitor);
         }
-        future = pool.submit(new DownloadTask(pkgFile));
-        tasks.put(pkgFile, future);
+    }
+
+    public void shutdown() { pool.shutdown(); }
+
+    public synchronized Future<?> submit(Package pkgFile) {
+        Future<?> future = tasks.get(pkgFile);
+        if(future == null) { // Not already submitted
+            synchronized(monitors) {
+                for(DownloadMonitor monitor : monitors) {
+                    monitor.submit(pkgFile);
+                }
+            }
+            future = pool.submit(new DownloadTask(pkgFile));
+            tasks.put(pkgFile, future);
+        }
         return future;
     }
 
-    public interface DownloadMonitor {
+    public static interface DownloadMonitor {
 
         void submit(Package pkgFile);
 
@@ -67,16 +71,14 @@ public class DownloadManager {
 
         private final Package pkgFile;
 
-        private DownloadTask(Package pkgFile) {
-            this.pkgFile = pkgFile;
-        }
+        private DownloadTask(Package pkgFile) { this.pkgFile = pkgFile; }
 
         @Override
         public void run() {
             try {
                 File downloadFile = pkgFile.getFile();
                 File checksumFile = pkgFile.getChecksumFile();
-                if(downloadFile.equals(JARUtils.CURRENT_FILE)) { // edge case for updating current file
+                if(downloadFile.equals(JARUtils.CURRENT_FILE)) { // Edge case for updating current file
                     downloadFile = new File(JARUtils.UPDATE_NAME);
                     checksumFile = new File(JARUtils.UPDATE_NAME + ".sha1");
                 }
