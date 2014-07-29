@@ -159,8 +159,8 @@ public class IOUtils {
             }
             try(InputStreamReader isr = new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8)) {
                 BufferedReader br = new BufferedReader(isr);
-                StringBuilder sb = new StringBuilder(Math.min(connection.getContentLength(), 0));
-                for(String line; ( line = br.readLine() ) != null; sb.append('\n').append(line)) ;
+                StringBuilder sb = new StringBuilder(Math.max(connection.getContentLength(), 0));
+                for(String line; ( line = br.readLine() ) != null; ) sb.append('\n').append(line);
                 if(sb.length() < 1) return null;
                 return sb.substring(1);
             }

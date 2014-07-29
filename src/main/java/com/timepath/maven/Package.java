@@ -156,8 +156,7 @@ public class Package {
                 LOG.log(Level.INFO, "Don''t have {0}, not latest", existing);
                 return false;
             }
-            String expected = IOUtils.loadPage(new URL(getChecksumURL()));
-            if(expected != null) expected = expected.trim();
+            String expected = getChecksum(new URL(getChecksumURL()));
             String actual = IOUtils.checksum(existing, "SHA1");
             if(!actual.equals(expected)) {
                 LOG.log(Level.INFO,
@@ -171,6 +170,12 @@ public class Package {
         }
         LOG.log(Level.INFO, "{0} is up to date", this);
         return true;
+    }
+
+    private String getChecksum(URL url) {
+        String line = IOUtils.loadPage(url);
+        if(line == null) return null;
+        return line;
     }
 
     public File getFile() {
@@ -226,9 +231,7 @@ public class Package {
                 LOG.log(Level.INFO, "Don''t have {0}, reacquire", existing);
                 return false;
             }
-            String expected = IOUtils.loadPage(checksum.toURI().toURL());
-            if(expected == null) return false;
-            expected = expected.trim();
+            String expected = getChecksum(checksum.toURI().toURL());
             String actual = IOUtils.checksum(existing, "SHA1");
             if(!actual.equals(expected)) {
                 LOG.log(Level.INFO,
