@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -45,18 +46,34 @@ public class LauncherFrame extends JFrame {
     protected JScrollPane   newsScroll;
     protected JTree         programList;
     protected JSplitPane    programSplit;
+    protected JTabbedPane   tabs;
 
     public LauncherFrame(Launcher l) {
         launcher = l;
         launcher.getDownloadManager().addListener(new DownloadMonitor() {
+            AtomicInteger c = new AtomicInteger();
+
             @Override
-            public void submit(Package pkg) {
+            public void onSubmit(Package pkg) {
                 downloadPanel.getTableModel().add(pkg);
+                updateTitle(c.incrementAndGet());
+            }
+
+            void updateTitle(int i) { setTitle("Downloads" + ( i > 0 ? " (" + i + ")" : "" )); }
+
+            void setTitle(String title) {
+                int index = tabs.indexOfComponent(downloadPanel);
+                tabs.setTitleAt(index, title);
             }
 
             @Override
-            public void update(Package pkg) {
+            public void onUpdate(Package pkg) {
                 downloadPanel.getTableModel().update(pkg);
+            }
+
+            @Override
+            public void onFinish(Package pkg) {
+                updateTitle(c.decrementAndGet());
             }
         });
         this.initComponents();
@@ -141,7 +158,7 @@ public class LauncherFrame extends JFrame {
         aboutPanel = new JPanel(new BorderLayout()) {{
             add(initAboutPanel(), BorderLayout.CENTER);
         }};
-        setContentPane(new JTabbedPane() {{
+        setContentPane(tabs = new JTabbedPane() {{
             addTab("Programs", programSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, true) {{
                 setLeftComponent(new JScrollPane(programList = new JTree((TreeModel) null) {{
                     setRootVisible(false);
