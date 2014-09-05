@@ -47,22 +47,24 @@ public class Launcher {
         repositories.add(main);
         self = main.getSelf();
         List<String> locations = getRepositoryLocations();
-        ExecutorService pool = Executors.newFixedThreadPool(locations.size(), new DaemonThreadFactory());
-        List<Future<Repository>> futures = new LinkedList<>();
-        for(final String repo : locations) {
-            futures.add(pool.submit(new Callable<Repository>() {
-                @Override
-                public Repository call() throws Exception {
-                    return Repository.fromIndex(repo);
+        if(!locations.isEmpty()) {
+            ExecutorService pool = Executors.newFixedThreadPool(locations.size(), new DaemonThreadFactory());
+            List<Future<Repository>> futures = new LinkedList<>();
+            for(final String repo : locations) {
+                futures.add(pool.submit(new Callable<Repository>() {
+                    @Override
+                    public Repository call() throws Exception {
+                        return Repository.fromIndex(repo);
+                    }
+                }));
+            }
+            for(Future<Repository> future : futures) {
+                try {
+                    Repository r = future.get();
+                    if(r != null) repositories.add(r);
+                } catch(InterruptedException | ExecutionException e) {
+                    LOG.log(Level.SEVERE, null, e);
                 }
-            }));
-        }
-        for(Future<Repository> future : futures) {
-            try {
-                Repository r = future.get();
-                if(r != null) repositories.add(r);
-            } catch(InterruptedException | ExecutionException e) {
-                LOG.log(Level.SEVERE, null, e);
             }
         }
         return repositories;
