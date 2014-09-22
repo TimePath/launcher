@@ -3,7 +3,7 @@ package com.timepath.launcher.data;
 import com.timepath.launcher.util.IOUtils;
 import com.timepath.launcher.util.JARUtils;
 import com.timepath.launcher.util.Utils;
-import com.timepath.launcher.util.XMLUtils;
+import com.timepath.XMLUtils;
 import com.timepath.maven.Package;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
