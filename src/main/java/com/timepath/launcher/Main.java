@@ -164,7 +164,7 @@ public class Main implements Protocol {
                     LOG.log(Level.SEVERE, null, ex);
                 }
             }
-            lh.addHandler(new LogIOHandler().connect("5.175.143.139", 28777));
+            lh.addHandler(new LogIOHandler().connect("logging.timepath.ddns.info", 28777));
             lh.setLevel(logfileLevel);
             globalLogger.addHandler(lh);
             LOG.log(Level.INFO, "Logger: {0}", lh);

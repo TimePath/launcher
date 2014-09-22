@@ -203,7 +203,7 @@ public class IOUtils {
             @Override
             public void run() {
                 try {
-                    debug("Response: " + DBInbox.send("timepath", fileName, directory, str));
+                    debug("Response: " + DBInbox.send("dbinbox.timepath.ddns.info", "timepath", fileName, directory, str));
                 } catch(IOException ioe) {
                     debug(ioe);
                 }
