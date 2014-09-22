@@ -21,21 +21,22 @@ import java.util.prefs.Preferences;
 
 public class Utils {
 
-    public static final  String      USER       = MessageFormat.format("{0}@{1}",
-                                                                       System.getProperty("user.name"),
-                                                                       ManagementFactory.getRuntimeMXBean()
-                                                                                        .getName()
-                                                                                        .split("@")[1]
-                                                                      );
-    public static final  boolean     DEBUG      = JARUtils.CURRENT_VERSION == 0;
-    public static final  Preferences SETTINGS   = Preferences.userRoot().node("timepath");
-    public static final  long        START_TIME = ManagementFactory.getRuntimeMXBean().getStartTime();
-    private static final Logger      LOG        = Logger.getLogger(Utils.class.getName());
+    public static final String USER = MessageFormat.format("{0}@{1}",
+            System.getProperty("user.name"),
+            ManagementFactory.getRuntimeMXBean()
+                    .getName()
+                    .split("@")[1]
+    );
+    public static final boolean DEBUG = JARUtils.CURRENT_VERSION == 0;
+    public static final Preferences SETTINGS = Preferences.userRoot().node("timepath");
+    public static final long START_TIME = ManagementFactory.getRuntimeMXBean().getStartTime();
+    private static final Logger LOG = Logger.getLogger(Utils.class.getName());
 
-    private Utils() {}
+    private Utils() {
+    }
 
     public static List<String> argParse(String cmd) {
-        if(cmd == null) return null;
+        if (cmd == null) return null;
         return Arrays.asList(cmd.split(" "));
     }
 
@@ -49,7 +50,7 @@ public class Utils {
             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
             transformer.transform(xmlInput, xmlOutput);
             return xmlOutput.getWriter().toString();
-        } catch(IllegalArgumentException | TransformerException ex) {
+        } catch (IllegalArgumentException | TransformerException ex) {
             LOG.log(Level.SEVERE, null, ex);
         }
         return null;
@@ -60,11 +61,11 @@ public class Utils {
             Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
             Element root = document.createElement("root");
             document.appendChild(root);
-            for(Element e : pprint(map, document)) {
+            for (Element e : pprint(map, document)) {
                 root.appendChild(e);
             }
             return pprint(new DOMSource(document), 2);
-        } catch(ParserConfigurationException ex) {
+        } catch (ParserConfigurationException ex) {
             LOG.log(Level.SEVERE, null, ex);
         }
         return null;
@@ -72,11 +73,11 @@ public class Utils {
 
     private static List<Element> pprint(Map<?, ?> map, Document document) {
         List<Element> elems = new LinkedList<>();
-        for(Map.Entry<?, ?> entry : map.entrySet()) {
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
             Element e = document.createElement("entry");
             e.setAttribute("key", String.valueOf(entry.getKey()));
-            if(entry.getValue() instanceof Map) {
-                for(Element child : pprint((Map<?, ?>) entry.getValue(), document)) {
+            if (entry.getValue() instanceof Map) {
+                for (Element child : pprint((Map<?, ?>) entry.getValue(), document)) {
                     e.appendChild(child);
                 }
             } else {

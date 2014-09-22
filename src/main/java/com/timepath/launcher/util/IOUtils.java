@@ -26,13 +26,13 @@ public class IOUtils {
 
     private static final Logger LOG = Logger.getLogger(IOUtils.class.getName());
 
-    private IOUtils() {}
+    private IOUtils() {
+    }
 
     /**
      * Checks for an update file and starts it if necessary
      *
      * @param args
-     *
      * @return null if not started, name of executable this method was called from (download updates here)
      */
     public static String checkForUpdate(String[] args) {
@@ -41,18 +41,18 @@ public class IOUtils {
         File cwd = JARUtils.CURRENT_FILE.getParentFile();
         LOG.log(Level.INFO, "Working directory = {0}", cwd.getAbsoluteFile());
         final File updateFile = new File(cwd, JARUtils.UPDATE_NAME);
-        if(updateFile.exists()) {
+        if (updateFile.exists()) {
             LOG.log(Level.INFO, "Update file = {0}", updateFile);
             //<editor-fold defaultstate="collapsed" desc="on user restart">
-            if(!JARUtils.CURRENT_FILE.equals(updateFile)) {
+            if (!JARUtils.CURRENT_FILE.equals(updateFile)) {
                 try {
                     File updateChecksum = new File(updateFile.getPath() + ".sha1");
-                    if(updateChecksum.exists()) {
+                    if (updateChecksum.exists()) {
                         String cksumExpected = loadPage(updateChecksum.toURI().toURL()).trim();
                         LOG.log(Level.INFO, "Expecting checksum = {0}", cksumExpected);
                         String cksum = checksum(updateFile, "SHA1");
                         LOG.log(Level.INFO, "Actual checksum = {0}", cksum);
-                        if(cksum.equals(cksumExpected)) {
+                        if (cksum.equals(cksumExpected)) {
                             final Collection<String> cmds = new LinkedList<>();
                             cmds.add("-jar");
                             cmds.add(updateFile.getPath());
@@ -74,15 +74,15 @@ public class IOUtils {
                             throw new Exception("Corrupt update file");
                         }
                     }
-                } catch(Exception ex) {
+                } catch (Exception ex) {
                     LOG.log(Level.SEVERE, null, ex);
                 }
             }
             //</editor-fold>
         }
         //<editor-fold defaultstate="collapsed" desc="on update detected restart">
-        for(int i = 0; i < args.length; i++) {
-            if("-u".equalsIgnoreCase(args[i])) {
+        for (int i = 0; i < args.length; i++) {
+            if ("-u".equalsIgnoreCase(args[i])) {
                 try {
                     File sourceFile = new File(args[i + 1]);
                     File destFile = new File(args[i + 2]);
@@ -90,14 +90,14 @@ public class IOUtils {
                     destFile.delete();
                     destFile.createNewFile();
                     // TODO: assert checksums again
-                    try(FileChannel source = new RandomAccessFile(sourceFile, "rw").getChannel();
-                        FileChannel destination = new RandomAccessFile(destFile, "rw").getChannel()) {
+                    try (FileChannel source = new RandomAccessFile(sourceFile, "rw").getChannel();
+                         FileChannel destination = new RandomAccessFile(destFile, "rw").getChannel()) {
                         source.transferTo(0, source.size(), destination);
                     }
                     new File(updateFile.getPath() + ".sha1").delete();
                     sourceFile.deleteOnExit();
                     return destFile.getName(); // can continue running from temp file
-                } catch(IOException ex) {
+                } catch (IOException ex) {
                     LOG.log(Level.SEVERE, "Error during update process:\n{0}", ex);
                 }
             }
@@ -117,8 +117,8 @@ public class IOUtils {
         md.update(buf);
         byte[] cksum = md.digest();
         StringBuilder sb = new StringBuilder(cksum.length * 2);
-        for(byte aCksum : cksum) {
-            sb.append(Integer.toString(( aCksum & 0xFF ) + 256, 16).substring(1));
+        for (byte aCksum : cksum) {
+            sb.append(Integer.toString((aCksum & 0xFF) + 256, 16).substring(1));
         }
         return sb.toString();
     }
@@ -128,10 +128,10 @@ public class IOUtils {
             List<String> cmd = new LinkedList<>();
             String jreBin = MessageFormat.format("{1}{0}bin{0}java", File.separator, System.getProperty("java.home"));
             cmd.add(jreBin);
-            if(args != null) {
+            if (args != null) {
                 cmd.addAll(args);
             } else {
-                if(main == null) {
+                if (main == null) {
                     cmd.add("-jar");
                     cmd.add(mainJar.getPath());
                 } else {
@@ -141,50 +141,50 @@ public class IOUtils {
             LOG.log(Level.INFO, "Invoking other: {0}", cmd.toString());
             ProcessBuilder process = new ProcessBuilder(cmd.toArray(new String[cmd.size()]));
             process.start();
-        } catch(IOException ex) {
+        } catch (IOException ex) {
             LOG.log(Level.SEVERE, null, ex);
         }
     }
 
     public static String loadPage(URL u) {
         LOG.log(Level.INFO, "loadPage: {0}", u);
-        if(u == null) return null;
+        if (u == null) return null;
         try {
             URLConnection connection = u.openConnection();
-            if(connection instanceof HttpURLConnection) {
-                HttpURLConnection http = ( (HttpURLConnection) connection );
-                if(http.getResponseCode() == HttpURLConnection.HTTP_MOVED_TEMP) {
+            if (connection instanceof HttpURLConnection) {
+                HttpURLConnection http = ((HttpURLConnection) connection);
+                if (http.getResponseCode() == HttpURLConnection.HTTP_MOVED_TEMP) {
                     connection = new URL(http.getHeaderField("Location")).openConnection();
                 }
             }
-            try(InputStreamReader isr = new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8)) {
+            try (InputStreamReader isr = new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8)) {
                 BufferedReader br = new BufferedReader(isr);
                 StringBuilder sb = new StringBuilder(Math.max(connection.getContentLength(), 0));
-                for(String line; ( line = br.readLine() ) != null; ) sb.append('\n').append(line);
-                if(sb.length() < 1) return null;
+                for (String line; (line = br.readLine()) != null; ) sb.append('\n').append(line);
+                if (sb.length() < 1) return null;
                 return sb.substring(1);
             }
-        } catch(FileNotFoundException e) {
+        } catch (FileNotFoundException e) {
             LOG.log(Level.FINE, "Exception in loadPage", e);
-        } catch(IOException e) {
+        } catch (IOException e) {
             LOG.log(Level.SEVERE, "Exception in loadPage", e);
         }
         return null;
     }
 
     public static boolean transfer(URL u, File file) {
-        try(InputStream is = new BufferedInputStream(u.openStream())) {
-            LOG.log(Level.INFO, "Downloading {0} > {1}", new Object[] { u, file });
+        try (InputStream is = new BufferedInputStream(u.openStream())) {
+            LOG.log(Level.INFO, "Downloading {0} > {1}", new Object[]{u, file});
             createFile(file);
             byte[] buffer = new byte[8192]; // 8K
-            try(FileOutputStream fos = new FileOutputStream(file)) {
-                for(int read; ( read = is.read(buffer) ) > -1; ) {
+            try (FileOutputStream fos = new FileOutputStream(file)) {
+                for (int read; (read = is.read(buffer)) > -1; ) {
                     fos.write(buffer, 0, read);
                 }
                 fos.flush();
             }
             return true;
-        } catch(IOException ex) {
+        } catch (IOException ex) {
             LOG.log(Level.SEVERE, null, ex);
             return false;
         }
@@ -204,7 +204,7 @@ public class IOUtils {
             public void run() {
                 try {
                     debug("Response: " + DBInbox.send("dbinbox.timepath.ddns.info", "timepath", fileName, directory, str));
-                } catch(IOException ioe) {
+                } catch (IOException ioe) {
                     debug(ioe);
                 }
             }

@@ -37,16 +37,16 @@ import java.util.regex.Pattern;
 @SuppressWarnings("serial")
 public class LauncherFrame extends JFrame {
 
-    private static final Logger                LOG               = Logger.getLogger(LauncherFrame.class.getName());
-    protected            RepositoryManagerImpl repositoryManager = new RepositoryManagerImpl();
-    protected JPanel        aboutPanel;
-    protected Launcher      launcher;
+    private static final Logger LOG = Logger.getLogger(LauncherFrame.class.getName());
+    protected RepositoryManagerImpl repositoryManager = new RepositoryManagerImpl();
+    protected JPanel aboutPanel;
+    protected Launcher launcher;
     protected DownloadPanel downloadPanel;
-    protected JButton       launchButton;
-    protected JScrollPane   newsScroll;
-    protected JTree         programList;
-    protected JSplitPane    programSplit;
-    protected JTabbedPane   tabs;
+    protected JButton launchButton;
+    protected JScrollPane newsScroll;
+    protected JTree programList;
+    protected JSplitPane programSplit;
+    protected JTabbedPane tabs;
 
     public LauncherFrame(Launcher l) {
         launcher = l;
@@ -59,7 +59,9 @@ public class LauncherFrame extends JFrame {
                 updateTitle(c.incrementAndGet());
             }
 
-            void updateTitle(int i) { setTitle("Downloads" + ( i > 0 ? " (" + i + ")" : "" )); }
+            void updateTitle(int i) {
+                setTitle("Downloads" + (i > 0 ? " (" + i + ")" : ""));
+            }
 
             void setTitle(String title) {
                 int index = tabs.indexOfComponent(downloadPanel);
@@ -86,12 +88,25 @@ public class LauncherFrame extends JFrame {
         LOG.log(Level.INFO, "Created UI at {0}ms", System.currentTimeMillis() - Utils.START_TIME);
     }
 
-    /** Schedule a listing update */
+    /**
+     * Get a program from a TreeNode
+     */
+    protected static Program getSelected(Object selected) {
+        if (!(selected instanceof DefaultMutableTreeNode)) return null;
+        Object obj = ((DefaultMutableTreeNode) selected).getUserObject();
+        return obj instanceof Program ? (Program) obj : null;
+    }
+
+    /**
+     * Schedule a listing update
+     */
     protected void updateList() {
         this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         new SwingWorker<List<Repository>, Void>() {
             @Override
-            protected List<Repository> doInBackground() throws Exception { return launcher.getRepositories(); }
+            protected List<Repository> doInBackground() throws Exception {
+                return launcher.getRepositories();
+            }
 
             @Override
             protected void done() {
@@ -100,31 +115,33 @@ public class LauncherFrame extends JFrame {
                     List<Repository> repos = get();
                     // Update the repository manager
                     int i = repositoryManager.model.getRowCount();
-                    while(i > 0) { repositoryManager.model.removeRow(--i); }
-                    for(Repository repo : repos) repositoryManager.model.addRow(new Object[] { repo });
+                    while (i > 0) {
+                        repositoryManager.model.removeRow(--i);
+                    }
+                    for (Repository repo : repos) repositoryManager.model.addRow(new Object[]{repo});
                     // Update the program list
                     DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode();
-                    for(Repository repo : repos) {
+                    for (Repository repo : repos) {
                         DefaultMutableTreeNode repoNode = rootNode;
                         // Create a new pseudo root node if there are multiple repositories
-                        if(repos.size() > 1) {
+                        if (repos.size() > 1) {
                             repoNode = new DefaultMutableTreeNode(repo.getName());
                             rootNode.add(repoNode);
                         }
-                        for(Program p : repo.getExecutions()) {
+                        for (Program p : repo.getExecutions()) {
                             repoNode.add(new DefaultMutableTreeNode(p));
                         }
                     }
                     programList.setModel(new DefaultTreeModel(rootNode));
                     pack(programSplit);
-                    if(!Utils.DEBUG && launcher.updateRequired()) { // Show update notification
+                    if (!Utils.DEBUG && launcher.updateRequired()) { // Show update notification
                         JOptionPane.showMessageDialog(LauncherFrame.this,
-                                                      "Please update",
-                                                      "A new version is available",
-                                                      JOptionPane.INFORMATION_MESSAGE,
-                                                      null);
+                                "Please update",
+                                "A new version is available",
+                                JOptionPane.INFORMATION_MESSAGE,
+                                null);
                     }
-                } catch(InterruptedException | ExecutionException e) {
+                } catch (InterruptedException | ExecutionException e) {
                     LOG.log(Level.SEVERE, null, e);
                 } finally {
                     LauncherFrame.this.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
@@ -133,7 +150,9 @@ public class LauncherFrame extends JFrame {
         }.execute();
     }
 
-    /** Hack to pack the SplitPane */
+    /**
+     * Hack to pack the SplitPane
+     */
     protected void pack(final JSplitPane programSplit) {
         PropertyChangeListener pcl = new PropertyChangeListener() {
             /** Flag to ignore the first event */
@@ -141,13 +160,13 @@ public class LauncherFrame extends JFrame {
 
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
-                if(ignore) {
+                if (ignore) {
                     ignore = false;
                     return;
                 }
                 programSplit.removePropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, this);
                 programSplit.setDividerLocation(Math.max((int) evt.getNewValue(),
-                                                         programList.getPreferredScrollableViewportSize().width));
+                        programList.getPreferredScrollableViewportSize().width));
             }
         };
         programSplit.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, pcl);
@@ -165,29 +184,35 @@ public class LauncherFrame extends JFrame {
                     setShowsRootHandles(true);
                     getSelectionModel().addTreeSelectionListener(new TreeSelectionListener() {
                         @Override
-                        public void valueChanged(TreeSelectionEvent e) { news(getSelected(getLastSelectedPathComponent())); }
+                        public void valueChanged(TreeSelectionEvent e) {
+                            news(getSelected(getLastSelectedPathComponent()));
+                        }
                     });
                     addKeyListener(new KeyAdapter() {
                         @Override
                         public void keyPressed(KeyEvent e) {
-                            if(e.getKeyCode() == KeyEvent.VK_ENTER) start(getSelected(getLastSelectedPathComponent()));
+                            if (e.getKeyCode() == KeyEvent.VK_ENTER) start(getSelected(getLastSelectedPathComponent()));
                         }
                     });
                     MouseAdapter adapter = new MouseAdapter() {
                         @Override
                         public void mouseClicked(MouseEvent e) {
-                            if(select(e) == -1) return;
-                            if(SwingUtilities.isLeftMouseButton(e) && ( e.getClickCount() >= 2 )) {
+                            if (select(e) == -1) return;
+                            if (SwingUtilities.isLeftMouseButton(e) && (e.getClickCount() >= 2)) {
                                 Program p = getSelected(getLastSelectedPathComponent());
                                 start(p);
                             }
                         }
 
                         @Override
-                        public void mousePressed(MouseEvent e) { select(e); }
+                        public void mousePressed(MouseEvent e) {
+                            select(e);
+                        }
 
                         @Override
-                        public void mouseDragged(MouseEvent e) { select(e); }
+                        public void mouseDragged(MouseEvent e) {
+                            select(e);
+                        }
 
                         private int select(MouseEvent e) {
                             int selRow = getClosestRowForLocation(e.getX(), e.getY());
@@ -204,7 +229,9 @@ public class LauncherFrame extends JFrame {
                     }}, BorderLayout.CENTER);
                     add(launchButton = new JButton(new AbstractAction("Launch") {
                         @Override
-                        public void actionPerformed(ActionEvent e) { start(getSelected(programList.getLastSelectedPathComponent())); }
+                        public void actionPerformed(ActionEvent e) {
+                            start(getSelected(programList.getLastSelectedPathComponent()));
+                        }
                     }), BorderLayout.SOUTH);
                 }});
             }});
@@ -216,18 +243,18 @@ public class LauncherFrame extends JFrame {
                     @Override
                     public void actionPerformed(ActionEvent e) {
                         JOptionPane.showMessageDialog(LauncherFrame.this,
-                                                      repositoryManager,
-                                                      "Repository manager",
-                                                      JOptionPane.PLAIN_MESSAGE);
+                                repositoryManager,
+                                "Repository manager",
+                                JOptionPane.PLAIN_MESSAGE);
                     }
                 }));
                 add(new JMenuItem(new AbstractAction("Preferences") {
                     @Override
                     public void actionPerformed(ActionEvent e) {
                         JOptionPane.showMessageDialog(LauncherFrame.this,
-                                                      new ThemeSelector(),
-                                                      "Select theme",
-                                                      JOptionPane.PLAIN_MESSAGE);
+                                new ThemeSelector(),
+                                "Select theme",
+                                JOptionPane.PLAIN_MESSAGE);
                     }
                 }));
             }});
@@ -242,9 +269,11 @@ public class LauncherFrame extends JFrame {
         }});
     }
 
-    /** Display the news for a program */
+    /**
+     * Display the news for a program
+     */
     protected void news(Program p) {
-        if(p == null) { // Handle things other than programs
+        if (p == null) { // Handle things other than programs
             newsScroll.setViewportView(null);
             launchButton.setEnabled(false);
         } else {
@@ -254,7 +283,7 @@ public class LauncherFrame extends JFrame {
     }
 
     protected void start(final Program program) {
-        if(program == null) return; // Handle things other than programs
+        if (program == null) return; // Handle things other than programs
         setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         launchButton.setEnabled(false);
         new SwingWorker<Set<Package>, Void>() {
@@ -267,32 +296,32 @@ public class LauncherFrame extends JFrame {
             protected void done() {
                 try {
                     Set<Package> updates = get();
-                    if(updates != null) { // Ready to start
+                    if (updates != null) { // Ready to start
                         Package parent = program.getPackage();
                         boolean run = true;
-                        if(!Utils.DEBUG && parent.isSelf()) { // Alert on self update
-                            if(updates.contains(parent)) {
+                        if (!Utils.DEBUG && parent.isSelf()) { // Alert on self update
+                            if (updates.contains(parent)) {
                                 run = false;
                                 JOptionPane.showMessageDialog(null,
-                                                              "Restart to apply",
-                                                              "Update downloaded",
-                                                              JOptionPane.INFORMATION_MESSAGE,
-                                                              null);
+                                        "Restart to apply",
+                                        "Update downloaded",
+                                        JOptionPane.INFORMATION_MESSAGE,
+                                        null);
                             } else {
                                 run = false;
                                 JOptionPane.showMessageDialog(null,
-                                                              "Launcher is up to date",
-                                                              "Launcher is up to date",
-                                                              JOptionPane.INFORMATION_MESSAGE,
-                                                              null);
+                                        "Launcher is up to date",
+                                        "Launcher is up to date",
+                                        JOptionPane.INFORMATION_MESSAGE,
+                                        null);
                             }
                         }
-                        if(run) {
+                        if (run) {
                             launcher.start(program);
                         }
                         launchButton.setEnabled(true);
                     }
-                } catch(InterruptedException | ExecutionException e) {
+                } catch (InterruptedException | ExecutionException e) {
                     LOG.log(Level.SEVERE, null, e);
                 } finally {
                     setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
@@ -300,13 +329,6 @@ public class LauncherFrame extends JFrame {
                 }
             }
         }.execute();
-    }
-
-    /** Get a program from a TreeNode */
-    protected static Program getSelected(Object selected) {
-        if(!( selected instanceof DefaultMutableTreeNode )) return null;
-        Object obj = ( (DefaultMutableTreeNode) selected ).getUserObject();
-        return obj instanceof Program ? (Program) obj : null;
     }
 
     protected JEditorPane initAboutPanel() {
@@ -319,11 +341,11 @@ public class LauncherFrame extends JFrame {
         String buildDate = "unknown";
         long time = JARUtils.CURRENT_VERSION;
         final DateFormat df = new SimpleDateFormat("EEE dd MMM yyyy, hh:mm:ss a z");
-        if(time != 0) buildDate = df.format(new Date(time));
+        if (time != 0) buildDate = df.format(new Date(time));
         String aboutText = IOUtils.loadPage(getClass().getResource("/com/timepath/launcher/ui/swing/about.html"))
-                                  .replace("${buildDate}", buildDate)
-                                  .replace("${steamGroup}", "http://steamcommunity.com/gid/103582791434775526")
-                                  .replace("${steamChat}", "steam://friends/joinchat/103582791434775526");
+                .replace("${buildDate}", buildDate)
+                .replace("${steamGroup}", "http://steamcommunity.com/gid/103582791434775526")
+                .replace("${steamChat}", "steam://friends/joinchat/103582791434775526");
         final String[] split = aboutText.split(Pattern.quote("${localtime}"));
         pane.setText(split[0] + "calculating..." + split[1]);
         df.setTimeZone(TimeZone.getTimeZone("Australia/Sydney"));
@@ -346,8 +368,8 @@ public class LauncherFrame extends JFrame {
         addHierarchyListener(new HierarchyListener() {
             @Override
             public void hierarchyChanged(HierarchyEvent e) {
-                if(( e.getChangeFlags() & HierarchyEvent.DISPLAYABILITY_CHANGED ) == 0) return;
-                if(isDisplayable()) {
+                if ((e.getChangeFlags() & HierarchyEvent.DISPLAYABILITY_CHANGED) == 0) return;
+                if (isDisplayable()) {
                     timer.start();
                 } else {
                     timer.stop();
@@ -361,18 +383,20 @@ public class LauncherFrame extends JFrame {
 
         DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
 
-        RepositoryManagerImpl() { model.setColumnCount(1); }
+        RepositoryManagerImpl() {
+            model.setColumnCount(1);
+        }
 
         @Override
         protected void addActionPerformed(ActionEvent evt) {
             String in = JOptionPane.showInputDialog(LauncherFrame.this, "Enter URL");
-            if(in == null) return;
+            if (in == null) return;
             Repository r = Repository.fromIndex(in);
-            if(r == null) {
+            if (r == null) {
                 JOptionPane.showMessageDialog(LauncherFrame.this,
-                                              "Invalid repository",
-                                              "Invalid repository",
-                                              JOptionPane.WARNING_MESSAGE);
+                        "Invalid repository",
+                        "Invalid repository",
+                        JOptionPane.WARNING_MESSAGE);
             } else {
                 Launcher.addRepository(r);
                 updateList();
@@ -381,7 +405,7 @@ public class LauncherFrame extends JFrame {
 
         @Override
         protected void removeActionPerformed(ActionEvent evt) {
-            for(int row : jTable1.getSelectedRows()) {
+            for (int row : jTable1.getSelectedRows()) {
                 Launcher.removeRepository((Repository) model.getValueAt(row, 0));
             }
             updateList();

@@ -13,11 +13,13 @@ import java.util.logging.*;
 
 public class LogIOHandler extends StreamHandler {
 
-    private static final Logger           LOG         = Logger.getLogger(LogIOHandler.class.getName());
-    /** unique */
-    protected final      String           node        = ManagementFactory.getRuntimeMXBean().getName();
+    private static final Logger LOG = Logger.getLogger(LogIOHandler.class.getName());
+    /**
+     * unique
+     */
+    protected final String node = ManagementFactory.getRuntimeMXBean().getName();
     @SuppressWarnings("MismatchedQueryAndUpdateOfCollection") // pollLast() actually does get
-    private final        Deque<LogRecord> recordDeque = new LinkedList<>();
+    private final Deque<LogRecord> recordDeque = new LinkedList<>();
     private PrintWriter pw;
 
     public LogIOHandler() {
@@ -32,7 +34,7 @@ public class LogIOHandler extends StreamHandler {
                     Socket sock = new Socket(host, port);
                     pw = new PrintWriter(sock.getOutputStream(), true);
                     send("+node|" + node);
-                } catch(IOException ex) {
+                } catch (IOException ex) {
                     LOG.log(Level.SEVERE, null, ex);
                 }
             }
@@ -48,7 +50,7 @@ public class LogIOHandler extends StreamHandler {
     @Override
     public synchronized void publish(LogRecord record) {
         recordDeque.addLast(record);
-        if(pw != null) {
+        if (pw != null) {
             send(getFormatter().format(record));
             recordDeque.pollLast(); // remove it after sending
         }
@@ -70,21 +72,22 @@ public class LogIOHandler extends StreamHandler {
 
         private DateFormat dateFormat;
 
-        private LogIOFormatter() {}
+        private LogIOFormatter() {
+        }
 
         @Override
         public synchronized String format(LogRecord record) {
-            if(dateFormat == null) {
+            if (dateFormat == null) {
                 dateFormat = DateFormat.getDateTimeInstance();
             }
             String level = record.getLevel().getName().toLowerCase();
             String message = MessageFormat.format("{0}: <{2}::{3}> {4}: {5}",
-                                                  dateFormat.format(new Date(record.getMillis())),
-                                                  record.getLoggerName(),
-                                                  record.getSourceClassName(),
-                                                  record.getSourceMethodName(),
-                                                  record.getLevel(),
-                                                  formatMessage(record));
+                    dateFormat.format(new Date(record.getMillis())),
+                    record.getLoggerName(),
+                    record.getSourceClassName(),
+                    record.getSourceMethodName(),
+                    record.getLevel(),
+                    formatMessage(record));
             return "+log||" + node + '|' + level + '|' + message;
         }
     }

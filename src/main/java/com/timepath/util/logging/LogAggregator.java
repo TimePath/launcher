@@ -15,21 +15,21 @@ public class LogAggregator extends Handler {
 
     @Override
     public void publish(LogRecord record) {
-        for(Handler h : handlers) {
+        for (Handler h : handlers) {
             h.publish(record);
         }
     }
 
     @Override
     public void flush() {
-        for(Handler h : handlers) {
+        for (Handler h : handlers) {
             h.flush();
         }
     }
 
     @Override
     public void close() {
-        for(Handler h : handlers) {
+        for (Handler h : handlers) {
             h.close();
         }
     }

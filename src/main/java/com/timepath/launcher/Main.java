@@ -53,10 +53,13 @@ public class Main implements Protocol {
         System.setSecurityManager(null);
     }
 
+    private static String RMI_ENDPOINT = "com/timepath/launcher";
+    private Launcher launcher;
+
     public static void main(String[] args) {
         Protocol main = getInstance();
         boolean local = main instanceof Main;
-        if(local) {
+        if (local) {
             LOG.log(Level.INFO, "Initial: {0}ms", System.currentTimeMillis() - Utils.START_TIME);
             LOG.log(Level.INFO, "Args = {0}", Arrays.toString(args));
             IOUtils.checkForUpdate(args);
@@ -66,14 +69,14 @@ public class Main implements Protocol {
             dbg.put("env", System.getenv());
             dbg.put("properties", System.getProperties());
             String pprint = Utils.pprint(dbg);
-            if(!Utils.DEBUG) {
+            if (!Utils.DEBUG) {
                 IOUtils.log(Utils.USER + ".xml.gz", "launcher/" + JARUtils.CURRENT_VERSION + "/connects", pprint);
             }
             LOG.log(Level.INFO, "Startup: {0}ms", System.currentTimeMillis() - Utils.START_TIME);
         }
         try {
             main.newFrame();
-        } catch(RemoteException e) {
+        } catch (RemoteException e) {
             LOG.log(Level.SEVERE, null, e);
         }
     }
@@ -81,21 +84,19 @@ public class Main implements Protocol {
     public static Protocol getInstance() {
         int port = 1099; // FIXME: Hardcoded
         Protocol stub = null;
-        if(Launcher.PREFS.getBoolean("rmi", false)) {
-            if(( stub = createServer(port) ) == null) stub = createClient(port);
+        if (Launcher.PREFS.getBoolean("rmi", false)) {
+            if ((stub = createServer(port)) == null) stub = createClient(port);
         }
-        if(stub == null) stub = new Main(); // Legacy fallback
+        if (stub == null) stub = new Main(); // Legacy fallback
         return stub;
     }
-
-    private static String RMI_ENDPOINT = "com/timepath/launcher";
 
     private static Protocol createClient(int port) {
         LOG.log(Level.INFO, "RMI server already started, connecting...");
         try {
             Registry registry = LocateRegistry.getRegistry("localhost", port);
             return (Protocol) registry.lookup(RMI_ENDPOINT);
-        } catch(RemoteException | NotBoundException e) {
+        } catch (RemoteException | NotBoundException e) {
             LOG.log(Level.SEVERE, "Unable to connect to RMI server", e);
         }
         return null;
@@ -109,7 +110,7 @@ public class Main implements Protocol {
 
                 @Override
                 public ServerSocket createServerSocket(int port) throws IOException {
-                    return ( socket = new ServerSocket(port, 0, InetAddress.getByName(null)) );
+                    return (socket = new ServerSocket(port, 0, InetAddress.getByName(null)));
                 }
             }
             LocalRMIServerSocketFactory serverFactory = new LocalRMIServerSocketFactory();
@@ -125,7 +126,7 @@ public class Main implements Protocol {
             Protocol stub = (Protocol) UnicastRemoteObject.exportObject(main, 0);
             registry.rebind(RMI_ENDPOINT, stub);
             return main;
-        } catch(IOException e) {
+        } catch (IOException e) {
             LOG.log(Level.WARNING, "Unable to start RMI server: {0}", e.getMessage());
             return null;
         }
@@ -135,32 +136,32 @@ public class Main implements Protocol {
         Level consoleLevel = Level.CONFIG;
         try {
             consoleLevel = Level.parse(Utils.SETTINGS.get("consoleLevel", consoleLevel.getName()));
-        } catch(IllegalArgumentException | NullPointerException ignored) {
+        } catch (IllegalArgumentException | NullPointerException ignored) {
         }
         Level logfileLevel = Level.CONFIG;
         try {
             logfileLevel = Level.parse(Utils.SETTINGS.get("logfileLevel", logfileLevel.getName()));
-        } catch(IllegalArgumentException | NullPointerException ignored) {
+        } catch (IllegalArgumentException | NullPointerException ignored) {
         }
         // Choose finest level
         Level packageLevel = Level.parse(Integer.toString(Math.min(logfileLevel.intValue(), consoleLevel.intValue())));
         Logger.getLogger("com.timepath").setLevel(packageLevel);
         Logger globalLogger = Logger.getLogger("");
         SimpleFormatter consoleFormatter = new SimpleFormatter();
-        if(!consoleLevel.equals(Level.OFF)) {
-            for(Handler h : globalLogger.getHandlers()) {
-                if(h instanceof ConsoleHandler) {
+        if (!consoleLevel.equals(Level.OFF)) {
+            for (Handler h : globalLogger.getHandlers()) {
+                if (h instanceof ConsoleHandler) {
                     h.setLevel(consoleLevel);
                     h.setFormatter(consoleFormatter);
                 }
             }
         }
-        if(!logfileLevel.equals(Level.OFF)) {
+        if (!logfileLevel.equals(Level.OFF)) {
             LogAggregator lh = new LogAggregator();
-            if(!Utils.DEBUG) {
+            if (!Utils.DEBUG) {
                 try {
                     lh.addHandler(new LogFileHandler());
-                } catch(IOException | SecurityException ex) {
+                } catch (IOException | SecurityException ex) {
                     LOG.log(Level.SEVERE, null, ex);
                 }
             }
@@ -174,14 +175,12 @@ public class Main implements Protocol {
         LOG.log(Level.INFO, "Package level: {0}", packageLevel);
     }
 
-    private Launcher launcher;
-
     @Override
     public void newFrame() throws RemoteException {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                if(launcher == null) {
+                if (launcher == null) {
                     SwingUtils.lookAndFeel();
                     launcher = new Launcher();
                 }

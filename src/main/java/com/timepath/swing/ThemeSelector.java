@@ -26,15 +26,15 @@ public class ThemeSelector extends JComboBox<String> {
         final DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
         setModel(model);
         String currentLafClass = UIManager.getLookAndFeel().getClass().getName();
-        for(UIManager.LookAndFeelInfo lafInfo : UIManager.getInstalledLookAndFeels()) {
+        for (UIManager.LookAndFeelInfo lafInfo : UIManager.getInstalledLookAndFeels()) {
             try {
                 Class.forName(lafInfo.getClassName());
-            } catch(ClassNotFoundException ignored) {
+            } catch (ClassNotFoundException ignored) {
                 continue; // Registered but not found on classpath
             }
             String name = lafInfo.getName();
             model.addElement(name);
-            if(lafInfo.getClassName().equals(currentLafClass)) {
+            if (lafInfo.getClassName().equals(currentLafClass)) {
                 model.setSelectedItem(name);
             }
         }
@@ -42,20 +42,20 @@ public class ThemeSelector extends JComboBox<String> {
             @Override
             public void actionPerformed(ActionEvent evt) {
                 String target = (String) model.getSelectedItem();
-                for(UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-                    if(target.equals(info.getName())) {
+                for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+                    if (target.equals(info.getName())) {
                         LOG.log(Level.INFO, "Setting L&F: {0}", info.getClassName());
                         try {
                             String usrTheme = info.getClassName();
                             UIManager.setLookAndFeel(usrTheme);
-                            for(Window w : Window.getWindows()) { // TODO: Instrumentation to access detached components
+                            for (Window w : Window.getWindows()) { // TODO: Instrumentation to access detached components
                                 SwingUtilities.updateComponentTreeUI(w);
                             }
                             Utils.SETTINGS.put("laf", usrTheme);
                             return;
-                        } catch(InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
+                        } catch (InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
                             LOG.log(Level.SEVERE, null, e);
-                        } catch(ClassNotFoundException e) {
+                        } catch (ClassNotFoundException e) {
                             LOG.log(Level.WARNING, "Unable to load user L&F", e);
                         }
                     }

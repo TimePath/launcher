@@ -7,14 +7,13 @@ import java.util.List;
 
 /**
  * @param <E>
- *
  * @author TimePath
  */
 @SuppressWarnings("serial")
 public abstract class ObjectBasedTableModel<E> extends AbstractTableModel {
 
     private final List<String> columns = Arrays.asList(columns());
-    private final List<E>      rows    = new LinkedList<>();
+    private final List<E> rows = new LinkedList<>();
 
     protected ObjectBasedTableModel() {
     }
@@ -22,14 +21,12 @@ public abstract class ObjectBasedTableModel<E> extends AbstractTableModel {
     /**
      * Add Object o to the model
      *
-     * @param o
-     *         the Object
-     *
+     * @param o the Object
      * @return true if added
      */
     public boolean add(E o) {
         int idx = rows.indexOf(o);
-        if(idx >= 0) {
+        if (idx >= 0) {
             return false;
         }
         rows.add(o);
@@ -41,9 +38,9 @@ public abstract class ObjectBasedTableModel<E> extends AbstractTableModel {
 
     @Override
     public String getColumnName(int column) {
-        if(column < columns.size()) {
+        if (column < columns.size()) {
             String name = columns.get(column);
-            if(name != null) {
+            if (name != null) {
                 return name;
             }
         }
@@ -68,11 +65,8 @@ public abstract class ObjectBasedTableModel<E> extends AbstractTableModel {
     /**
      * Gets a property from an Object based on an index
      *
-     * @param o
-     *         the Object
-     * @param columnIndex
-     *         index to Object property
-     *
+     * @param o           the Object
+     * @param columnIndex index to Object property
      * @return the property
      */
     public abstract Object get(E o, int columnIndex);
@@ -80,14 +74,12 @@ public abstract class ObjectBasedTableModel<E> extends AbstractTableModel {
     /**
      * Remove Object o from the model
      *
-     * @param o
-     *         the Object
-     *
+     * @param o the Object
      * @return true if removed
      */
     public boolean remove(E o) {
         int idx = rows.indexOf(o);
-        if(idx < 0) {
+        if (idx < 0) {
             return false;
         }
         rows.remove(idx);
@@ -98,14 +90,12 @@ public abstract class ObjectBasedTableModel<E> extends AbstractTableModel {
     /**
      * Fire update for Object o in the model
      *
-     * @param o
-     *         the Object
-     *
+     * @param o the Object
      * @return true if not updated (because the Object isn't in the model)
      */
     public boolean update(E o) {
         int idx = rows.indexOf(o);
-        if(idx < 0) {
+        if (idx < 0) {
             return false;
         }
         fireTableRowsUpdated(idx, idx);

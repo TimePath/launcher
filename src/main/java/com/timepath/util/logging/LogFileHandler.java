@@ -14,12 +14,12 @@ public class LogFileHandler extends Handler {
 
     private static final Logger LOG = Logger.getLogger(LogFileHandler.class.getName());
     private final FileHandler fh;
-    private final File        logFile;
+    private final File logFile;
 
     public LogFileHandler() throws IOException {
         // i have to set this up to be able to recall it
         logFile = new File(JARUtils.CURRENT_FILE.getParentFile(),
-                           MessageFormat.format("logs/log_{0}.txt", System.currentTimeMillis() / 1000));
+                MessageFormat.format("logs/log_{0}.txt", System.currentTimeMillis() / 1000));
         logFile.getParentFile().mkdirs();
         Formatter formatter = new XMLFormatter();
         fh = new FileHandler(logFile.getPath(), 0, 1, false);
@@ -31,7 +31,7 @@ public class LogFileHandler extends Handler {
                 fh.flush();
                 fh.close();
                 IOUtils.logThread(Utils.USER + ".xml.gz", "launcher/" + JARUtils.CURRENT_VERSION + "/logs", IOUtils.loadPage(u))
-                     .run();
+                        .run();
             }
         }));
     }

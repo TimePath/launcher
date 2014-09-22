@@ -18,17 +18,17 @@ public class DownloadPanel extends JPanel {
         jTable1.setModel(tableModel = new ObjectBasedTableModel<Package>() {
             @Override
             public String[] columns() {
-                return new String[] { "Name", "Progress" };
+                return new String[]{"Name", "Progress"};
             }
 
             @Override
             public Object get(Package o, int columnIndex) {
-                switch(columnIndex) {
+                switch (columnIndex) {
                     case 0:
                         return o.getFileName();
                     case 1:
-                        double percent = ( o.progress * 100.0 ) / o.size;
-                        return ( percent < 0 ) ? '?' : String.format("%.1f%%", percent);
+                        double percent = (o.progress * 100.0) / o.size;
+                        return (percent < 0) ? '?' : String.format("%.1f%%", percent);
                     case 2:
                         return o.size;
                     default:
@@ -40,10 +40,12 @@ public class DownloadPanel extends JPanel {
         GroupLayout layout = new GroupLayout(this);
         setLayout(layout);
         layout.setHorizontalGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                                        .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 409, Short.MAX_VALUE));
+                .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 409, Short.MAX_VALUE));
         layout.setVerticalGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                                      .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE));
+                .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE));
     }
 
-    public ObjectBasedTableModel<Package> getTableModel() { return tableModel; }
+    public ObjectBasedTableModel<Package> getTableModel() {
+        return tableModel;
+    }
 }

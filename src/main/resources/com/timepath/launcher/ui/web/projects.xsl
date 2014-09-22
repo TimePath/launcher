@@ -374,7 +374,8 @@
 
                         <ul class="nav navbar-nav navbar-right">
                             <li>
-                                <a id="shutdown" href="/shutdown" data-placement="bottom" data-original-title="Shutdown">
+                                <a id="shutdown" href="/shutdown" data-placement="bottom"
+                                   data-original-title="Shutdown">
                                     <span class="glyphicon glyphicon-off"/>
                                 </a>
                             </li>
@@ -445,20 +446,24 @@
             <div class="btn-toolbar">
                 <div class="pull-right">
                     <div class="btn-group">
-                        <a class="btn btn-default btn-sm" role="button" data-placement="bottom" data-original-title="Start">
+                        <a class="btn btn-default btn-sm" role="button" data-placement="bottom"
+                           data-original-title="Start">
                             <span class="glyphicon glyphicon-play"/>
                         </a>
-                        <a class="btn btn-default btn-sm" role="button" data-placement="bottom" data-original-title="Favourite">
+                        <a class="btn btn-default btn-sm" role="button" data-placement="bottom"
+                           data-original-title="Favourite">
                             <span class="glyphicon glyphicon-star"/>
                         </a>
-                        <a class="btn btn-default btn-sm" role="button" data-placement="bottom" data-original-title="Options">
+                        <a class="btn btn-default btn-sm" role="button" data-placement="bottom"
+                           data-original-title="Options">
                             <span class="glyphicon glyphicon-cog"/>
                         </a>
                         <a class="btn btn-default btn-sm disabled" role="button" data-placement="bottom"
                            data-original-title="Remove">
                             <span class="glyphicon glyphicon-trash"/>
                         </a>
-                        <a class="btn btn-default btn-sm" role="button" data-placement="bottom" data-original-title="Info">
+                        <a class="btn btn-default btn-sm" role="button" data-placement="bottom"
+                           data-original-title="Info">
                             <span class="glyphicon glyphicon-info-sign"/>
                         </a>
                     </div>

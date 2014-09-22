@@ -26,31 +26,16 @@ import static java.security.AccessController.doPrivileged;
  */
 public class CompositeClassLoader extends ClassLoader {
 
-    private static final Logger                        LOG          = Logger.getLogger(CompositeClassLoader.class.getName());
-    private final        Map<String, Class<?>>         classes      = new HashMap<>();
-    private final        Map<String, Enumeration<URL>> enumerations = new HashMap<>();
-    private final        Map<URL, ClassLoader>         jars         = new HashMap<>();
-    private final        Map<String, String>           libraries    = new HashMap<>();
-    private final        List<ClassLoader>             loaders      = Collections.synchronizedList(new LinkedList<ClassLoader>());
-    private final        Map<String, URL>              resources    = new HashMap<>();
+    private static final Logger LOG = Logger.getLogger(CompositeClassLoader.class.getName());
+    private final Map<String, Class<?>> classes = new HashMap<>();
+    private final Map<String, Enumeration<URL>> enumerations = new HashMap<>();
+    private final Map<URL, ClassLoader> jars = new HashMap<>();
+    private final Map<String, String> libraries = new HashMap<>();
+    private final List<ClassLoader> loaders = Collections.synchronizedList(new LinkedList<ClassLoader>());
+    private final Map<String, URL> resources = new HashMap<>();
 
     public CompositeClassLoader() {
         add(getClass().getClassLoader()); // our parent classloader
-    }
-
-    /**
-     * Registers a {@code ClassLoader} on the top of the stack
-     *
-     * @param loader
-     *         the {@code ClassLoader}
-     */
-    public void add(ClassLoader loader) {
-        if(loader == null) {
-            throw new IllegalArgumentException("ClassLoader must not be null");
-        }
-        synchronized(loaders) {
-            loaders.add(0, loader);
-        }
     }
 
     public static CompositeClassLoader createPrivileged() {
@@ -63,20 +48,31 @@ public class CompositeClassLoader extends ClassLoader {
     }
 
     /**
+     * Registers a {@code ClassLoader} on the top of the stack
+     *
+     * @param loader the {@code ClassLoader}
+     */
+    public void add(ClassLoader loader) {
+        if (loader == null) {
+            throw new IllegalArgumentException("ClassLoader must not be null");
+        }
+        synchronized (loaders) {
+            loaders.add(0, loader);
+        }
+    }
+
+    /**
      * Start the specified main class with {@code args} using {@code urls}
      *
-     * @param main
-     *         the main class name
-     * @param args
-     *         the command line arguments. Converted to an empty array if null
-     * @param urls
-     *         additional resources
+     * @param main the main class name
+     * @param args the command line arguments. Converted to an empty array if null
+     * @param urls additional resources
      */
     public void start(String main, String[] args, Iterable<URL> urls) throws Throwable {
-        if(args == null) {
+        if (args == null) {
             args = new String[0];
         }
-        LOG.log(Level.INFO, "{0} {1} {2}", new Object[] {
+        LOG.log(Level.INFO, "{0} {1} {2}", new Object[]{
                 main, Arrays.toString(args), urls
         });
         add(urls);
@@ -86,11 +82,10 @@ public class CompositeClassLoader extends ClassLoader {
     /**
      * Registers {@code URLClassLoader}s for the {@code urls}
      *
-     * @param urls
-     *         the URLs
+     * @param urls the URLs
      */
     public void add(Iterable<URL> urls) {
-        for(URL u : urls) {
+        for (URL u : urls) {
             add(u);
         }
     }
@@ -98,17 +93,16 @@ public class CompositeClassLoader extends ClassLoader {
     /**
      * Registers a new URLClassLoader for the specified {@code url}
      *
-     * @param url
-     *         the URL
+     * @param url the URL
      */
     public void add(final URL url) {
-        if(jars.containsKey(url)) {
+        if (jars.containsKey(url)) {
             return;
         }
         ClassLoader cl = doPrivileged(new PrivilegedAction<URLClassLoader>() {
             @Override
             public URLClassLoader run() {
-                return URLClassLoader.newInstance(new URL[] { url }, CompositeClassLoader.this);
+                return URLClassLoader.newInstance(new URL[]{url}, CompositeClassLoader.this);
             }
         });
         jars.put(url, cl);
@@ -116,65 +110,58 @@ public class CompositeClassLoader extends ClassLoader {
     }
 
     private void invokeMain(String name, String[] args)
-    throws ClassNotFoundException, IllegalAccessException, InvocationTargetException, NoSuchMethodException
-    {
+            throws ClassNotFoundException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
         Method method = loadClass(name).getMethod("main", String[].class);
         int modifiers = method.getModifiers();
-        if(( method.getReturnType() != void.class ) || !Modifier.isStatic(modifiers) || !Modifier.isPublic(modifiers)) {
+        if ((method.getReturnType() != void.class) || !Modifier.isStatic(modifiers) || !Modifier.isPublic(modifiers)) {
             throw new NoSuchMethodException("main");
         }
         method.setAccessible(true);
-        method.invoke(null, new Object[] { args }); // varargs call
+        method.invoke(null, new Object[]{args}); // varargs call
     }
 
     @Override
     protected Class<?> findClass(String name) throws ClassNotFoundException {
         Class<?> res = reflect(classes, "findClass", name);
-        if(res != null) {
+        if (res != null) {
             return res;
         }
         return super.findClass(name);
     }
 
     /**
-     * @param cache
-     *         the cache variable
-     * @param methodStr
-     *         the parent method name
-     * @param key
-     *         the key
-     * @param <A>
-     *         type of key
-     * @param <B>
-     *         type of value
-     *
+     * @param cache     the cache variable
+     * @param methodStr the parent method name
+     * @param key       the key
+     * @param <A>       type of key
+     * @param <B>       type of value
      * @return the first found value
      */
     @SuppressWarnings("unchecked")
     private <A, B> B reflect(Map<A, B> cache, String methodStr, A key) {
-        LOG.log(Level.FINE, "{0}: {1}", new Object[] { methodStr, key });
+        LOG.log(Level.FINE, "{0}: {1}", new Object[]{methodStr, key});
         B ret = cache.get(key);
-        if(ret != null) {
+        if (ret != null) {
             return ret;
         }
-        synchronized(loaders) {
-            for(ClassLoader cl : loaders) {
+        synchronized (loaders) {
+            for (ClassLoader cl : loaders) {
                 try {
                     Method method = ClassLoader.class.getDeclaredMethod(methodStr, key.getClass());
                     method.setAccessible(true);
                     B u = (B) method.invoke(cl, key);
-                    if(u != null) { // return with first result
+                    if (u != null) { // return with first result
                         cache.put(key, u);
                         return u;
                     }
-                } catch(InvocationTargetException ite) { // caused by underlying method
+                } catch (InvocationTargetException ite) { // caused by underlying method
                     try {
                         throw ite.getCause();
-                    } catch(ClassNotFoundException ignored) { // ignore this one, keep trying other classloaders
-                    } catch(Throwable t) {
+                    } catch (ClassNotFoundException ignored) { // ignore this one, keep trying other classloaders
+                    } catch (Throwable t) {
                         LOG.log(Level.SEVERE, null, t);
                     }
-                } catch(Throwable t) {
+                } catch (Throwable t) {
                     LOG.log(Level.SEVERE, null, t);
                 }
             }
@@ -185,7 +172,7 @@ public class CompositeClassLoader extends ClassLoader {
     @Override
     protected URL findResource(String name) {
         URL res = reflect(resources, "findResource", name);
-        if(res != null) {
+        if (res != null) {
             return res;
         }
         return super.findResource(name);
@@ -197,7 +184,7 @@ public class CompositeClassLoader extends ClassLoader {
     @Override
     protected Enumeration<URL> findResources(String name) throws IOException {
         Enumeration<URL> res = reflect(enumerations, "findResources", name);
-        if(res != null) {
+        if (res != null) {
             return res;
         }
         return super.findResources(name);
@@ -206,7 +193,7 @@ public class CompositeClassLoader extends ClassLoader {
     @Override
     protected String findLibrary(String libname) {
         String res = reflect(libraries, "findLibrary", libname);
-        if(res != null) {
+        if (res != null) {
             return res;
         }
         // limitation: libraries must be files. Copy to temp file
@@ -219,11 +206,11 @@ public class CompositeClassLoader extends ClassLoader {
             FileOutputStream outputStream = new FileOutputStream(file);
             FileChannel outputChannel = outputStream.getChannel();
             long total = 0, read;
-            while(( read = outputChannel.transferFrom(rbc, total, 8192) ) > 0) {
+            while ((read = outputChannel.transferFrom(rbc, total, 8192)) > 0) {
                 total += read;
             }
             return file.getAbsolutePath();
-        } catch(IOException ex) {
+        } catch (IOException ex) {
             LOG.log(Level.SEVERE, null, ex);
         }
         return super.findLibrary(libname);

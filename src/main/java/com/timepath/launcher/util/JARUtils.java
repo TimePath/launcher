@@ -16,10 +16,10 @@ import java.util.logging.Logger;
  */
 public class JARUtils {
 
-    public static final  String UPDATE_NAME     = "update.tmp";
-    public static final  File   CURRENT_FILE    = locate();
-    public static final  long   CURRENT_VERSION = version();
-    private static final Logger LOG             = Logger.getLogger(JARUtils.class.getName());
+    public static final String UPDATE_NAME = "update.tmp";
+    public static final File CURRENT_FILE = locate();
+    public static final long CURRENT_VERSION = version();
+    private static final Logger LOG = Logger.getLogger(JARUtils.class.getName());
 
     public static File locate() {
         return locate(Utils.class);
@@ -29,13 +29,13 @@ public class JARUtils {
         String encoded = clazz.getProtectionDomain().getCodeSource().getLocation().getPath();
         try {
             return new File(URLDecoder.decode(encoded, StandardCharsets.UTF_8.name()));
-        } catch(UnsupportedEncodingException ex) {
+        } catch (UnsupportedEncodingException ex) {
             LOG.log(Level.WARNING, null, ex);
         }
         String ans = System.getProperty("user.dir") + File.separator;
         String cmd = System.getProperty("sun.java.command");
         int idx = cmd.lastIndexOf(File.separator);
-        return new File(ans + ( ( idx < 0 ) ? "" : cmd.substring(0, idx + 1) ));
+        return new File(ans + ((idx < 0) ? "" : cmd.substring(0, idx + 1)));
     }
 
     public static long version() {
@@ -44,10 +44,10 @@ public class JARUtils {
 
     private static long version(Class<?> clazz) {
         String impl = clazz.getPackage().getImplementationVersion();
-        if(impl != null) {
+        if (impl != null) {
             try {
                 return Long.parseLong(impl);
-            } catch(NumberFormatException ignored) {
+            } catch (NumberFormatException ignored) {
             }
         }
         return 0;
@@ -57,6 +57,6 @@ public class JARUtils {
         URL u = new URL("jar", "", url + "!/");
         JarURLConnection uc = (JarURLConnection) u.openConnection();
         Attributes attr = uc.getMainAttributes();
-        return ( attr != null ) ? attr.getValue(Attributes.Name.MAIN_CLASS) : null;
+        return (attr != null) ? attr.getValue(Attributes.Name.MAIN_CLASS) : null;
     }
 }

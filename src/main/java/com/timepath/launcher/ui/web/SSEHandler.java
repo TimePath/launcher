@@ -16,29 +16,7 @@ import java.nio.charset.StandardCharsets;
  */
 class SSEHandler implements HttpHandler {
 
-    SSEHandler() { }
-
-    @Override
-    public void handle(final HttpExchange exchange) throws IOException {
-        Headers head = exchange.getResponseHeaders();
-        head.set("Connection", "keep-alive");
-        head.set("Cache-Control", "no-cache");
-        head.set("Content-Type", "text/event-stream");
-        exchange.sendResponseHeaders(HttpURLConnection.HTTP_OK, 0);
-        final String response = "Ping";
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try(OutputStream os = exchange.getResponseBody()) {
-                    while(true) {
-                        os.write(event(response).getBytes(StandardCharsets.UTF_8));
-                        os.flush();
-                        Thread.sleep(10000);
-                    }
-                } catch(IOException | InterruptedException ignored) {
-                }
-            }
-        }).start();
+    SSEHandler() {
     }
 
     protected static String event(String message) {
@@ -51,21 +29,44 @@ class SSEHandler implements HttpHandler {
          * the entire line is treated as the field name,
          * with an empty value string.
          */
-        if(message == null) {
+        if (message == null) {
             return type;
         }
         String[] lines = message.split("\n");
-        int size = 1 + message.length() + ( lines.length * 6 ) + ( ( type != null ) ? ( 7 + type.length() ) : 0 ) + 1;
+        int size = 1 + message.length() + (lines.length * 6) + ((type != null) ? (7 + type.length()) : 0) + 1;
         StringBuilder sb = new StringBuilder(size);
         // Named event
-        if(type != null) {
+        if (type != null) {
             sb.append("event: ").append(type).append('\n');
         }
         // \n handling
-        for(String line : lines) {
+        for (String line : lines) {
             sb.append("data: ").append(line).append('\n');
         }
         sb.append('\n');
         return sb.toString();
+    }
+
+    @Override
+    public void handle(final HttpExchange exchange) throws IOException {
+        Headers head = exchange.getResponseHeaders();
+        head.set("Connection", "keep-alive");
+        head.set("Cache-Control", "no-cache");
+        head.set("Content-Type", "text/event-stream");
+        exchange.sendResponseHeaders(HttpURLConnection.HTTP_OK, 0);
+        final String response = "Ping";
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try (OutputStream os = exchange.getResponseBody()) {
+                    while (true) {
+                        os.write(event(response).getBytes(StandardCharsets.UTF_8));
+                        os.flush();
+                        Thread.sleep(10000);
+                    }
+                } catch (IOException | InterruptedException ignored) {
+                }
+            }
+        }).start();
     }
 }

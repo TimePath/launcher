@@ -18,14 +18,15 @@ import java.util.logging.Logger;
 
 public class Server implements Runnable {
 
-    public static final  int    BACKLOG           = 20;
-    public static final  String ENDPOINT_PROXY    = "/proxy";
-    public static final  String ENDPOINT_SHUTDOWN = "/shutdown";
-    public static final  String ENDPOINT_SSE      = "/events";
-    private static final Logger LOG               = Logger.getLogger(Server.class.getName());
+    public static final int BACKLOG = 20;
+    public static final String ENDPOINT_PROXY = "/proxy";
+    public static final String ENDPOINT_SHUTDOWN = "/shutdown";
+    public static final String ENDPOINT_SSE = "/events";
+    private static final Logger LOG = Logger.getLogger(Server.class.getName());
     private static InetSocketAddress ADDRESS;
 
-    public Server() { }
+    public Server() {
+    }
 
     public static void main(String[] args) {
         new Server().run();
@@ -34,7 +35,7 @@ public class Server implements Runnable {
     @Override
     public void run() {
         // Browse to if already started
-        if(ADDRESS != null) {
+        if (ADDRESS != null) {
             browse();
             return;
         }
@@ -64,10 +65,10 @@ public class Server implements Runnable {
             // Block until shutdown
             try {
                 latch.await();
-            } catch(InterruptedException ignored) {
+            } catch (InterruptedException ignored) {
             }
             LOG.log(Level.INFO, "Exiting");
-        } catch(IOException ex) {
+        } catch (IOException ex) {
             LOG.log(Level.SEVERE, null, ex);
         }
     }
