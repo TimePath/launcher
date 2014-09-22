@@ -38,8 +38,11 @@ public class DBInbox {
         }
         try(BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
             StringBuilder sb = new StringBuilder();
-            for(String line; ( line = br.readLine() ) != null; sb.append('\n').append(line)) ;
-            return sb.substring(1);
+            String line;
+            while (( line = br.readLine() ) != null) {
+                sb.append('\n').append(line);
+            }
+            return sb.substring(Math.min(1, sb.length()));
         }
     }
 }
