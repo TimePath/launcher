@@ -10,6 +10,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -104,13 +107,19 @@ public class DownloadManager {
         public void run() {
             try {
                 File downloadFile = pkgFile.getFile();
-                File checksumFile = pkgFile.getChecksumFile();
+                File checksumFile = pkgFile.getChecksumFile("SHA1");
                 if (downloadFile.equals(JARUtils.CURRENT_FILE)) { // Edge case for updating current file
                     downloadFile = new File(JARUtils.UPDATE_NAME);
                     checksumFile = new File(JARUtils.UPDATE_NAME + ".sha1");
                 }
-                download(new URI(pkgFile.getChecksumURL()).toURL(), checksumFile, true);
-                download(new URI(pkgFile.getDownloadURL()).toURL(), downloadFile, false);
+                File temp = download(pkgFile);
+                // Get the checksum before the package is moved into place
+                Files.createDirectories(checksumFile.getParentFile().toPath());
+                try (FileOutputStream checksumOutputStream = new FileOutputStream(checksumFile)) {
+                    checksumOutputStream.write(pkgFile.getChecksum("SHA1").getBytes("UTF-8"));
+                }
+                Path move = Files.move(temp.toPath(), downloadFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                LOG.log(Level.INFO, "Complete: {0} > {1}", new Object[]{pkgFile.getDownloadURL(), move});
             } catch (IOException | URISyntaxException e) {
                 LOG.log(Level.SEVERE, "DownloadTask", e);
             } finally {
@@ -118,11 +127,14 @@ public class DownloadManager {
             }
         }
 
-        private void download(URL u, File file, boolean checksum) throws IOException {
-            LOG.log(Level.INFO, "Downloading {0} > {1}", new Object[]{u, file});
+        private File download(Package p) throws IOException, URISyntaxException {
+            File file = File.createTempFile("jar", "");
+            URL u = new URI(p.getDownloadURL()).toURL();
             URLConnection connection = u.openConnection();
-            if (!checksum) pkgFile.size = connection.getContentLengthLong();
+            pkgFile.size = connection.getContentLengthLong();
+            p.associate(connection);
             IOUtils.createFile(file);
+            LOG.log(Level.INFO, "Downloading {0} > {1}", new Object[]{u, file});
             byte[] buffer = new byte[8192];
             try (InputStream is = new BufferedInputStream(connection.getInputStream());
                  OutputStream fos = new BufferedOutputStream(new FileOutputStream(file))) {
@@ -130,13 +142,12 @@ public class DownloadManager {
                 for (int read; (read = is.read(buffer)) > -1; ) {
                     fos.write(buffer, 0, read);
                     total += read;
-                    if (!checksum) {
-                        pkgFile.progress = total;
-                        fireUpdated(pkgFile);
-                    }
+                    pkgFile.progress = total;
+                    fireUpdated(pkgFile);
                 }
                 fos.flush();
             }
+            return file;
         }
     }
 }
