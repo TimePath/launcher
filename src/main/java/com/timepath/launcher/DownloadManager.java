@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -26,6 +27,8 @@ import java.util.logging.Logger;
  */
 public class DownloadManager {
 
+    public static final int MAX_CONCURRENT_CONNECTIONS = 10;
+    private Semaphore semaphore = new Semaphore(MAX_CONCURRENT_CONNECTIONS, true);
     private static final Logger LOG = Logger.getLogger(DownloadManager.class.getName());
     protected final List<DownloadMonitor> monitors = new LinkedList<>();
     protected final ExecutorService pool = Executors.newCachedThreadPool(new DaemonThreadFactory());
@@ -110,6 +113,7 @@ public class DownloadManager {
         @Override
         public void run() {
             try {
+                semaphore.acquireUninterruptibly();
                 int retryCount = 10;
                 for (int i = 0; i < retryCount + 1; i++) {
                     try {
@@ -139,6 +143,7 @@ public class DownloadManager {
                 LOG.log(Level.WARNING, "Failed all attempts: {0}", UpdateChecker.getDownloadURL(pkgFile));
             } finally {
                 fireFinished(pkgFile);
+                semaphore.release();
             }
         }
 
@@ -150,7 +155,6 @@ public class DownloadManager {
                     u.setRequestProperty("Range", "bytes=" + pkgFile.progress + "-");
                 }
             });
-
             boolean partial = "bytes".equals(connection.getHeaderField("Accept-Ranges"));
             pkgFile.size = connection.getContentLengthLong();
             p.associate(connection);
