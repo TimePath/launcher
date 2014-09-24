@@ -41,7 +41,7 @@ public class IOUtils {
         LOG.log(Level.INFO, "Current file = {0}", JARUtils.CURRENT_FILE);
         File cwd = JARUtils.CURRENT_FILE.getParentFile();
         LOG.log(Level.INFO, "Working directory = {0}", cwd.getAbsoluteFile());
-        final File updateFile = new File(cwd, JARUtils.UPDATE_NAME);
+        final File updateFile = new File(cwd, JARUtils.UPDATE.getName());
         if (updateFile.exists()) {
             LOG.log(Level.INFO, "Update file = {0}", updateFile);
             //<editor-fold defaultstate="collapsed" desc="on user restart">

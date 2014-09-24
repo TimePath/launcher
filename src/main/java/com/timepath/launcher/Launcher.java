@@ -25,7 +25,12 @@ public class Launcher {
     public static final Preferences PREFS = Preferences.userNodeForPackage(Launcher.class);
     private static final Preferences PREFS_REPOS = PREFS.node("repositories");
     private static final Logger LOG = Logger.getLogger(Launcher.class.getName());
-
+    private static Map<Package, Boolean> locked = new Cache<Package, Boolean>() {
+        @Override
+        protected Boolean fill(Package key) {
+            return false;
+        }
+    };
     private final CompositeClassLoader cl = CompositeClassLoader.createPrivileged();
     private final DownloadManager downloadManager = new DownloadManager();
     private Package self;
@@ -56,6 +61,15 @@ public class Launcher {
             LOG.log(Level.SEVERE, null, e);
         }
         return locations;
+    }
+
+    public static boolean isLocked(Package aPackage) {
+        return locked.get(aPackage);
+    }
+
+    public static void setLocked(Package aPackage, boolean lock) {
+        LOG.log(Level.INFO, (lock ? "L" : "Unl") + "ocking {0}", aPackage);
+        locked.put(aPackage, lock);
     }
 
     /**
@@ -119,38 +133,34 @@ public class Launcher {
      */
     public Set<Package> update(Program program) {
         Package parent = program.getPackage();
-        if (UpdateChecker.isLocked(parent)) {
+        if (isLocked(parent)) {
             LOG.log(Level.INFO, "Package {0} locked, aborting: {1}", new Object[]{parent, program});
             return null;
         }
-        UpdateChecker.setLocked(parent, true);
         try {
+            setLocked(parent, true);
             LOG.log(Level.INFO, "Checking for updates");
+            Map<Package, Future<?>> downloads = new HashMap<>();
             Set<Package> updates = UpdateChecker.getUpdates(parent);
-            LOG.log(Level.INFO, "Submitting downloads");
-            Map<Package, List<Future<?>>> downloads = new HashMap<>(updates.size());
+            LOG.log(Level.INFO, "Updates: {0}", updates);
             for (Package pkg : updates) {
-                List<Future<?>> pkgDownloads = new LinkedList<>();
-                for (Package pkgDownload : pkg.getDownloads()) {
-                    pkgDownloads.add(downloadManager.submit(pkgDownload));
-                }
-                downloads.put(pkg, pkgDownloads);
+                LOG.log(Level.INFO, "Submitting {0}", pkg);
+                downloads.put(pkg, downloadManager.submit(pkg));
             }
             LOG.log(Level.INFO, "Waiting for completion");
-            for (Map.Entry<Package, List<Future<?>>> e : downloads.entrySet()) {
+            for (Map.Entry<Package, Future<?>> e : downloads.entrySet()) {
                 Package pkg = e.getKey();
-                for (Future<?> future : e.getValue()) {
-                    try {
-                        future.get();
-                        LOG.log(Level.INFO, "Updated {0}", pkg);
-                    } catch (InterruptedException | ExecutionException ex) {
-                        LOG.log(Level.SEVERE, null, ex);
-                    }
+                Future<?> future = e.getValue();
+                try {
+                    future.get();
+                    LOG.log(Level.INFO, "Updated {0}", pkg);
+                } catch (InterruptedException | ExecutionException ex) {
+                    LOG.log(Level.SEVERE, null, ex);
                 }
             }
             return updates;
         } finally {
-            UpdateChecker.setLocked(parent, false);
+            setLocked(parent, false);
         }
     }
 }

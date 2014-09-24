@@ -98,9 +98,15 @@ public class DownloadManager {
     private class DownloadTask implements Runnable {
 
         private final Package pkgFile;
+        private File temp;
 
         private DownloadTask(Package pkgFile) {
             this.pkgFile = pkgFile;
+            try {
+                this.temp = File.createTempFile("pkg", "");
+            } catch (IOException e) {
+                LOG.log(Level.SEVERE, "Unable to create temp file for download", e);
+            }
         }
 
         @Override
@@ -108,15 +114,16 @@ public class DownloadManager {
             try {
                 int retryCount = 10;
                 for (int i = 0; i < retryCount + 1; i++) {
-                    // TODO: download resuming
                     try {
-                        File downloadFile = UpdateChecker.getFile(pkgFile);
-                        File checksumFile = UpdateChecker.getChecksumFile(pkgFile, UpdateChecker.ALGORITHM);
-                        if (downloadFile.equals(JARUtils.CURRENT_FILE)) { // Edge case for updating current file
-                            downloadFile = new File(JARUtils.UPDATE_NAME);
-                            checksumFile = new File(JARUtils.UPDATE_NAME + '.' + UpdateChecker.ALGORITHM);
+                        File downloadFile, checksumFile;
+                        if (Package.isSelf(pkgFile)) { // Special case
+                            downloadFile = JARUtils.UPDATE;
+                            checksumFile = new File(JARUtils.UPDATE.getName() + '.' + UpdateChecker.ALGORITHM);
+                        } else {
+                            downloadFile = UpdateChecker.getFile(pkgFile);
+                            checksumFile = UpdateChecker.getChecksumFile(pkgFile, UpdateChecker.ALGORITHM);
                         }
-                        File temp = download(pkgFile);
+                        download(pkgFile);
                         // Get the checksum before the package is moved into place
                         LOG.log(Level.INFO, "Saving checksum: {0}", checksumFile);
                         Files.createDirectories(checksumFile.getAbsoluteFile().getParentFile().toPath());
@@ -137,17 +144,23 @@ public class DownloadManager {
             }
         }
 
-        private File download(Package p) throws IOException {
-            File file = File.createTempFile("jar", "");
+        private void download(Package p) throws IOException {
             String s = UpdateChecker.getDownloadURL(p);
-            URLConnection connection = Utils.requestConnection(s);
+            URLConnection connection = Utils.requestConnection(s, new Utils.ConnectionSettings() {
+                @Override
+                public void apply(URLConnection u) {
+                    u.setRequestProperty("Range", "bytes=" + pkgFile.progress + "-");
+                }
+            });
+
+            boolean partial = "bytes".equals(connection.getHeaderField("Accept-Ranges"));
             pkgFile.size = connection.getContentLengthLong();
             p.associate(connection);
-            IOUtils.createFile(file);
-            LOG.log(Level.INFO, "Downloading {0} > {1}", new Object[]{s, file});
+            IOUtils.createFile(temp);
+            LOG.log(Level.INFO, "Downloading {0} > {1}", new Object[]{s, temp});
             byte[] buffer = new byte[8192];
             try (InputStream is = Utils.openStream(connection);
-                 OutputStream fos = new BufferedOutputStream(new FileOutputStream(file))) {
+                 OutputStream fos = new BufferedOutputStream(new FileOutputStream(temp, partial))) {
                 long total = 0;
                 for (int read; (read = is.read(buffer)) > -1; ) {
                     fos.write(buffer, 0, read);
@@ -157,7 +170,6 @@ public class DownloadManager {
                 }
                 fos.flush();
             }
-            return file;
         }
     }
 }

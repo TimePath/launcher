@@ -16,13 +16,13 @@ import java.util.logging.Logger;
  */
 public class JARUtils {
 
-    public static final String UPDATE_NAME = "update.tmp";
+    public static final File UPDATE = new File("update.tmp");
     public static final File CURRENT_FILE = locate();
     public static final long CURRENT_VERSION = version();
     private static final Logger LOG = Logger.getLogger(JARUtils.class.getName());
 
     public static File locate() {
-        return locate(Utils.class);
+        return Utils.DEBUG ? UPDATE : locate(Utils.class);
     }
 
     private static File locate(Class<?> clazz) {
