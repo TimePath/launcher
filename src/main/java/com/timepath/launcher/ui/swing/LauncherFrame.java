@@ -9,6 +9,7 @@ import com.timepath.launcher.util.JARUtils;
 import com.timepath.launcher.util.SwingUtils;
 import com.timepath.launcher.util.Utils;
 import com.timepath.maven.Package;
+import com.timepath.maven.UpdateChecker;
 import com.timepath.swing.ThemeSelector;
 
 import javax.swing.*;
@@ -278,7 +279,7 @@ public class LauncherFrame extends JFrame {
             launchButton.setEnabled(false);
         } else {
             newsScroll.setViewportView(p.getPanel());
-            launchButton.setEnabled(!p.getPackage().isLocked());
+            launchButton.setEnabled(!UpdateChecker.isLocked(p.getPackage()));
         }
     }
 
@@ -299,7 +300,7 @@ public class LauncherFrame extends JFrame {
                     if (updates != null) { // Ready to start
                         Package parent = program.getPackage();
                         boolean run = true;
-                        if (!Utils.DEBUG && parent.isSelf()) { // Alert on self update
+                        if (!Utils.DEBUG && Package.isSelf(parent)) { // Alert on self update
                             if (updates.contains(parent)) {
                                 run = false;
                                 JOptionPane.showMessageDialog(null,

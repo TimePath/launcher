@@ -1,5 +1,6 @@
 package com.timepath.launcher.util;
 
+import com.timepath.maven.UpdateChecker;
 import com.timepath.util.logging.DBInbox;
 
 import java.io.*;
@@ -46,11 +47,11 @@ public class IOUtils {
             //<editor-fold defaultstate="collapsed" desc="on user restart">
             if (!JARUtils.CURRENT_FILE.equals(updateFile)) {
                 try {
-                    File updateChecksum = new File(updateFile.getPath() + ".sha1");
+                    File updateChecksum = new File(updateFile.getPath() + '.' + UpdateChecker.ALGORITHM);
                     if (updateChecksum.exists()) {
                         String cksumExpected = loadPage(updateChecksum.toURI().toURL()).trim();
                         LOG.log(Level.INFO, "Expecting checksum = {0}", cksumExpected);
-                        String cksum = checksum(updateFile, "SHA1");
+                        String cksum = checksum(updateFile, UpdateChecker.ALGORITHM);
                         LOG.log(Level.INFO, "Actual checksum = {0}", cksum);
                         if (cksum.equals(cksumExpected)) {
                             final Collection<String> cmds = new LinkedList<>();
@@ -94,7 +95,7 @@ public class IOUtils {
                          FileChannel destination = new RandomAccessFile(destFile, "rw").getChannel()) {
                         source.transferTo(0, source.size(), destination);
                     }
-                    new File(updateFile.getPath() + ".sha1").delete();
+                    new File(updateFile.getPath() + '.' + UpdateChecker.ALGORITHM).delete();
                     sourceFile.deleteOnExit();
                     return destFile.getName(); // can continue running from temp file
                 } catch (IOException ex) {
@@ -147,7 +148,7 @@ public class IOUtils {
     }
 
     public static String loadPage(URL u) {
-        LOG.log(Level.INFO, "loadPage: {0}", u);
+        LOG.log(Level.INFO, "request: {0}", u);
         if (u == null) return null;
         try {
             URLConnection connection = u.openConnection();
@@ -165,9 +166,9 @@ public class IOUtils {
                 return sb.substring(1);
             }
         } catch (FileNotFoundException e) {
-            LOG.log(Level.FINE, "Exception in loadPage", e);
+            LOG.log(Level.FINE, "Exception in request", e);
         } catch (IOException e) {
-            LOG.log(Level.SEVERE, "Exception in loadPage", e);
+            LOG.log(Level.SEVERE, "Exception in request", e);
         }
         return null;
     }

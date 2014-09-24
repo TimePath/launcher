@@ -1,6 +1,7 @@
 package com.timepath.launcher.ui.swing;
 
 import com.timepath.maven.Package;
+import com.timepath.maven.UpdateChecker;
 import com.timepath.swing.ObjectBasedTableModel;
 
 import javax.swing.*;
@@ -25,10 +26,11 @@ public class DownloadPanel extends JPanel {
             public Object get(Package o, int columnIndex) {
                 switch (columnIndex) {
                     case 0:
-                        return o.getFileName();
+                        return UpdateChecker.getFileName(o);
                     case 1:
-                        double percent = (o.progress * 100.0) / o.size;
-                        return (percent < 0) ? '?' : String.format("%.1f%%", percent);
+                        if (o.size <= 0) return "";
+                        return String.format("%s / %s (%.1f%%)",
+                                human(o.progress), human(o.size), (o.progress * 100.0d) / o.size);
                     case 2:
                         return o.size;
                     default:
@@ -40,9 +42,17 @@ public class DownloadPanel extends JPanel {
         GroupLayout layout = new GroupLayout(this);
         setLayout(layout);
         layout.setHorizontalGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 409, Short.MAX_VALUE));
+                .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 400, Short.MAX_VALUE));
         layout.setVerticalGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                 .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE));
+    }
+
+    public static String human(double count) {
+        int factor = 1000;
+        String[] multiples = {"KB", "MB", "GB"};
+        int i = 0;
+        while ((count /= factor) >= factor) i++;
+        return String.format("%.1f %s", count, multiples[i]);
     }
 
     public ObjectBasedTableModel<Package> getTableModel() {

@@ -89,7 +89,7 @@ public class Repository {
         Repository r = new Repository();
         r.name = XMLUtils.get(root, "name");
         r.self = Package.parse(root, null);
-        if (r.self != null) r.self.setSelf(true);
+        if (r.self != null) Package.setSelf(r.self, true);
         r.executions = new LinkedList<>();
         for (Node entry : XMLUtils.getElements(root, "programs/program")) {
             Package pkg = Package.parse(entry, null);

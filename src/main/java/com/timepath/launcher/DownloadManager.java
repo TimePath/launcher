@@ -3,12 +3,12 @@ package com.timepath.launcher;
 import com.timepath.launcher.util.IOUtils;
 import com.timepath.launcher.util.JARUtils;
 import com.timepath.maven.Package;
+import com.timepath.maven.UpdateChecker;
+import com.timepath.maven.Utils;
 import com.timepath.util.concurrent.DaemonThreadFactory;
 
 import java.io.*;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.net.SocketTimeoutException;
 import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -106,37 +106,46 @@ public class DownloadManager {
         @Override
         public void run() {
             try {
-                File downloadFile = pkgFile.getFile();
-                File checksumFile = pkgFile.getChecksumFile("SHA1");
-                if (downloadFile.equals(JARUtils.CURRENT_FILE)) { // Edge case for updating current file
-                    downloadFile = new File(JARUtils.UPDATE_NAME);
-                    checksumFile = new File(JARUtils.UPDATE_NAME + ".sha1");
+                int retryCount = 10;
+                for (int i = 0; i < retryCount + 1; i++) {
+                    // TODO: download resuming
+                    try {
+                        File downloadFile = UpdateChecker.getFile(pkgFile);
+                        File checksumFile = UpdateChecker.getChecksumFile(pkgFile, UpdateChecker.ALGORITHM);
+                        if (downloadFile.equals(JARUtils.CURRENT_FILE)) { // Edge case for updating current file
+                            downloadFile = new File(JARUtils.UPDATE_NAME);
+                            checksumFile = new File(JARUtils.UPDATE_NAME + '.' + UpdateChecker.ALGORITHM);
+                        }
+                        File temp = download(pkgFile);
+                        // Get the checksum before the package is moved into place
+                        Files.createDirectories(checksumFile.getParentFile().toPath());
+                        try (FileOutputStream checksumOutputStream = new FileOutputStream(checksumFile)) {
+                            checksumOutputStream.write(UpdateChecker.getChecksum(pkgFile, UpdateChecker.ALGORITHM).getBytes("UTF-8"));
+                        }
+                        Path move = Files.move(temp.toPath(), downloadFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                        LOG.log(Level.INFO, "Complete: {0} > {1}", new Object[]{UpdateChecker.getDownloadURL(pkgFile), move});
+                        return;
+                    } catch (SocketTimeoutException ignored) {
+                    } catch (IOException e) {
+                        LOG.log(Level.SEVERE, "DownloadTask", e);
+                    }
                 }
-                File temp = download(pkgFile);
-                // Get the checksum before the package is moved into place
-                Files.createDirectories(checksumFile.getParentFile().toPath());
-                try (FileOutputStream checksumOutputStream = new FileOutputStream(checksumFile)) {
-                    checksumOutputStream.write(pkgFile.getChecksum("SHA1").getBytes("UTF-8"));
-                }
-                Path move = Files.move(temp.toPath(), downloadFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                LOG.log(Level.INFO, "Complete: {0} > {1}", new Object[]{pkgFile.getDownloadURL(), move});
-            } catch (IOException | URISyntaxException e) {
-                LOG.log(Level.SEVERE, "DownloadTask", e);
+                LOG.log(Level.WARNING, "Failed all attempts: {0}", UpdateChecker.getDownloadURL(pkgFile));
             } finally {
                 fireFinished(pkgFile);
             }
         }
 
-        private File download(Package p) throws IOException, URISyntaxException {
+        private File download(Package p) throws IOException {
             File file = File.createTempFile("jar", "");
-            URL u = new URI(p.getDownloadURL()).toURL();
-            URLConnection connection = u.openConnection();
+            String s = UpdateChecker.getDownloadURL(p);
+            URLConnection connection = Utils.requestConnection(s);
             pkgFile.size = connection.getContentLengthLong();
             p.associate(connection);
             IOUtils.createFile(file);
-            LOG.log(Level.INFO, "Downloading {0} > {1}", new Object[]{u, file});
+            LOG.log(Level.INFO, "Downloading {0} > {1}", new Object[]{s, file});
             byte[] buffer = new byte[8192];
-            try (InputStream is = new BufferedInputStream(connection.getInputStream());
+            try (InputStream is = Utils.openStream(connection);
                  OutputStream fos = new BufferedOutputStream(new FileOutputStream(file))) {
                 long total = 0;
                 for (int read; (read = is.read(buffer)) > -1; ) {

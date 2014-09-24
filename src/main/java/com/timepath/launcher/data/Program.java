@@ -4,6 +4,7 @@ import com.timepath.classloader.CompositeClassLoader;
 import com.timepath.launcher.util.IOUtils;
 import com.timepath.launcher.util.SwingUtils;
 import com.timepath.maven.Package;
+import com.timepath.maven.UpdateChecker;
 
 import javax.swing.*;
 import java.awt.*;
@@ -84,7 +85,7 @@ public class Program {
         Set<URL> h = new HashSet<>(all.size());
         for (Package download : all) {
             try {
-                h.add(download.getFile().toURI().toURL());
+                h.add(UpdateChecker.getFile(download).toURI().toURL());
             } catch (MalformedURLException e) {
                 LOG.log(Level.SEVERE, null, e);
             }

@@ -4,6 +4,8 @@ import com.timepath.classloader.CompositeClassLoader;
 import com.timepath.launcher.data.Program;
 import com.timepath.launcher.data.Repository;
 import com.timepath.maven.Package;
+import com.timepath.maven.UpdateChecker;
+import com.timepath.util.Cache;
 import com.timepath.util.concurrent.DaemonThreadFactory;
 
 import java.util.*;
@@ -23,6 +25,7 @@ public class Launcher {
     public static final Preferences PREFS = Preferences.userNodeForPackage(Launcher.class);
     private static final Preferences PREFS_REPOS = PREFS.node("repositories");
     private static final Logger LOG = Logger.getLogger(Launcher.class.getName());
+
     private final CompositeClassLoader cl = CompositeClassLoader.createPrivileged();
     private final DownloadManager downloadManager = new DownloadManager();
     private Package self;
@@ -98,7 +101,7 @@ public class Launcher {
      * @return true if self is up to date
      */
     public boolean updateRequired() {
-        return !self.isLatest();
+        return !UpdateChecker.isLatest(self);
     }
 
     /**
@@ -116,14 +119,14 @@ public class Launcher {
      */
     public Set<Package> update(Program program) {
         Package parent = program.getPackage();
-        if (parent.isLocked()) {
+        if (UpdateChecker.isLocked(parent)) {
             LOG.log(Level.INFO, "Package {0} locked, aborting: {1}", new Object[]{parent, program});
             return null;
         }
-        parent.setLocked(true);
+        UpdateChecker.setLocked(parent, true);
         try {
             LOG.log(Level.INFO, "Checking for updates");
-            Set<Package> updates = parent.getUpdates();
+            Set<Package> updates = UpdateChecker.getUpdates(parent);
             LOG.log(Level.INFO, "Submitting downloads");
             Map<Package, List<Future<?>>> downloads = new HashMap<>(updates.size());
             for (Package pkg : updates) {
@@ -147,7 +150,7 @@ public class Launcher {
             }
             return updates;
         } finally {
-            parent.setLocked(false);
+            UpdateChecker.setLocked(parent, false);
         }
     }
 }
