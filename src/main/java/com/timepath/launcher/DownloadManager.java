@@ -118,7 +118,8 @@ public class DownloadManager {
                         }
                         File temp = download(pkgFile);
                         // Get the checksum before the package is moved into place
-                        Files.createDirectories(checksumFile.getParentFile().toPath());
+                        LOG.log(Level.INFO, "Saving checksum: {0}", checksumFile);
+                        Files.createDirectories(checksumFile.getAbsoluteFile().getParentFile().toPath());
                         try (FileOutputStream checksumOutputStream = new FileOutputStream(checksumFile)) {
                             checksumOutputStream.write(UpdateChecker.getChecksum(pkgFile, UpdateChecker.ALGORITHM).getBytes("UTF-8"));
                         }
