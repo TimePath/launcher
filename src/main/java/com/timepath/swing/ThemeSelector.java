@@ -1,11 +1,6 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.timepath.swing;
 
-import com.timepath.launcher.util.Utils;
+import com.timepath.launcher.Utils;
 
 import javax.swing.*;
 import java.awt.*;

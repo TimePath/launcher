@@ -1,10 +1,7 @@
 package com.timepath.launcher;
 
 import com.timepath.launcher.ui.swing.LauncherFrame;
-import com.timepath.launcher.util.IOUtils;
-import com.timepath.launcher.util.JARUtils;
-import com.timepath.launcher.util.SwingUtils;
-import com.timepath.launcher.util.Utils;
+import com.timepath.SwingUtils;
 import com.timepath.util.logging.LogAggregator;
 import com.timepath.util.logging.LogFileHandler;
 import com.timepath.util.logging.LogIOHandler;
@@ -62,15 +59,15 @@ public class Main implements Protocol {
         if (local) {
             LOG.log(Level.INFO, "Initial: {0}ms", System.currentTimeMillis() - Utils.START_TIME);
             LOG.log(Level.INFO, "Args = {0}", Arrays.toString(args));
-            IOUtils.checkForUpdate(args);
+            Updater.checkForUpdate(args);
             initLogging();
             Map<String, Object> dbg = new HashMap<>(3);
             dbg.put("name", ManagementFactory.getRuntimeMXBean().getName());
             dbg.put("env", System.getenv());
             dbg.put("properties", System.getProperties());
-            String pprint = Utils.pprint(dbg);
+            String pprint = com.timepath.Utils.pprint(dbg);
             if (!Utils.DEBUG) {
-                IOUtils.log(Utils.USER + ".xml.gz", "launcher/" + JARUtils.CURRENT_VERSION + "/connects", pprint);
+                Utils.log(Utils.USER + ".xml.gz", "launcher/" + Utils.CURRENT_VERSION + "/connects", pprint);
             }
             LOG.log(Level.INFO, "Startup: {0}ms", System.currentTimeMillis() - Utils.START_TIME);
         }
@@ -181,7 +178,7 @@ public class Main implements Protocol {
             @Override
             public void run() {
                 if (launcher == null) {
-                    SwingUtils.lookAndFeel();
+                    SwingUtils.lookAndFeel(Utils.SETTINGS);
                     launcher = new Launcher();
                 }
                 new LauncherFrame(launcher).setVisible(true);

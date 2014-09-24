@@ -4,7 +4,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import com.timepath.launcher.Launcher;
-import com.timepath.launcher.util.SwingUtils;
+import com.timepath.SwingUtils;
 import com.timepath.util.concurrent.DaemonThreadFactory;
 
 import javax.swing.event.HyperlinkEvent;

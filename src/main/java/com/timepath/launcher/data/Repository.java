@@ -1,9 +1,8 @@
 package com.timepath.launcher.data;
 
+import com.timepath.IOUtils;
 import com.timepath.XMLUtils;
-import com.timepath.launcher.util.IOUtils;
-import com.timepath.launcher.util.JARUtils;
-import com.timepath.launcher.util.Utils;
+import com.timepath.launcher.Utils;
 import com.timepath.maven.Package;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
@@ -19,8 +18,6 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.Collections;
@@ -65,17 +62,12 @@ public class Repository {
      * @return
      */
     public static Repository fromIndex(String location) {
-        try {
-            String page = IOUtils.loadPage(new URL(location));
-            if (page == null) return null;
-            byte[] data = page.getBytes(StandardCharsets.UTF_8);
-            Repository r = parse(findCompatible(new ByteArrayInputStream(data)));
-            r.location = location;
-            return r;
-        } catch (MalformedURLException e) {
-            LOG.log(Level.SEVERE, null, e);
-        }
-        return null;
+        String page = IOUtils.requestPage(location);
+        if (page == null) return null;
+        byte[] data = page.getBytes(StandardCharsets.UTF_8);
+        Repository r = parse(findCompatible(new ByteArrayInputStream(data)));
+        r.location = location;
+        return r;
     }
 
     /**
@@ -129,14 +121,14 @@ public class Repository {
                 String v = versionAttribute.getNodeValue();
                 if (v != null) {
                     try {
-                        if (Utils.DEBUG || (JARUtils.CURRENT_VERSION >= Long.parseLong(v))) {
+                        if (Utils.DEBUG || (Utils.CURRENT_VERSION >= Long.parseLong(v))) {
                             version = iter;
                         }
                     } catch (NumberFormatException ignored) {
                     }
                 }
             }
-            LOG.log(Level.FINE, "\n{0}", Utils.pprint(new DOMSource(version), 2));
+            LOG.log(Level.FINE, "\n{0}", XMLUtils.pprint(new DOMSource(version), 2));
             return version;
         } catch (IOException | ParserConfigurationException | SAXException ex) {
             LOG.log(Level.SEVERE, null, ex);

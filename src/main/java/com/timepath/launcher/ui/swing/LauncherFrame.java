@@ -1,13 +1,12 @@
 package com.timepath.launcher.ui.swing;
 
+import com.timepath.IOUtils;
 import com.timepath.launcher.DownloadManager.DownloadMonitor;
 import com.timepath.launcher.Launcher;
 import com.timepath.launcher.data.Program;
 import com.timepath.launcher.data.Repository;
-import com.timepath.launcher.util.IOUtils;
-import com.timepath.launcher.util.JARUtils;
-import com.timepath.launcher.util.SwingUtils;
-import com.timepath.launcher.util.Utils;
+import com.timepath.SwingUtils;
+import com.timepath.launcher.Utils;
 import com.timepath.maven.Package;
 import com.timepath.swing.ThemeSelector;
 
@@ -339,10 +338,10 @@ public class LauncherFrame extends JFrame {
             addHyperlinkListener(SwingUtils.HYPERLINK_LISTENER);
         }};
         String buildDate = "unknown";
-        long time = JARUtils.CURRENT_VERSION;
+        long time = Utils.CURRENT_VERSION;
         final DateFormat df = new SimpleDateFormat("EEE dd MMM yyyy, hh:mm:ss a z");
         if (time != 0) buildDate = df.format(new Date(time));
-        String aboutText = IOUtils.loadPage(getClass().getResource("/com/timepath/launcher/ui/swing/about.html"))
+        String aboutText = IOUtils.requestPage(getClass().getResource("/com/timepath/launcher/ui/swing/about.html").toString())
                 .replace("${buildDate}", buildDate)
                 .replace("${steamGroup}", "http://steamcommunity.com/gid/103582791434775526")
                 .replace("${steamChat}", "steam://friends/joinchat/103582791434775526");

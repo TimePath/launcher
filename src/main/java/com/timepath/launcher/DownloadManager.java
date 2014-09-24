@@ -1,7 +1,6 @@
 package com.timepath.launcher;
 
-import com.timepath.launcher.util.IOUtils;
-import com.timepath.launcher.util.JARUtils;
+import com.timepath.IOUtils;
 import com.timepath.maven.Package;
 import com.timepath.maven.UpdateChecker;
 import com.timepath.util.concurrent.DaemonThreadFactory;
@@ -116,8 +115,8 @@ public class DownloadManager {
                     try {
                         File downloadFile, checksumFile;
                         if (Package.isSelf(pkgFile)) { // Special case
-                            downloadFile = JARUtils.UPDATE;
-                            checksumFile = new File(JARUtils.UPDATE.getName() + '.' + UpdateChecker.ALGORITHM);
+                            downloadFile = Utils.UPDATE;
+                            checksumFile = new File(Utils.UPDATE.getName() + '.' + UpdateChecker.ALGORITHM);
                         } else {
                             downloadFile = UpdateChecker.getFile(pkgFile);
                             checksumFile = UpdateChecker.getChecksumFile(pkgFile, UpdateChecker.ALGORITHM);
@@ -145,7 +144,7 @@ public class DownloadManager {
 
         private void download(Package p) throws IOException {
             String s = UpdateChecker.getDownloadURL(p);
-            URLConnection connection = com.timepath.IOUtils.requestConnection(s, new com.timepath.IOUtils.ConnectionSettings() {
+            URLConnection connection = IOUtils.requestConnection(s, new IOUtils.ConnectionSettings() {
                 @Override
                 public void apply(URLConnection u) {
                     u.setRequestProperty("Range", "bytes=" + pkgFile.progress + "-");
@@ -158,7 +157,7 @@ public class DownloadManager {
             IOUtils.createFile(temp);
             LOG.log(Level.INFO, "Downloading {0} > {1}", new Object[]{s, temp});
             byte[] buffer = new byte[8192];
-            try (InputStream is = com.timepath.IOUtils.openStream(connection);
+            try (InputStream is = IOUtils.openStream(connection);
                  OutputStream fos = new BufferedOutputStream(new FileOutputStream(temp, partial))) {
                 long total = 0;
                 for (int read; (read = is.read(buffer)) > -1; ) {

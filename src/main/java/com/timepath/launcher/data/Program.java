@@ -1,8 +1,8 @@
 package com.timepath.launcher.data;
 
+import com.timepath.IOUtils;
 import com.timepath.classloader.CompositeClassLoader;
-import com.timepath.launcher.util.IOUtils;
-import com.timepath.launcher.util.SwingUtils;
+import com.timepath.SwingUtils;
 import com.timepath.maven.Package;
 import com.timepath.maven.UpdateChecker;
 
@@ -118,7 +118,7 @@ public class Program {
             new SwingWorker<JEditorPane, Void>() {
                 @Override
                 protected JEditorPane doInBackground() throws Exception {
-                    String s = IOUtils.loadPage(new URL(newsfeedURL));
+                    String s = IOUtils.requestPage(newsfeedURL);
                     JEditorPane editorPane = new JEditorPane("text/html", s);
                     editorPane.setEditable(false);
                     editorPane.addHyperlinkListener(SwingUtils.HYPERLINK_LISTENER);
