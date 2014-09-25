@@ -21,7 +21,6 @@ import java.rmi.server.RMIServerSocketFactory;
 import java.rmi.server.UnicastRemoteObject;
 import java.security.*;
 import java.util.Arrays;
-import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.*;
@@ -58,7 +57,7 @@ public class Main implements Protocol {
         Protocol main = getInstance();
         boolean local = main instanceof Main;
         if (local) {
-            LOG.log(Level.INFO, "Initial: {0}ms", System.currentTimeMillis() - Utils.START_TIME);
+            LOG.log(Level.INFO, "Initial: {0}ms", System.currentTimeMillis() - LauncherUtils.START_TIME);
             LOG.log(Level.INFO, "Args = {0}", Arrays.toString(args));
             Updater.checkForUpdate(args);
             initLogging();
@@ -67,10 +66,10 @@ public class Main implements Protocol {
             dbg.put("env", System.getenv());
             dbg.put("properties", System.getProperties());
             String pprint = com.timepath.Utils.pprint(dbg);
-            if (!Utils.DEBUG) {
-                Utils.log(Utils.USER + ".xml.gz", "launcher/" + Utils.CURRENT_VERSION + "/connects", pprint);
+            if (!LauncherUtils.DEBUG) {
+                LauncherUtils.log(LauncherUtils.USER + ".xml.gz", "launcher/" + LauncherUtils.CURRENT_VERSION + "/connects", pprint);
             }
-            LOG.log(Level.INFO, "Startup: {0}ms", System.currentTimeMillis() - Utils.START_TIME);
+            LOG.log(Level.INFO, "Startup: {0}ms", System.currentTimeMillis() - LauncherUtils.START_TIME);
         }
         try {
             main.newFrame();
@@ -133,12 +132,12 @@ public class Main implements Protocol {
     private static void initLogging() {
         Level consoleLevel = Level.CONFIG;
         try {
-            consoleLevel = Level.parse(Utils.SETTINGS.get("consoleLevel", consoleLevel.getName()));
+            consoleLevel = Level.parse(LauncherUtils.SETTINGS.get("consoleLevel", consoleLevel.getName()));
         } catch (IllegalArgumentException | NullPointerException ignored) {
         }
         Level logfileLevel = Level.CONFIG;
         try {
-            logfileLevel = Level.parse(Utils.SETTINGS.get("logfileLevel", logfileLevel.getName()));
+            logfileLevel = Level.parse(LauncherUtils.SETTINGS.get("logfileLevel", logfileLevel.getName()));
         } catch (IllegalArgumentException | NullPointerException ignored) {
         }
         // Choose finest level
@@ -156,7 +155,7 @@ public class Main implements Protocol {
         }
         if (!logfileLevel.equals(Level.OFF)) {
             LogAggregator lh = new LogAggregator();
-            if (!Utils.DEBUG) {
+            if (!LauncherUtils.DEBUG) {
                 try {
                     lh.addHandler(new LogFileHandler());
                 } catch (IOException | SecurityException ex) {
@@ -179,7 +178,7 @@ public class Main implements Protocol {
             @Override
             public void run() {
                 if (launcher == null) {
-                    SwingUtils.lookAndFeel(Utils.SETTINGS);
+                    SwingUtils.lookAndFeel(LauncherUtils.SETTINGS);
                     launcher = new Launcher();
                 }
                 new LauncherFrame(launcher).setVisible(true);

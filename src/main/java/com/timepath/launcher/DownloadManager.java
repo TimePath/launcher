@@ -119,8 +119,8 @@ public class DownloadManager {
                     try {
                         File downloadFile, checksumFile;
                         if (Package.isSelf(pkgFile)) { // Special case
-                            downloadFile = Utils.UPDATE;
-                            checksumFile = new File(Utils.UPDATE.getName() + '.' + UpdateChecker.ALGORITHM);
+                            downloadFile = LauncherUtils.UPDATE;
+                            checksumFile = new File(LauncherUtils.UPDATE.getName() + '.' + UpdateChecker.ALGORITHM);
                         } else {
                             downloadFile = UpdateChecker.getFile(pkgFile);
                             checksumFile = UpdateChecker.getChecksumFile(pkgFile, UpdateChecker.ALGORITHM);

@@ -1,6 +1,6 @@
 package com.timepath.swing;
 
-import com.timepath.launcher.Utils;
+import com.timepath.launcher.LauncherUtils;
 
 import javax.swing.*;
 import java.awt.*;
@@ -46,7 +46,7 @@ public class ThemeSelector extends JComboBox<String> {
                             for (Window w : Window.getWindows()) { // TODO: Instrumentation to access detached components
                                 SwingUtilities.updateComponentTreeUI(w);
                             }
-                            Utils.SETTINGS.put("laf", usrTheme);
+                            LauncherUtils.SETTINGS.put("laf", usrTheme);
                             return;
                         } catch (InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
                             LOG.log(Level.SEVERE, null, e);

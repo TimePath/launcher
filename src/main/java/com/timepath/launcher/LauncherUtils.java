@@ -1,6 +1,7 @@
 package com.timepath.launcher;
 
 import com.timepath.JARUtils;
+import com.timepath.Utils;
 import com.timepath.util.logging.DBInbox;
 
 import java.io.File;
@@ -11,7 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.prefs.Preferences;
 
-public class Utils {
+public class LauncherUtils {
 
     public static final String USER = MessageFormat.format("{0}@{1}",
             System.getProperty("user.name"),
@@ -19,27 +20,14 @@ public class Utils {
                     .getName()
                     .split("@")[1]
     );
-    public static final long CURRENT_VERSION = version();
+    public static final long CURRENT_VERSION = JARUtils.version(LauncherUtils.class);
     public static final boolean DEBUG = CURRENT_VERSION == 0;
     public static final Preferences SETTINGS = Preferences.userRoot().node("timepath");
     public static final long START_TIME = ManagementFactory.getRuntimeMXBean().getStartTime();
     public static final File UPDATE = new File("update.tmp");
-    public static final File CURRENT_FILE = locate();
+    public static final File CURRENT_FILE = Utils.currentFile(LauncherUtils.class);
 
-    private Utils() {
-    }
-
-    public static List<String> argParse(String cmd) {
-        if (cmd == null) return null;
-        return Arrays.asList(cmd.split(" "));
-    }
-
-    public static File locate() {
-        return JARUtils.locate(Utils.class);
-    }
-
-    public static long version() {
-        return JARUtils.version(Utils.class);
+    private LauncherUtils() {
     }
 
     public static void log(String name, String dir, Object o) {

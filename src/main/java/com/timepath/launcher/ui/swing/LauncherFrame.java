@@ -4,7 +4,7 @@ import com.timepath.IOUtils;
 import com.timepath.SwingUtils;
 import com.timepath.launcher.DownloadManager.DownloadMonitor;
 import com.timepath.launcher.Launcher;
-import com.timepath.launcher.Utils;
+import com.timepath.launcher.LauncherUtils;
 import com.timepath.launcher.data.Program;
 import com.timepath.launcher.data.Repository;
 import com.timepath.maven.MavenResolver;
@@ -108,7 +108,7 @@ public class LauncherFrame extends JFrame {
         Point mid = GraphicsEnvironment.getLocalGraphicsEnvironment().getCenterPoint();
         this.setSize(new Dimension(mid.x, mid.y));
         this.setLocationRelativeTo(null);
-        LOG.log(Level.INFO, "Created UI at {0}ms", System.currentTimeMillis() - Utils.START_TIME);
+        LOG.log(Level.INFO, "Created UI at {0}ms", System.currentTimeMillis() - LauncherUtils.START_TIME);
     }
 
     /**
@@ -134,7 +134,7 @@ public class LauncherFrame extends JFrame {
             @Override
             protected void done() {
                 try {
-                    LOG.log(Level.INFO, "Listing at {0}ms", System.currentTimeMillis() - Utils.START_TIME);
+                    LOG.log(Level.INFO, "Listing at {0}ms", System.currentTimeMillis() - LauncherUtils.START_TIME);
                     List<Repository> repos = get();
                     // Update the repository manager
                     int i = repositoryManager.model.getRowCount();
@@ -157,7 +157,7 @@ public class LauncherFrame extends JFrame {
                     }
                     programList.setModel(new DefaultTreeModel(rootNode));
                     pack(programSplit);
-                    if (!Utils.DEBUG && launcher.updateRequired()) { // Show update notification
+                    if (!LauncherUtils.DEBUG && launcher.updateRequired()) { // Show update notification
                         JOptionPane.showInternalMessageDialog(LauncherFrame.this.getContentPane(),
                                 "Please update",
                                 "A new version is available",
@@ -341,7 +341,7 @@ public class LauncherFrame extends JFrame {
                     if (updates != null) { // Ready to start
                         Package parent = program.getPackage();
                         boolean run = true;
-                        if (!Utils.DEBUG && Package.isSelf(parent)) { // Alert on self update
+                        if (!LauncherUtils.DEBUG && Package.isSelf(parent)) { // Alert on self update
                             if (updates.contains(parent)) {
                                 run = false;
                                 JOptionPane.showInternalMessageDialog(LauncherFrame.this.getContentPane(),
@@ -381,7 +381,7 @@ public class LauncherFrame extends JFrame {
             addHyperlinkListener(SwingUtils.HYPERLINK_LISTENER);
         }};
         String buildDate = "unknown";
-        long time = Utils.CURRENT_VERSION;
+        long time = LauncherUtils.CURRENT_VERSION;
         final DateFormat df = new SimpleDateFormat("EEE dd MMM yyyy, hh:mm:ss a z");
         if (time != 0) buildDate = df.format(new Date(time));
         String aboutText = IOUtils.requestPage(getClass().getResource("/com/timepath/launcher/ui/swing/about.html").toString())

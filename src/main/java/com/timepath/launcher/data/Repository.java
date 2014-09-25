@@ -1,8 +1,9 @@
 package com.timepath.launcher.data;
 
 import com.timepath.IOUtils;
+import com.timepath.StringUtils;
 import com.timepath.XMLUtils;
-import com.timepath.launcher.Utils;
+import com.timepath.launcher.LauncherUtils;
 import com.timepath.maven.Package;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
@@ -92,7 +93,7 @@ public class Repository {
                         XMLUtils.get(execution, "name"),
                         XMLUtils.get(execution, "url"),
                         XMLUtils.get(cfg, "main"),
-                        Utils.argParse(XMLUtils.get(cfg, "args")));
+                        StringUtils.argParse(XMLUtils.get(cfg, "args")));
                 r.executions.add(p);
                 String daemonStr = XMLUtils.get(cfg, "daemon");
                 if (daemonStr != null) p.setDaemon(Boolean.parseBoolean(daemonStr));
@@ -121,7 +122,7 @@ public class Repository {
                 String v = versionAttribute.getNodeValue();
                 if (v != null) {
                     try {
-                        if (Utils.DEBUG || (Utils.CURRENT_VERSION >= Long.parseLong(v))) {
+                        if (LauncherUtils.DEBUG || (LauncherUtils.CURRENT_VERSION >= Long.parseLong(v))) {
                             version = iter;
                         }
                     } catch (NumberFormatException ignored) {

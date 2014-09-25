@@ -1,7 +1,7 @@
 package com.timepath.util.logging;
 
 import com.timepath.IOUtils;
-import com.timepath.launcher.Utils;
+import com.timepath.launcher.LauncherUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,7 +17,7 @@ public class LogFileHandler extends Handler {
 
     public LogFileHandler() throws IOException {
         // I have to set this up to be able to recall it
-        logFile = new File(Utils.CURRENT_FILE.getParentFile(),
+        logFile = new File(LauncherUtils.CURRENT_FILE.getParentFile(),
                 MessageFormat.format("logs/log_{0}.txt", System.currentTimeMillis() / 1000));
         logFile.getParentFile().mkdirs();
         Formatter formatter = new XMLFormatter();
@@ -29,7 +29,7 @@ public class LogFileHandler extends Handler {
             public void run() {
                 fh.flush();
                 fh.close();
-                Utils.logThread(Utils.USER + ".xml.gz", "launcher/" + Utils.CURRENT_VERSION + "/logs", IOUtils.requestPage(u.toString()))
+                LauncherUtils.logThread(LauncherUtils.USER + ".xml.gz", "launcher/" + LauncherUtils.CURRENT_VERSION + "/logs", IOUtils.requestPage(u.toString()))
                         .run();
             }
         }));
