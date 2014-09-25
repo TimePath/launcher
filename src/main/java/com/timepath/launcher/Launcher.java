@@ -8,7 +8,11 @@ import com.timepath.maven.UpdateChecker;
 import com.timepath.util.Cache;
 import com.timepath.util.concurrent.DaemonThreadFactory;
 
+import javax.swing.*;
+import java.awt.*;
+import java.text.MessageFormat;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -119,12 +123,25 @@ public class Launcher {
     }
 
     /**
-     * Starts a program on another {@code Thread}. Returns after started
+     * Starts a program. Returns after started; quickly if the target defers to the EDT
      *
      * @param program
      */
-    public void start(Program program) {
-        program.createThread(cl).start();
+    public void start(final Program program) {
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    program.run(cl);
+                } catch (Throwable e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        t.setName(program.toString());
+        t.setDaemon(program.isDaemon());
+        t.setContextClassLoader(cl);
+        t.start();
     }
 
     /**

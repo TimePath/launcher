@@ -21,6 +21,7 @@ import java.rmi.server.RMIServerSocketFactory;
 import java.rmi.server.UnicastRemoteObject;
 import java.security.*;
 import java.util.Arrays;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.*;
@@ -36,7 +37,7 @@ public class Main implements Protocol {
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Thread t, Throwable e) {
-                Logger.getLogger(t.getName()).log(Level.SEVERE, "Uncaught Exception", e);
+                Logger.getLogger(t.getName()).log(Level.SEVERE, "Uncaught Exception in " + t + ":", e);
             }
         });
         Policy.setPolicy(new Policy() {

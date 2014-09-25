@@ -53,28 +53,14 @@ public class Program {
         return title;
     }
 
-    public Thread createThread(final CompositeClassLoader cl) {
-        Thread t = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                LOG.log(Level.INFO, "Starting {0} ({1})", new Object[]{this, main});
-                String[] argv = null;
-                if (args != null) {
-                    argv = args.toArray(new String[args.size()]);
-                }
-                Set<URL> cp = getClassPath();
-                try {
-                    cl.start(main, argv, cp);
-                } catch (Throwable t) {
-                    String msg = MessageFormat.format("Error starting {0}", Program.this);
-                    LOG.log(Level.SEVERE, msg, t);
-                    JOptionPane.showMessageDialog(null, msg + '\n' + t, "A fatal exception has occurred", JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
-        t.setContextClassLoader(cl);
-        t.setDaemon(daemon);
-        return t;
+    public void run(final CompositeClassLoader cl) throws Throwable {
+        LOG.log(Level.INFO, "Starting {0} ({1})", new Object[]{this, main});
+        String[] argv = null;
+        if (args != null) {
+            argv = args.toArray(new String[args.size()]);
+        }
+        Set<URL> cp = getClassPath();
+        cl.start(main, argv, cp);
     }
 
     /**
@@ -101,7 +87,11 @@ public class Program {
         return main;
     }
 
-    public void setDaemon(final boolean daemon) {
+    public boolean isDaemon() {
+        return daemon;
+    }
+
+    public void setDaemon(boolean daemon) {
         this.daemon = daemon;
     }
 

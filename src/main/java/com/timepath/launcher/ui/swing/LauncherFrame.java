@@ -1,12 +1,13 @@
 package com.timepath.launcher.ui.swing;
 
 import com.timepath.IOUtils;
+import com.timepath.SwingUtils;
 import com.timepath.launcher.DownloadManager.DownloadMonitor;
 import com.timepath.launcher.Launcher;
+import com.timepath.launcher.Utils;
 import com.timepath.launcher.data.Program;
 import com.timepath.launcher.data.Repository;
-import com.timepath.SwingUtils;
-import com.timepath.launcher.Utils;
+import com.timepath.maven.MavenResolver;
 import com.timepath.maven.Package;
 import com.timepath.swing.ThemeSelector;
 
@@ -21,6 +22,8 @@ import java.awt.*;
 import java.awt.event.*;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -31,6 +34,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.prefs.BackingStoreException;
 import java.util.regex.Pattern;
 
 @SuppressWarnings("serial")
@@ -46,6 +50,26 @@ public class LauncherFrame extends JFrame {
     protected JTree programList;
     protected JSplitPane programSplit;
     protected JTabbedPane tabs;
+
+    {
+        // Has to be here to catch exceptions occurring on the EDT
+        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Thread t, Throwable e) {
+                String msg = "Uncaught Exception in " + t + ":";
+                Logger.getLogger(t.getName()).log(Level.SEVERE, msg, e);
+                StringWriter sw = new StringWriter();
+                e.printStackTrace(new PrintWriter(sw));
+                JOptionPane.showInternalMessageDialog(LauncherFrame.this.getContentPane(),
+                        new JScrollPane(new JTextArea(msg + '\n' + sw.toString()) {{
+                            setEditable(false);
+                            setTabSize(4);
+                        }}),
+                        "Uncaught Exception",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        });
+    }
 
     public LauncherFrame(Launcher l) {
         launcher = l;
@@ -134,7 +158,7 @@ public class LauncherFrame extends JFrame {
                     programList.setModel(new DefaultTreeModel(rootNode));
                     pack(programSplit);
                     if (!Utils.DEBUG && launcher.updateRequired()) { // Show update notification
-                        JOptionPane.showMessageDialog(LauncherFrame.this,
+                        JOptionPane.showInternalMessageDialog(LauncherFrame.this.getContentPane(),
                                 "Please update",
                                 "A new version is available",
                                 JOptionPane.INFORMATION_MESSAGE,
@@ -241,16 +265,35 @@ public class LauncherFrame extends JFrame {
                 add(new JMenuItem(new AbstractAction("Repository management") {
                     @Override
                     public void actionPerformed(ActionEvent e) {
-                        JOptionPane.showMessageDialog(LauncherFrame.this,
+                        JOptionPane.showInternalMessageDialog(LauncherFrame.this.getContentPane(),
                                 repositoryManager,
                                 "Repository manager",
                                 JOptionPane.PLAIN_MESSAGE);
                     }
                 }));
+                add(new JMenuItem(new AbstractAction("Clear cache") {
+                    @Override
+                    public void actionPerformed(ActionEvent event) {
+                        try {
+                            MavenResolver.invalidateCaches();
+                            JOptionPane.showInternalMessageDialog(LauncherFrame.this.getContentPane(),
+                                    "Restart to check for updates",
+                                    "Cleared cache",
+                                    JOptionPane.INFORMATION_MESSAGE);
+                        } catch (BackingStoreException e) {
+                            LOG.log(Level.WARNING, "Unable to drop caches", e);
+                            JOptionPane.showInternalMessageDialog(LauncherFrame.this.getContentPane(),
+                                    "Unable to clear cache",
+                                    "Error",
+                                    JOptionPane.ERROR_MESSAGE);
+                        }
+                    }
+                }));
+                //invalidateCaches
                 add(new JMenuItem(new AbstractAction("Preferences") {
                     @Override
                     public void actionPerformed(ActionEvent e) {
-                        JOptionPane.showMessageDialog(LauncherFrame.this,
+                        JOptionPane.showInternalMessageDialog(LauncherFrame.this.getContentPane(),
                                 new ThemeSelector(),
                                 "Select theme",
                                 JOptionPane.PLAIN_MESSAGE);
@@ -261,7 +304,7 @@ public class LauncherFrame extends JFrame {
                 add(new JMenuItem(new AbstractAction("About") {
                     @Override
                     public void actionPerformed(ActionEvent e) {
-                        JOptionPane.showMessageDialog(LauncherFrame.this, aboutPanel);
+                        JOptionPane.showInternalMessageDialog(LauncherFrame.this.getContentPane(), aboutPanel);
                     }
                 }));
             }});
@@ -301,14 +344,14 @@ public class LauncherFrame extends JFrame {
                         if (!Utils.DEBUG && Package.isSelf(parent)) { // Alert on self update
                             if (updates.contains(parent)) {
                                 run = false;
-                                JOptionPane.showMessageDialog(null,
+                                JOptionPane.showInternalMessageDialog(LauncherFrame.this.getContentPane(),
                                         "Restart to apply",
                                         "Update downloaded",
                                         JOptionPane.INFORMATION_MESSAGE,
                                         null);
                             } else {
                                 run = false;
-                                JOptionPane.showMessageDialog(null,
+                                JOptionPane.showInternalMessageDialog(LauncherFrame.this.getContentPane(),
                                         "Launcher is up to date",
                                         "Launcher is up to date",
                                         JOptionPane.INFORMATION_MESSAGE,
@@ -388,11 +431,11 @@ public class LauncherFrame extends JFrame {
 
         @Override
         protected void addActionPerformed(ActionEvent evt) {
-            String in = JOptionPane.showInputDialog(LauncherFrame.this, "Enter URL");
+            String in = JOptionPane.showInternalInputDialog(LauncherFrame.this.getContentPane(), "Enter URL");
             if (in == null) return;
             Repository r = Repository.fromIndex(in);
             if (r == null) {
-                JOptionPane.showMessageDialog(LauncherFrame.this,
+                JOptionPane.showInternalMessageDialog(LauncherFrame.this.getContentPane(),
                         "Invalid repository",
                         "Invalid repository",
                         JOptionPane.WARNING_MESSAGE);
