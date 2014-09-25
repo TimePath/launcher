@@ -21,13 +21,15 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>maven-resolver</artifactId>
             <version>1.0-SNAPSHOT</version>
-            <optional>true</optional> <!--<scope>provided</scope>-->
+            <optional>true</optional>
+            <!--<scope>provided</scope>-->
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>commons</artifactId>
             <version>1.0-SNAPSHOT</version>
-            <optional>true</optional> <!--<scope>provided</scope>-->
+            <optional>true</optional>
+            <!--<scope>provided</scope>-->
         </dependency>
     </dependencies>
 
@@ -99,40 +101,85 @@
                     </execution>
                 </executions>
             </plugin>
-            <!--Enable assembly plugin-->
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.4</version>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.5</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>com.timepath.launcher.Main</mainClass>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                        </manifest>
+                        <manifestEntries>
+                            <Implementation-Version>${timestamp}</Implementation-Version>
+                            <Build-Version>${project.version}</Build-Version>
+                            <Build-Id>${buildNumber}</Build-Id>
+                            <Build-Date>${timestamp}</Build-Date>
+                            <!--suppress MavenModelInspection -->
+                            <Build-Branch>${scmBranch}</Build-Branch>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+            <!--Bundle stripped transitives-->
+            <plugin>
+                <groupId>com.github.wvengen</groupId>
+                <artifactId>proguard-maven-plugin</artifactId>
+                <version>2.0.8</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
                         <goals>
-                            <goal>single</goal>
+                            <goal>proguard</goal>
                         </goals>
-                        <configuration>
-                            <descriptorRefs>
-                                <descriptorRef>jar-with-dependencies</descriptorRef>
-                            </descriptorRefs>
-                            <appendAssemblyId>false</appendAssemblyId>
-                            <archive>
-                                <addMavenDescriptor>true</addMavenDescriptor>
-                                <manifestEntries>
-                                    <Implementation-Version>${timestamp}</Implementation-Version>
-                                    <Build-Version>${project.version}</Build-Version>
-                                    <Build-Id>${buildNumber}</Build-Id>
-                                    <Build-Date>${timestamp}</Build-Date>
-                                    <!--suppress MavenModelInspection -->
-                                    <Build-Branch>${scmBranch}</Build-Branch>
-                                </manifestEntries>
-                                <manifest>
-                                    <mainClass>com.timepath.launcher.Main</mainClass>
-                                    <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-                                </manifest>
-                            </archive>
-                        </configuration>
                     </execution>
                 </executions>
+                <configuration>
+                    <obfuscate>false</obfuscate>
+                    <!--<injar>${project.build.finalName}.jar</injar>-->
+                    <!--<outjar>${project.build.finalName}-small.jar</outjar>-->
+                    <addMavenDescriptor>true</addMavenDescriptor>
+                    <includeDependencyInjar>true</includeDependencyInjar>
+                    <options>
+                        <option>-keep,includedescriptorclasses public class com.timepath.launcher.Main {
+                            *;
+                            }
+                        </option>
+                        <!--Optimization-->
+                        <!--Avoid missing LVT entries-->
+                        <option>-dontoptimize</option>
+                        <!--Useful stack traces-->
+                        <option>-keepattributes SourceFile,LineNumberTable</option>
+                        <!--Reflection-->
+                        <option>-keepattributes *Annotation*,EnclosingMethod</option>
+                        <!--Entry points-->
+                        <option>-keepclasseswithmembers public class com.timepath.* {
+                            public static void main(java.lang.String[]);
+                            }
+                        </option>
+                        <!--Applets-->
+                        <option>-keep public class com.timepath.* extends java.applet.Applet</option>
+                        <!--Enums-->
+                        <option>-keepclassmembers,allowoptimization enum * {
+                            public static **[] values();
+                            public static ** valueOf(java.lang.String);
+                            }
+                        </option>
+                        <!--RMI-->
+                        <option>-keepattributes Exceptions</option>
+                        <option>-keep interface * extends java.rmi.Remote {
+                            &lt;methods>;
+                            }
+                        </option>
+                        <option>-keep class * implements java.rmi.Remote {
+                            &lt;init>(java.rmi.activation.ActivationID, java.rmi.MarshalledObject);
+                            }
+                        </option>
+                    </options>
+                    <libs>
+                        <lib>${java.home}/lib/rt.jar</lib>
+                    </libs>
+                </configuration>
             </plugin>
         </plugins>
     </build>
