@@ -105,6 +105,7 @@
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>2.5</version>
                 <configuration>
+                    <forceCreation>true</forceCreation>
                     <archive>
                         <manifest>
                             <mainClass>com.timepath.launcher.Main</mainClass>
