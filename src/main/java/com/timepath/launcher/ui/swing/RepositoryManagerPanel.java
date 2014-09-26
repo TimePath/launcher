@@ -1,24 +1,28 @@
 package com.timepath.launcher.ui.swing;
 
+import com.timepath.launcher.data.Repository;
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.event.ActionEvent;
+import java.util.List;
 
 /**
  * @author TimePath
  */
 @SuppressWarnings("serial")
-public abstract class RepositoryManager extends JPanel {
+public abstract class RepositoryManagerPanel extends JPanel {
 
     protected JButton addButton;
     protected JButton removeButton;
     protected JPanel jPanel1;
     protected JScrollPane jScrollPane1;
     protected JTable jTable1;
+    protected DefaultTableModel model;
 
-    protected RepositoryManager() {
-        jTable1 = new JTable(new DefaultTableModel(new Object[][]{}, new String[]{"Repository", "Enabled"}) {
-            Class<?>[] types = {Object.class, Boolean.class};
+    protected RepositoryManagerPanel() {
+        jTable1 = new JTable(new DefaultTableModel(new Object[][]{}, new String[]{"Repository", "Location", "Enabled"}) {
+            Class<?>[] types = {String.class, String.class, Boolean.class};
 
             @Override
             public Class<?> getColumnClass(int columnIndex) {
@@ -48,7 +52,7 @@ public abstract class RepositoryManager extends JPanel {
                                 .addPreferredGap(LayoutStyle.ComponentPlacement
                                         .RELATED)
                                 .addComponent(removeButton)
-                                .addContainerGap(149, Short.MAX_VALUE))
+                                .addContainerGap(150, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(jPanel1Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                         .addGroup(jPanel1Layout.createSequentialGroup()
@@ -91,9 +95,20 @@ public abstract class RepositoryManager extends JPanel {
                                         .addContainerGap()
                         )
         );
+        model = (DefaultTableModel) jTable1.getModel();
     }
 
     protected abstract void addActionPerformed(ActionEvent evt);
 
     protected abstract void removeActionPerformed(ActionEvent evt);
+
+    public void setRepositories(List<Repository> repositories) {
+        int i = model.getRowCount();
+        while (i > 0) {
+            model.removeRow(--i);
+        }
+        for (Repository repo : repositories)
+            model.addRow(new Object[]{repo.getName(), repo.getLocation(), repo.isEnabled()});
+    }
+
 }

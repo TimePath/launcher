@@ -1,18 +1,19 @@
 package com.timepath.launcher;
 
 import com.timepath.classloader.CompositeClassLoader;
+import com.timepath.launcher.data.DownloadManager;
 import com.timepath.launcher.data.Program;
 import com.timepath.launcher.data.Repository;
+import com.timepath.launcher.data.RepositoryManager;
 import com.timepath.maven.Package;
 import com.timepath.maven.UpdateChecker;
 import com.timepath.util.Cache;
-import com.timepath.util.concurrent.DaemonThreadFactory;
 
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
 /**
@@ -23,7 +24,6 @@ public class Launcher {
     public static final String REPO_MAIN =
             "http://oss.jfrog.org/artifactory/oss-snapshot-local/com/timepath/launcher/config/" + "public.xml";
     public static final Preferences PREFS = Preferences.userNodeForPackage(Launcher.class);
-    private static final Preferences PREFS_REPOS = PREFS.node("repositories");
     private static final Logger LOG = Logger.getLogger(Launcher.class.getName());
     private static Map<Package, Boolean> locked = new Cache<Package, Boolean>() {
         @Override
@@ -36,31 +36,6 @@ public class Launcher {
     private Package self;
 
     public Launcher() {
-    }
-
-    public static void addRepository(Repository r) {
-        PREFS_REPOS.put(String.valueOf(r.hashCode()), r.getLocation());
-    }
-
-    public static void removeRepository(Repository r) {
-        PREFS_REPOS.remove(String.valueOf(r.hashCode()));
-    }
-
-    private static List<String> getRepositoryLocations() {
-        List<String> locations = new LinkedList<>();
-        try {
-            for (String repo : PREFS_REPOS.keys()) {
-                String s = PREFS_REPOS.get(repo, null);
-                if ("true".equalsIgnoreCase(s) || "false".equalsIgnoreCase(s)) { // Legacy schema
-                    PREFS_REPOS.remove(String.valueOf(s.hashCode()));
-                    continue;
-                }
-                if (s != null) locations.add(s);
-            }
-        } catch (BackingStoreException e) {
-            LOG.log(Level.SEVERE, null, e);
-        }
-        return locations;
     }
 
     public static boolean isLocked(Package aPackage) {
@@ -84,34 +59,19 @@ public class Launcher {
     /**
      * @return fetch and return a list of all repositories
      */
-    public List<Repository> getRepositories() {
-        if (repositories != null) return repositories;
+    public List<Repository> getRepositories(boolean override) {
+        if (!override && repositories != null) return repositories;
         repositories = new LinkedList<>();
         Repository main = Repository.fromIndex(REPO_MAIN);
+        main.setEnabled(true);
         repositories.add(main);
         self = main.getSelf();
-        List<String> locations = getRepositoryLocations();
-        if (!locations.isEmpty()) {
-            ExecutorService pool = Executors.newFixedThreadPool(locations.size(), new DaemonThreadFactory());
-            List<Future<Repository>> futures = new LinkedList<>();
-            for (final String repo : locations) {
-                futures.add(pool.submit(new Callable<Repository>() {
-                    @Override
-                    public Repository call() throws Exception {
-                        return Repository.fromIndex(repo);
-                    }
-                }));
-            }
-            for (Future<Repository> future : futures) {
-                try {
-                    Repository r = future.get();
-                    if (r != null) repositories.add(r);
-                } catch (InterruptedException | ExecutionException e) {
-                    LOG.log(Level.SEVERE, null, e);
-                }
-            }
-        }
+        repositories.addAll(RepositoryManager.loadCustom());
         return repositories;
+    }
+
+    public List<Repository> getRepositories() {
+        return getRepositories(false);
     }
 
     /**
@@ -132,8 +92,8 @@ public class Launcher {
             public void run() {
                 try {
                     program.run(cl);
-                } catch (Throwable e) {
-                    e.printStackTrace();
+                } catch (Throwable throwable) {
+                    throw new RuntimeException(throwable);
                 }
             }
         });

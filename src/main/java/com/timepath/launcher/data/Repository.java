@@ -52,6 +52,7 @@ public class Repository {
      * A list of all program entry points
      */
     private List<Program> executions;
+    private boolean enabled;
 
     private Repository() {
     }
@@ -141,7 +142,7 @@ public class Repository {
      * @return the executions
      */
     public List<Program> getExecutions() {
-        return Collections.unmodifiableList(executions);
+        return enabled ? Collections.unmodifiableList(executions) : Collections.<Program>emptyList();
     }
 
     @Override
@@ -162,5 +163,13 @@ public class Repository {
 
     public String getLocation() {
         return location;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 }

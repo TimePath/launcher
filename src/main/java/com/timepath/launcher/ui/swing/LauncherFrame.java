@@ -2,11 +2,12 @@ package com.timepath.launcher.ui.swing;
 
 import com.timepath.IOUtils;
 import com.timepath.SwingUtils;
-import com.timepath.launcher.DownloadManager.DownloadMonitor;
 import com.timepath.launcher.Launcher;
 import com.timepath.launcher.LauncherUtils;
+import com.timepath.launcher.data.DownloadManager.DownloadMonitor;
 import com.timepath.launcher.data.Program;
 import com.timepath.launcher.data.Repository;
+import com.timepath.launcher.data.RepositoryManager;
 import com.timepath.maven.MavenResolver;
 import com.timepath.maven.Package;
 import com.timepath.swing.ThemeSelector;
@@ -14,10 +15,10 @@ import com.timepath.swing.ThemeSelector;
 import javax.swing.*;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
-import javax.swing.table.DefaultTableModel;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeModel;
+import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.*;
 import java.beans.PropertyChangeEvent;
@@ -41,7 +42,33 @@ import java.util.regex.Pattern;
 public class LauncherFrame extends JFrame {
 
     private static final Logger LOG = Logger.getLogger(LauncherFrame.class.getName());
-    protected RepositoryManagerImpl repositoryManager = new RepositoryManagerImpl();
+    protected RepositoryManagerPanel repositoryManager = new RepositoryManagerPanel() {
+
+        @Override
+        protected void addActionPerformed(ActionEvent evt) {
+            // FIXME: showInternalInputDialog returns immediately
+            String in = JOptionPane.showInputDialog(LauncherFrame.this.getContentPane(), "Enter URL");
+            if (in == null) return;
+            Repository r = Repository.fromIndex(in);
+            if (r == null) {
+                JOptionPane.showInternalMessageDialog(LauncherFrame.this.getContentPane(),
+                        "Invalid repository",
+                        "Invalid repository",
+                        JOptionPane.WARNING_MESSAGE);
+            } else {
+                RepositoryManager.addRepository(r);
+                updateList();
+            }
+        }
+
+        @Override
+        protected void removeActionPerformed(ActionEvent evt) {
+            for (int row : jTable1.getSelectedRows()) {
+                RepositoryManager.removeRepository((Repository) model.getValueAt(row, 0));
+            }
+            updateList();
+        }
+    };
     protected JPanel aboutPanel;
     protected Launcher launcher;
     protected DownloadPanel downloadPanel;
@@ -128,7 +155,7 @@ public class LauncherFrame extends JFrame {
         new SwingWorker<List<Repository>, Void>() {
             @Override
             protected List<Repository> doInBackground() throws Exception {
-                return launcher.getRepositories();
+                return launcher.getRepositories(true);
             }
 
             @Override
@@ -136,12 +163,7 @@ public class LauncherFrame extends JFrame {
                 try {
                     LOG.log(Level.INFO, "Listing at {0}ms", System.currentTimeMillis() - LauncherUtils.START_TIME);
                     List<Repository> repos = get();
-                    // Update the repository manager
-                    int i = repositoryManager.model.getRowCount();
-                    while (i > 0) {
-                        repositoryManager.model.removeRow(--i);
-                    }
-                    for (Repository repo : repos) repositoryManager.model.addRow(new Object[]{repo});
+                    repositoryManager.setRepositories(repos);
                     // Update the program list
                     DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode();
                     for (Repository repo : repos) {
@@ -155,7 +177,12 @@ public class LauncherFrame extends JFrame {
                             repoNode.add(new DefaultMutableTreeNode(p));
                         }
                     }
-                    programList.setModel(new DefaultTreeModel(rootNode));
+                    final DefaultTreeModel newModel = new DefaultTreeModel(rootNode);
+                    programList.setModel(newModel);
+                    final DefaultMutableTreeNode firstLeaf = rootNode.getFirstLeaf();
+                    final TreePath path = new TreePath(firstLeaf.getPath());
+                    programList.expandPath(path);
+                    programList.setSelectionPath(path);
                     pack(programSplit);
                     if (!LauncherUtils.DEBUG && launcher.updateRequired()) { // Show update notification
                         JOptionPane.showInternalMessageDialog(LauncherFrame.this.getContentPane(),
@@ -256,6 +283,7 @@ public class LauncherFrame extends JFrame {
                             start(getSelected(programList.getLastSelectedPathComponent()));
                         }
                     }), BorderLayout.SOUTH);
+                    launchButton.setEnabled(false);
                 }});
             }});
             addTab("Downloads", downloadPanel = new DownloadPanel());
@@ -289,7 +317,6 @@ public class LauncherFrame extends JFrame {
                         }
                     }
                 }));
-                //invalidateCaches
                 add(new JMenuItem(new AbstractAction("Preferences") {
                     @Override
                     public void actionPerformed(ActionEvent e) {
@@ -361,7 +388,6 @@ public class LauncherFrame extends JFrame {
                         if (run) {
                             launcher.start(program);
                         }
-                        launchButton.setEnabled(true);
                     }
                 } catch (InterruptedException | ExecutionException e) {
                     LOG.log(Level.SEVERE, null, e);
@@ -419,38 +445,5 @@ public class LauncherFrame extends JFrame {
             }
         });
         return pane;
-    }
-
-    protected class RepositoryManagerImpl extends RepositoryManager {
-
-        DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
-
-        RepositoryManagerImpl() {
-            model.setColumnCount(1);
-        }
-
-        @Override
-        protected void addActionPerformed(ActionEvent evt) {
-            String in = JOptionPane.showInternalInputDialog(LauncherFrame.this.getContentPane(), "Enter URL");
-            if (in == null) return;
-            Repository r = Repository.fromIndex(in);
-            if (r == null) {
-                JOptionPane.showInternalMessageDialog(LauncherFrame.this.getContentPane(),
-                        "Invalid repository",
-                        "Invalid repository",
-                        JOptionPane.WARNING_MESSAGE);
-            } else {
-                Launcher.addRepository(r);
-                updateList();
-            }
-        }
-
-        @Override
-        protected void removeActionPerformed(ActionEvent evt) {
-            for (int row : jTable1.getSelectedRows()) {
-                Launcher.removeRepository((Repository) model.getValueAt(row, 0));
-            }
-            updateList();
-        }
     }
 }

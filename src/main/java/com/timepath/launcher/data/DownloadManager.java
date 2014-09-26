@@ -1,6 +1,7 @@
-package com.timepath.launcher;
+package com.timepath.launcher.data;
 
 import com.timepath.IOUtils;
+import com.timepath.launcher.LauncherUtils;
 import com.timepath.maven.Package;
 import com.timepath.maven.UpdateChecker;
 import com.timepath.util.concurrent.DaemonThreadFactory;
