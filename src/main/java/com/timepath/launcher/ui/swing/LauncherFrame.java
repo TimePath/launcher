@@ -91,7 +91,12 @@ public class LauncherFrame extends JFrame {
                         new JScrollPane(new JTextArea(msg + '\n' + sw.toString()) {{
                             setEditable(false);
                             setTabSize(4);
-                        }}),
+                        }}) {{
+                            Dimension size = LauncherFrame.this.getSize();
+                            size.width /= 2;
+                            size.height /= 2;
+                            setPreferredSize(size);
+                        }},
                         "Uncaught Exception",
                         JOptionPane.ERROR_MESSAGE);
             }
