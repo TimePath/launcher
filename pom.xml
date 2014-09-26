@@ -154,7 +154,7 @@
                         <!--Reflection-->
                         <option>-keepattributes *Annotation*,EnclosingMethod</option>
                         <!--Entry points-->
-                        <option>-keepclasseswithmembers public class com.timepath.* {
+                        <option>-keepclasseswithmembers public class com.timepath.** {
                             public static void main(java.lang.String[]);
                             }
                         </option>

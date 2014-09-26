@@ -1,8 +1,9 @@
 package com.timepath.launcher.data;
 
 import com.timepath.IOUtils;
-import com.timepath.classloader.CompositeClassLoader;
 import com.timepath.SwingUtils;
+import com.timepath.classloader.CompositeClassLoader;
+import com.timepath.launcher.Launcher;
 import com.timepath.maven.Package;
 import com.timepath.maven.UpdateChecker;
 
@@ -10,11 +11,11 @@ import javax.swing.*;
 import java.awt.*;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.text.MessageFormat;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -24,8 +25,11 @@ import java.util.logging.Logger;
 public class Program {
 
     private static final Logger LOG = Logger.getLogger(Program.class.getName());
+    private static final AtomicInteger autoId = new AtomicInteger();
     private final String main;
     private final List<String> args;
+    private final int id = autoId.getAndIncrement();
+    private boolean starred;
     private String newsfeedURL;
     private boolean daemon;
     private JPanel panel;
@@ -44,6 +48,18 @@ public class Program {
         this.args = args;
     }
 
+    public boolean isStarred() {
+        return starred;
+    }
+
+    public void setStarred(boolean starred) {
+        this.starred = starred;
+    }
+
+    public int getId() {
+        return id;
+    }
+
     public Package getPackage() {
         return parent;
     }
@@ -51,6 +67,10 @@ public class Program {
     @Override
     public String toString() {
         return title;
+    }
+
+    public void start(Launcher context) {
+        context.start(this);
     }
 
     public void run(final CompositeClassLoader cl) throws Throwable {

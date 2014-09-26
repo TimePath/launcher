@@ -3,8 +3,11 @@ package com.timepath.launcher.ui.web;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
-import com.timepath.launcher.Launcher;
 import com.timepath.SwingUtils;
+import com.timepath.launcher.Launcher;
+import com.timepath.launcher.LauncherUtils;
+import com.timepath.launcher.data.Program;
+import com.timepath.launcher.data.Repository;
 import com.timepath.util.concurrent.DaemonThreadFactory;
 
 import javax.swing.event.HyperlinkEvent;
@@ -22,6 +25,7 @@ public class Server implements Runnable {
     public static final String ENDPOINT_PROXY = "/proxy";
     public static final String ENDPOINT_SHUTDOWN = "/shutdown";
     public static final String ENDPOINT_SSE = "/events";
+    public static final String ENDPOINT_LAUNCH = "/run";
     private static final Logger LOG = Logger.getLogger(Server.class.getName());
     private static InetSocketAddress ADDRESS;
 
@@ -39,9 +43,9 @@ public class Server implements Runnable {
             browse();
             return;
         }
-        Launcher launcher = new Launcher();
+        final Launcher launcher = new Launcher();
         try {
-            final HttpServer server = HttpServer.create(new InetSocketAddress(0), BACKLOG);
+            final HttpServer server = HttpServer.create(new InetSocketAddress(13610), BACKLOG);
             //noinspection AssignmentToStaticFieldFromInstanceMethod
             ADDRESS = server.getAddress();
             LOG.log(Level.INFO, "Starting server on port {0}", ADDRESS);
@@ -49,7 +53,31 @@ public class Server implements Runnable {
             ExecutorService threadPool = Executors.newCachedThreadPool(new DaemonThreadFactory());
             server.setExecutor(threadPool);
             server.createContext("/", new WebHandler(launcher));
-            server.createContext(ENDPOINT_SSE, new SSEHandler());
+            server.createContext(ENDPOINT_SSE, new SSEHandler() {
+
+                @Override
+                public void handle(HttpExchange exchange) throws IOException {
+
+                }
+            });
+            server.createContext(ENDPOINT_LAUNCH, new HttpHandler() {
+                @Override
+                public void handle(HttpExchange exchange) throws IOException {
+                    String s = exchange.getRequestURI().getPath();
+                    try {
+                        int i = Integer.parseInt(s.substring(s.lastIndexOf('/') + 1));
+                        for (Repository repository : launcher.getRepositories()) {
+                            for (Program program : repository.getExecutions()) {
+                                if (program.getId() == i) {
+                                    program.start(launcher);
+                                }
+                            }
+                        }
+                    } catch (NumberFormatException ignored) {
+
+                    }
+                }
+            });
             server.createContext(ENDPOINT_SHUTDOWN, new HttpHandler() {
                 @Override
                 public void handle(HttpExchange exchange) throws IOException {
@@ -61,7 +89,7 @@ public class Server implements Runnable {
             });
             server.start();
             LOG.log(Level.INFO, "Server up on port {0}", ADDRESS);
-            browse();
+            if (!LauncherUtils.DEBUG) browse();
             // Block until shutdown
             try {
                 latch.await();

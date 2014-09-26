@@ -8,11 +8,7 @@ import com.timepath.maven.UpdateChecker;
 import com.timepath.util.Cache;
 import com.timepath.util.concurrent.DaemonThreadFactory;
 
-import javax.swing.*;
-import java.awt.*;
-import java.text.MessageFormat;
 import java.util.*;
-import java.util.List;
 import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -83,11 +79,14 @@ public class Launcher {
         return downloadManager;
     }
 
+    private List<Repository> repositories;
+
     /**
      * @return fetch and return a list of all repositories
      */
     public List<Repository> getRepositories() {
-        List<Repository> repositories = new LinkedList<>();
+        if (repositories != null) return repositories;
+        repositories = new LinkedList<>();
         Repository main = Repository.fromIndex(REPO_MAIN);
         repositories.add(main);
         self = main.getSelf();
