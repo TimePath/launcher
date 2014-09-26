@@ -34,6 +34,7 @@ public class Launcher {
     private final CompositeClassLoader cl = CompositeClassLoader.createPrivileged();
     private final DownloadManager downloadManager = new DownloadManager();
     private Package self;
+    private List<Repository> repositories;
 
     public Launcher() {
     }
@@ -53,8 +54,6 @@ public class Launcher {
     public DownloadManager getDownloadManager() {
         return downloadManager;
     }
-
-    private List<Repository> repositories;
 
     /**
      * @return fetch and return a list of all repositories
@@ -78,7 +77,7 @@ public class Launcher {
      * @return true if self is up to date
      */
     public boolean updateRequired() {
-        return !UpdateChecker.isLatest(self);
+        return !UpdateChecker.verify(self, LauncherUtils.CURRENT_FILE);
     }
 
     /**
