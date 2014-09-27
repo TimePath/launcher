@@ -4,7 +4,9 @@ import com.timepath.FileUtils;
 import com.timepath.IOUtils;
 import com.timepath.maven.UpdateChecker;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 import java.text.MessageFormat;
 import java.util.Collection;

@@ -3,8 +3,8 @@
 <!-- http://www.bootstrapcdn.com/ -->
 
 <!DOCTYPE xsl:stylesheet [
-        <!-- 	<!ENTITY % entities SYSTEM "http://www.w3.org/2003/entities/2007/w3centities-f.ent"> -->
-        <!-- 	%entities; -->
+        <!-- <!ENTITY % entities SYSTEM "http://www.w3.org/2003/entities/2007/w3centities-f.ent"> -->
+        <!-- %entities; -->
         <!ENTITY times "&#x000D7;">
         ]>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:exsl="http://exslt.org/common"
@@ -55,153 +55,153 @@
         <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css"/>
 
         <style id="themeLight"><![CDATA[
-			@import 'css/bootstrap-theme.min.css';
+            @import 'css/bootstrap-theme.min.css';
 
-			.breadcrumb.downloading { border-left: 4px solid #5bc0de }	/* Default .progress-bar-info	*/
-			.breadcrumb.done { border-left: 4px solid #5cb85c }			/* Default .progress-bar-success	*/
-			.breadcrumb.old { border-left: 4px solid #f0ad4e }			/* Default .progress-bar-warning	*/
-			.breadcrumb.new { border-left: 4px solid #999 }				/* Default .badge	*/
-		]]></style>
+            .breadcrumb.downloading { border-left: 4px solid #5bc0de }          /* Default .progress-bar-info       */
+            .breadcrumb.done { border-left: 4px solid #5cb85c }                 /* Default .progress-bar-success    */
+            .breadcrumb.old { border-left: 4px solid #f0ad4e }                  /* Default .progress-bar-warning    */
+            .breadcrumb.new { border-left: 4px solid #999 }                     /* Default .badge                   */
+        ]]></style>
 
         <style id="themeDark"><![CDATA[
-			@import 'css/bootstrap-slate.min.css';
+            @import 'css/bootstrap-slate.min.css';
 
-			.breadcrumb.downloading { border-left: 4px solid #428bca }	/* Default .progress-bar	*/
-			.breadcrumb.done { border-left: 4px solid #5cb85c }			/* Default .progress-bar-success	*/
-			.breadcrumb.old { border-left: 4px solid #f89406 }			/* Slate .progress-bar-warning	*/
-			.breadcrumb.new { border-left: 4px solid #7a8288 }				/* Slate .badge	*/
+            .breadcrumb.downloading { border-left: 4px solid #428bca }          /* Default .progress-bar            */
+            .breadcrumb.done { border-left: 4px solid #5cb85c }                 /* Default .progress-bar-success    */
+            .breadcrumb.old { border-left: 4px solid #f89406 }                  /* Slate .progress-bar-warning      */
+            .breadcrumb.new { border-left: 4px solid #7a8288 }                  /* Slate .badge                     */
 
 
-			.progress-bar-info { background-color: #428bca }			/* Default	*/
+            .progress-bar-info { background-color: #428bca }                    /* Default  */
 
-			.breadcrumb { color: #fff }									/* Custom	*/
+            .breadcrumb     { color: #fff }                                     /* Custom   */
 
-			.label { color: #444 }										/* Custom	*/
-			.label-info { background-color: #428bca }					/* Default	*/
-			.label-primary { background-color: #aaa }					/* Custom	*/
+            .label          { color: #444 }                                     /* Custom   */
+            .label-info     { background-color: #428bca }                       /* Default  */
+            .label-primary  { background-color: #aaa }                          /* Custom   */
 
-			.alert-info {												/* Darkly	*/
-				background-color: #3498db;
-				border-color: #3498db;
-				color: #ffffff;
-			}
+            .alert-info {                                                       /* Darkly   */
+                background-color: #3498db;
+                border-color: #3498db;
+                color: #ffffff;
+            }
 
-			#shutdown { border: none }
+            #shutdown { border: none }
 
-			input[type=text]::-webkit-input-placeholder	{ color: #c8c8c8 }
-			input[type=text]::-moz-placeholder			{ color: #c8c8c8 }
-			input[type=text]:-moz-placeholder			{ color: #c8c8c8 }
-			input[type=text]:-ms-input-placeholder		{ color: #c8c8c8 }
+            input[type=text]::-webkit-input-placeholder { color: #c8c8c8 }
+            input[type=text]::-moz-placeholder          { color: #c8c8c8 }
+            input[type=text]:-moz-placeholder           { color: #c8c8c8 }
+            input[type=text]:-ms-input-placeholder      { color: #c8c8c8 }
 
-			input[type=text] {
-				color: white;
-				border-color: rgba(0,0,0,0.6);
-				text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
-				background: linear-gradient(#313539, #3a3f44 40%, #484e55);
-				background-repeat: no-repeat;
-				filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ff313539', endColorstr='#ff484e55', GradientType=0);
-				filter: none;
-			}
-		]]></style>
+            input[type=text] {
+                color: white;
+                border-color: rgba(0,0,0,0.6);
+                text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
+                background: linear-gradient(#313539, #3a3f44 40%, #484e55);
+                background-repeat: no-repeat;
+                filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ff313539', endColorstr='#ff484e55', GradientType=0);
+                filter: none;
+            }
+        ]]></style>
 
         <style><![CDATA[
-			/* Hacks */
+            /* Hacks */
 
-			/* XSL exit button hack */
-			.navbar-nav.navbar-right:last-child { margin-right: 0 }
+            /* XSL exit button hack */
+            .navbar-nav.navbar-right:last-child { margin-right: 0 }
 
-			/* XSL program button hack */
-			[data-original-title]:after { content: "" }
+            /* XSL program button hack */
+            [data-original-title]:after { content: "" }
 
-			/* Button group spacing */
-			.btn-group + .btn-group { margin-left: 5px }
+            /* Button group spacing */
+            .btn-group + .btn-group { margin-left: 5px }
 
-			/* Webkit vertical-align */
-			@media (min-width: 768px) {
-				/*
-				.row {
-					display: table-row;
-				}
+            /* Webkit vertical-align */
+            @media (min-width: 768px) {
+                /*
+                .row {
+                    display: table-row;
+                }
 
-				.row > * {
-					float: none;
-					display: table-cell;
-					vertical-align: middle;
-				}
+                .row > * {
+                    float: none;
+                    display: table-cell;
+                    vertical-align: middle;
+                }
 
-				.progress { margin-top: 0 }
+                .progress { margin-top: 0 }
 
-				*/
-				/*
-				.file > .row > div:nth-child(2) { padding-left: 0 }
-				*/
-			}
+                */
+                /*
+                .file > .row > div:nth-child(2) { padding-left: 0 }
+                */
+            }
 
-			#shutdown:after { content: " "attr(data-original-title) }
+            #shutdown:after { content: " "attr(data-original-title) }
 
-			@media (min-width: 768px) {
-				#shutdown:after { content: "" }
-			}
+            @media (min-width: 768px) {
+                #shutdown:after { content: "" }
+            }
 
-			/* Layout */
+            /* Layout */
 
-			@media (max-width: 480px) {
-				.col-xxs-12 {
-					display: block;
-					float: none;
-					width: 100%;
-				}
+            @media (max-width: 480px) {
+                .col-xxs-12 {
+                    display: block;
+                    float: none;
+                    width: 100%;
+                }
 
-				.col-xxs-6 {
-					display: block;
-					width: 50%;
-				}
-			}
+                .col-xxs-6 {
+                    display: block;
+                    width: 50%;
+                }
+            }
 
-			/* Static header body push */
-			body { padding-top: 70px; }
+            /* Static header body push */
+            body { padding-top: 70px; }
 
-			/* Menu */
-			.program, .dependency { margin-bottom: 0 }
-			.dependencies { padding-left: 9px }
-			.files { padding: 9px 15px }
-			.files > .list-group { margin-bottom: 0 }
+            /* Menu */
+            .program, .dependency { margin-bottom: 0 }
+            .dependencies { padding-left: 9px }
+            .files { padding: 9px 15px }
+            .files > .list-group { margin-bottom: 0 }
 
-			.progress {
-				height: 10px;
-				margin-top: 8px;
-				margin-bottom: 0px;
-			}
+            .progress {
+                height: 10px;
+                margin-top: 8px;
+                margin-bottom: 0px;
+            }
 
-			* {
-				-webkit-touch-callout: none;
-				-webkit-user-select: none;
-				-khtml-user-select: none;
-				-moz-user-select: none;
-				-ms-user-select: none;
-				user-select: none;
-			}
+            * {
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                -khtml-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+            }
 
-			#content .alert,
-			#content strong,
-			#content span,
-			#content h1,
-			#content h2,
-			#content h3,
-			#content h4,
-			#content h5,
-			#content h6,
-			#content p,
-			#content a
-			{
-				-webkit-touch-callout: default;
-				-webkit-user-select: text;
-				-khtml-user-select: text;
-				-moz-user-select: text;
-				-o-user-select: text;
-				user-select: text;
-			}
-		]]></style>
+            #content .alert,
+            #content strong,
+            #content span,
+            #content h1,
+            #content h2,
+            #content h3,
+            #content h4,
+            #content h5,
+            #content h6,
+            #content p,
+            #content a
+            {
+                -webkit-touch-callout: default;
+                -webkit-user-select: text;
+                -khtml-user-select: text;
+                -moz-user-select: text;
+                -o-user-select: text;
+                user-select: text;
+            }
+        ]]></style>
     </xsl:template>
 
     <xsl:template name="scripts">
@@ -217,124 +217,124 @@
                 $.post("run/" + id);
             };
 
-			(function loop() {
-				var now = new Date();
-				var hour = now.getHours();
-				var day = [8, 12+6];
-				var daytime = day[0] > hour || hour >= day[1];
-				// daytime = !daytime;
-				$('#themeDark').prop('disabled', !daytime);
-				$('#themeLight').prop('disabled', daytime);
+            (function loop() {
+                var now = new Date();
+                var hour = now.getHours();
+                var day = [8, 12+6];
+                var daytime = day[0] > hour || hour >= day[1];
+                // daytime = !daytime;
+                $('#themeDark').prop('disabled', !daytime);
+                $('#themeLight').prop('disabled', daytime);
 
-				var changeover = ((60 - now.getMinutes()) * 60 - now.getSeconds()) * 1000;
-				setTimeout(loop, changeover);
-			}());
+                var changeover = ((60 - now.getMinutes()) * 60 - now.getSeconds()) * 1000;
+                setTimeout(loop, changeover);
+            }());
 
-			var slideTime = 500;
-			function addAlert(message, level, parent) {
-				if(!message) return;
-				level = level || 'info';
-				parent = parent || '#alerts';
-				var a = $(document.createElement('div'))
-					.addClass('alert alert-' + level)
-					.append(
-						$(document.createElement('button'))
-						.attr({
-							type: 'button',
-							'data-dismiss': 'alert',
-							'aria-hidden': true
-						}).addClass('close').text('×') // &times;
-					)
-					.append(
-						$(document.createElement('div'))
-						.html(message)
-					)
-					.hide().alert();
+            var slideTime = 500;
+            function addAlert(message, level, parent) {
+                if(!message) return;
+                level = level || 'info';
+                parent = parent || '#alerts';
+                var a = $(document.createElement('div'))
+                    .addClass('alert alert-' + level)
+                    .append(
+                        $(document.createElement('button'))
+                        .attr({
+                            type: 'button',
+                            'data-dismiss': 'alert',
+                            'aria-hidden': true
+                        }).addClass('close').text('×') // &times;
+                    )
+                    .append(
+                        $(document.createElement('div'))
+                        .html(message)
+                    )
+                    .hide().alert();
 
-				var removeElement = function(e) {
-					if (e) e.preventDefault();
-					a.slideUp(slideTime, function() {
-						a.trigger('closed.bs.alert').remove();
-					});
-				};
+                var removeElement = function(e) {
+                    if (e) e.preventDefault();
+                    a.slideUp(slideTime, function() {
+                        a.trigger('closed.bs.alert').remove();
+                    });
+                };
 
-				a.on('close.bs.alert', removeElement).appendTo(parent).slideDown(slideTime);
+                a.on('close.bs.alert', removeElement).appendTo(parent).slideDown(slideTime);
 
-				a.setTimeout = function(time) {
-					setTimeout(removeElement, time);
-				};
+                a.setTimeout = function(time) {
+                    setTimeout(removeElement, time);
+                };
 
-				return a;
-			}
+                return a;
+            }
 
-			window.alert = addAlert;
+            window.alert = addAlert;
 
-			$(function() {
-				$('[data-original-title]').tooltip({
-					container: 'body'
-				});
-				// Hack
-				//$('[data-original-title].disabled').css({
-				//	'pointer-events': 'visible'
-				//});
+            $(function() {
+                $('[data-original-title]').tooltip({
+                    container: 'body'
+                });
+                // Hack
+                //$('[data-original-title].disabled').css({
+                //    'pointer-events': 'visible'
+                //});
 
-				var hidden = [];
-				$( '#programs' ).searchable({
-					searchField		: '#search-apps',
-					selector		: 'article',
-					childSelector	: '.program',
-					hide			: function( elem ) {
-						elem.slideUp(slideTime);
+                var hidden = [];
+                $( '#programs' ).searchable({
+                    searchField        : '#search-apps',
+                    selector        : 'article',
+                    childSelector    : '.program',
+                    hide            : function( elem ) {
+                        elem.slideUp(slideTime);
 
-						hidden.push(elem);
-					},
-					show			: function( elem ) {
-						elem.slideDown(slideTime);
-					},
-					onSearchActive	: function( elem, term ) {
-						hidden = [];
-					},
-					onSearchEmpty	: function( elem ) {
-						$(hidden).each(function() {
-							$(this).hide().slideDown(slideTime);
-						});
-						hidden = [];
-					}
-				});
+                        hidden.push(elem);
+                    },
+                    show            : function( elem ) {
+                        elem.slideDown(slideTime);
+                    },
+                    onSearchActive    : function( elem, term ) {
+                        hidden = [];
+                    },
+                    onSearchEmpty    : function( elem ) {
+                        $(hidden).each(function() {
+                            $(this).hide().slideDown(slideTime);
+                        });
+                        hidden = [];
+                    }
+                });
 
-				var welcome = $(document.createElement('div'))
-				.append($(document.createElement('h4'))
-					.text('Welcome!')
-				)
-				.append($(document.createElement('p'))
-					.append('To my new ')
-					.append($(document.createElement('a'))
-						.attr('href', '//timepath.github.io/launcher').addClass('alert-link')
-						.text('launcher')
-					)
-				);
+                var welcome = $(document.createElement('div'))
+                .append($(document.createElement('h4'))
+                    .text('Welcome!')
+                )
+                .append($(document.createElement('p'))
+                    .append('To my new ')
+                    .append($(document.createElement('a'))
+                        .attr('href', '//timepath.github.io/launcher').addClass('alert-link')
+                        .text('launcher')
+                    )
+                );
 
-				setTimeout(function() {
-					addAlert(welcome, 'info').setTimeout(300000);
-					var source = new EventSource("events");
-					source.onmessage = function(event) {
-						alert(event.data).setTimeout(5000);
-					};
-				}, 500);
+                setTimeout(function() {
+                    addAlert(welcome, 'info').setTimeout(300000);
+                    var source = new EventSource("events");
+                    source.onmessage = function(event) {
+                        alert(event.data).setTimeout(5000);
+                    };
+                }, 500);
 
-				//<!-- TODO: proxy ajax callback -->
-				/*$.ajax({
-					url: "http://dl.dropboxusercontent.com/u/42745598/doc/java/launcher.html",
-					type: "GET",
-					success: function(data) {
-						alert( data );
-					},
-					error: function(xhr, status) {
-						alert('AJAX error');
-					}
-				});*/
-			});
-		]]></script>
+                //<!-- TODO: proxy ajax callback -->
+                /*$.ajax({
+                    url: "http://dl.dropboxusercontent.com/u/42745598/doc/java/launcher.html",
+                    type: "GET",
+                    success: function(data) {
+                        alert( data );
+                    },
+                    error: function(xhr, status) {
+                        alert('AJAX error');
+                    }
+                });*/
+            });
+        ]]></script>
     </xsl:template>
 
     <xsl:template name="header">

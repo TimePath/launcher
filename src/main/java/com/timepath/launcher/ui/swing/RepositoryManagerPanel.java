@@ -22,7 +22,7 @@ abstract class RepositoryManagerPanel extends JPanel {
     protected ObjectBasedTableModel<Repository> model;
 
     protected RepositoryManagerPanel() {
-        jTable1 = new JTable(model = new ObjectBasedTableModel<Repository>(){
+        jTable1 = new JTable(model = new ObjectBasedTableModel<Repository>() {
             @Override
             public String[] columns() {
                 return COLUMNS;
@@ -31,9 +31,12 @@ abstract class RepositoryManagerPanel extends JPanel {
             @Override
             public Class<?> getColumnClass(int columnIndex) {
                 switch (columnIndex) {
-                    case 0: return String.class;
-                    case 1: return String.class;
-                    case 2: return Boolean.class;
+                    case 0:
+                        return String.class;
+                    case 1:
+                        return String.class;
+                    case 2:
+                        return Boolean.class;
                 }
                 return super.getColumnClass(columnIndex);
             }
@@ -41,9 +44,12 @@ abstract class RepositoryManagerPanel extends JPanel {
             @Override
             public Object get(Repository o, int columnIndex) {
                 switch (columnIndex) {
-                    case 0: return o.getName();
-                    case 1: return o.getLocation();
-                    case 2: return o.isEnabled();
+                    case 0:
+                        return o.getName();
+                    case 1:
+                        return o.getLocation();
+                    case 2:
+                        return o.isEnabled();
                 }
                 return null;
             }
@@ -51,9 +57,12 @@ abstract class RepositoryManagerPanel extends JPanel {
             @Override
             protected boolean isCellEditable(Repository repository, int columnIndex) {
                 switch (columnIndex) {
-                    case 0: return false;
-                    case 1: return true;
-                    case 2: return true;
+                    case 0:
+                        return false;
+                    case 1:
+                        return true;
+                    case 2:
+                        return true;
                 }
                 return super.isCellEditable(repository, columnIndex);
             }

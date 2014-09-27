@@ -1,7 +1,7 @@
 package com.timepath.launcher;
 
-import com.timepath.launcher.ui.swing.LauncherFrame;
 import com.timepath.SwingUtils;
+import com.timepath.launcher.ui.swing.LauncherFrame;
 import com.timepath.util.logging.LogAggregator;
 import com.timepath.util.logging.LogFileHandler;
 import com.timepath.util.logging.LogIOHandler;

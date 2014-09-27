@@ -26,7 +26,6 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.lang.reflect.Array;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -67,9 +66,9 @@ public class LauncherFrame extends JFrame {
             int[] selection = jTable1.getSelectedRows();
             Arrays.sort(selection);
             List<Repository> rows = model.getRows();
-            for(Repository r : rows.toArray(new Repository[rows.size()])) {
+            for (Repository r : rows.toArray(new Repository[rows.size()])) {
                 boolean selected = Arrays.binarySearch(selection, i++) >= 0;
-                if(selected) RepositoryManager.removeRepository(r);
+                if (selected) RepositoryManager.removeRepository(r);
             }
             updateList();
         }
