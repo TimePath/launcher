@@ -1,5 +1,8 @@
 package com.timepath.classloader;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -40,6 +43,7 @@ public class CompositeClassLoader extends ClassLoader {
 
     public static CompositeClassLoader createPrivileged() {
         return doPrivileged(new PrivilegedAction<CompositeClassLoader>() {
+            @NotNull
             @Override
             public CompositeClassLoader run() {
                 return new CompositeClassLoader();
@@ -52,7 +56,7 @@ public class CompositeClassLoader extends ClassLoader {
      *
      * @param loader the {@code ClassLoader}
      */
-    public void add(ClassLoader loader) {
+    public void add(@Nullable ClassLoader loader) {
         if (loader == null) {
             throw new IllegalArgumentException("ClassLoader must not be null");
         }
@@ -68,7 +72,7 @@ public class CompositeClassLoader extends ClassLoader {
      * @param args the command line arguments. Converted to an empty array if null
      * @param urls additional resources
      */
-    public void start(String main, String[] args, Iterable<URL> urls) throws Throwable {
+    public void start(String main, @Nullable String[] args, @NotNull Iterable<URL> urls) throws Throwable {
         if (args == null) {
             args = new String[0];
         }
@@ -84,7 +88,7 @@ public class CompositeClassLoader extends ClassLoader {
      *
      * @param urls the URLs
      */
-    public void add(Iterable<URL> urls) {
+    public void add(@NotNull Iterable<URL> urls) {
         for (URL u : urls) {
             add(u);
         }
@@ -120,9 +124,10 @@ public class CompositeClassLoader extends ClassLoader {
         method.invoke(null, new Object[]{args}); // varargs call
     }
 
+    @Nullable
     @Override
-    protected Class<?> findClass(String name) throws ClassNotFoundException {
-        Class<?> res = reflect(classes, "findClass", name);
+    protected Class<?> findClass(@NotNull String name) throws ClassNotFoundException {
+        @Nullable Class<?> res = reflect(classes, "findClass", name);
         if (res != null) {
             return res;
         }
@@ -137,8 +142,9 @@ public class CompositeClassLoader extends ClassLoader {
      * @param <B>       type of value
      * @return the first found value
      */
+    @Nullable
     @SuppressWarnings("unchecked")
-    private <A, B> B reflect(Map<A, B> cache, String methodStr, A key) {
+    private <A, B> B reflect(@NotNull Map<A, B> cache, String methodStr, @NotNull A key) {
         LOG.log(Level.FINE, "{0}: {1}", new Object[]{methodStr, key});
         B ret = cache.get(key);
         if (ret != null) {
@@ -149,7 +155,7 @@ public class CompositeClassLoader extends ClassLoader {
                 try {
                     Method method = ClassLoader.class.getDeclaredMethod(methodStr, key.getClass());
                     method.setAccessible(true);
-                    B u = (B) method.invoke(cl, key);
+                    @NotNull B u = (B) method.invoke(cl, key);
                     if (u != null) { // return with first result
                         cache.put(key, u);
                         return u;
@@ -169,9 +175,10 @@ public class CompositeClassLoader extends ClassLoader {
         return null;
     }
 
+    @Nullable
     @Override
-    protected URL findResource(String name) {
-        URL res = reflect(resources, "findResource", name);
+    protected URL findResource(@NotNull String name) {
+        @Nullable URL res = reflect(resources, "findResource", name);
         if (res != null) {
             return res;
         }
@@ -181,30 +188,32 @@ public class CompositeClassLoader extends ClassLoader {
     /**
      * TODO: calling class's jar only
      */
+    @Nullable
     @Override
-    protected Enumeration<URL> findResources(String name) throws IOException {
-        Enumeration<URL> res = reflect(enumerations, "findResources", name);
+    protected Enumeration<URL> findResources(@NotNull String name) throws IOException {
+        @Nullable Enumeration<URL> res = reflect(enumerations, "findResources", name);
         if (res != null) {
             return res;
         }
         return super.findResources(name);
     }
 
+    @Nullable
     @Override
-    protected String findLibrary(String libname) {
-        String res = reflect(libraries, "findLibrary", libname);
+    protected String findLibrary(@NotNull String libname) {
+        @Nullable String res = reflect(libraries, "findLibrary", libname);
         if (res != null) {
             return res;
         }
         // limitation: libraries must be files. Copy to temp file
         String s = System.mapLibraryName(libname);
-        URL u = findResource(s);
+        @Nullable URL u = findResource(s);
         try {
-            File file = File.createTempFile(libname, null);
+            @NotNull File file = File.createTempFile(libname, null);
             file.deleteOnExit();
             ReadableByteChannel rbc = Channels.newChannel(u.openStream());
-            FileOutputStream outputStream = new FileOutputStream(file);
-            FileChannel outputChannel = outputStream.getChannel();
+            @NotNull FileOutputStream outputStream = new FileOutputStream(file);
+            @NotNull FileChannel outputChannel = outputStream.getChannel();
             long total = 0, read;
             while ((read = outputChannel.transferFrom(rbc, total, 8192)) > 0) {
                 total += read;

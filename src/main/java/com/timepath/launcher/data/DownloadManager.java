@@ -5,6 +5,7 @@ import com.timepath.launcher.LauncherUtils;
 import com.timepath.maven.Package;
 import com.timepath.maven.UpdateChecker;
 import com.timepath.util.concurrent.DaemonThreadFactory;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.net.SocketTimeoutException;
@@ -29,6 +30,7 @@ import java.util.logging.Logger;
 public class DownloadManager {
 
     public static final int MAX_CONCURRENT_CONNECTIONS = 10;
+    @NotNull
     private Semaphore semaphore = new Semaphore(MAX_CONCURRENT_CONNECTIONS, true);
     private static final Logger LOG = Logger.getLogger(DownloadManager.class.getName());
     protected final List<DownloadMonitor> monitors = new LinkedList<>();
@@ -66,7 +68,7 @@ public class DownloadManager {
 
     protected void fireSubmitted(Package pkgFile) {
         synchronized (monitors) {
-            for (DownloadMonitor monitor : monitors) {
+            for (@NotNull DownloadMonitor monitor : monitors) {
                 monitor.onSubmit(pkgFile);
             }
         }
@@ -74,7 +76,7 @@ public class DownloadManager {
 
     protected void fireUpdated(Package pkgFile) {
         synchronized (monitors) {
-            for (DownloadMonitor monitor : monitors) {
+            for (@NotNull DownloadMonitor monitor : monitors) {
                 monitor.onUpdate(pkgFile);
             }
         }
@@ -82,7 +84,7 @@ public class DownloadManager {
 
     protected void fireFinished(Package pkgFile) {
         synchronized (monitors) {
-            for (DownloadMonitor monitor : monitors) {
+            for (@NotNull DownloadMonitor monitor : monitors) {
                 monitor.onFinish(pkgFile);
             }
         }
@@ -130,7 +132,7 @@ public class DownloadManager {
                         // Get the checksum before the package is moved into place
                         LOG.log(Level.INFO, "Saving checksum: {0}", checksumFile);
                         Files.createDirectories(checksumFile.getAbsoluteFile().getParentFile().toPath());
-                        try (FileOutputStream checksumOutputStream = new FileOutputStream(checksumFile)) {
+                        try (@NotNull FileOutputStream checksumOutputStream = new FileOutputStream(checksumFile)) {
                             checksumOutputStream.write(UpdateChecker.getChecksum(pkgFile, UpdateChecker.ALGORITHM).getBytes("UTF-8"));
                         }
                         Path move = Files.move(temp.toPath(), downloadFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
@@ -148,11 +150,11 @@ public class DownloadManager {
             }
         }
 
-        private void download(Package p) throws IOException {
-            String s = UpdateChecker.getDownloadURL(p);
+        private void download(@NotNull Package p) throws IOException {
+            @NotNull String s = UpdateChecker.getDownloadURL(p);
             URLConnection connection = IOUtils.requestConnection(s, new IOUtils.ConnectionSettings() {
                 @Override
-                public void apply(URLConnection u) {
+                public void apply(@NotNull URLConnection u) {
                     u.setRequestProperty("Range", "bytes=" + pkgFile.progress + "-");
                 }
             });
@@ -161,9 +163,9 @@ public class DownloadManager {
             p.associate(connection);
             IOUtils.createFile(temp);
             LOG.log(Level.INFO, "Downloading {0} > {1}", new Object[]{s, temp});
-            byte[] buffer = new byte[8192];
+            @NotNull byte[] buffer = new byte[8192];
             try (InputStream is = IOUtils.openStream(connection);
-                 OutputStream fos = new BufferedOutputStream(new FileOutputStream(temp, partial))) {
+                 @NotNull OutputStream fos = new BufferedOutputStream(new FileOutputStream(temp, partial))) {
                 long total = 0;
                 for (int read; (read = is.read(buffer)) > -1; ) {
                     fos.write(buffer, 0, read);

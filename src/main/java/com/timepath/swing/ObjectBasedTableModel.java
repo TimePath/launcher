@@ -1,5 +1,8 @@
 package com.timepath.swing;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import javax.swing.table.AbstractTableModel;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,6 +47,7 @@ public abstract class ObjectBasedTableModel<E> extends AbstractTableModel {
         return true;
     }
 
+    @NotNull
     public abstract String[] columns();
 
     @Override
@@ -65,6 +69,7 @@ public abstract class ObjectBasedTableModel<E> extends AbstractTableModel {
         return columns.size();
     }
 
+    @Nullable
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         return get(rows.get(rowIndex), columnIndex);
@@ -77,6 +82,7 @@ public abstract class ObjectBasedTableModel<E> extends AbstractTableModel {
      * @param columnIndex index to Object property
      * @return the property
      */
+    @Nullable
     public abstract Object get(E o, int columnIndex);
 
     /**

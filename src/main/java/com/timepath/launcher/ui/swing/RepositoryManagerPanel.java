@@ -2,6 +2,8 @@ package com.timepath.launcher.ui.swing;
 
 import com.timepath.launcher.data.Repository;
 import com.timepath.swing.ObjectBasedTableModel;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
@@ -17,12 +19,16 @@ abstract class RepositoryManagerPanel extends JPanel {
     protected JButton addButton;
     protected JButton removeButton;
     protected JPanel jPanel1;
+    @Nullable
     protected JScrollPane jScrollPane1;
+    @Nullable
     protected JTable jTable1;
+    @Nullable
     protected ObjectBasedTableModel<Repository> model;
 
     protected RepositoryManagerPanel() {
         jTable1 = new JTable(model = new ObjectBasedTableModel<Repository>() {
+            @NotNull
             @Override
             public String[] columns() {
                 return COLUMNS;
@@ -41,8 +47,9 @@ abstract class RepositoryManagerPanel extends JPanel {
                 return super.getColumnClass(columnIndex);
             }
 
+            @Nullable
             @Override
-            public Object get(Repository o, int columnIndex) {
+            public Object get(@NotNull Repository o, int columnIndex) {
                 switch (columnIndex) {
                     case 0:
                         return o.getName();
@@ -81,7 +88,7 @@ abstract class RepositoryManagerPanel extends JPanel {
             }
         });
         jPanel1 = new JPanel();
-        GroupLayout jPanel1Layout = new GroupLayout(jPanel1);
+        @NotNull GroupLayout jPanel1Layout = new GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(jPanel1Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                         .addGroup(jPanel1Layout.createSequentialGroup()
@@ -102,7 +109,7 @@ abstract class RepositoryManagerPanel extends JPanel {
                                 .addContainerGap(GroupLayout.DEFAULT_SIZE,
                                         Short.MAX_VALUE))
         );
-        GroupLayout layout = new GroupLayout(this);
+        @NotNull GroupLayout layout = new GroupLayout(this);
         setLayout(layout);
         layout.setHorizontalGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                         .addGroup(GroupLayout.Alignment.TRAILING,

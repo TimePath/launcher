@@ -2,6 +2,8 @@ package com.timepath.launcher.ui.web;
 
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -24,7 +26,7 @@ class ProxyHandler {
      * @param t
      * @param loc
      */
-    public static void handleProxy(HttpExchange t, String loc) {
+    public static void handleProxy(@NotNull HttpExchange t, String loc) {
         LOG.log(Level.INFO, "Proxy: {0}", loc);
         URL url;
         try {
@@ -50,16 +52,16 @@ class ProxyHandler {
             switch (broad) {
                 case 2:
                     long size = conn.getContentLengthLong();
-                    ByteArrayOutputStream baos = new ByteArrayOutputStream((int) size);
-                    byte[] buffer = new byte[8192];
-                    InputStream is = new BufferedInputStream(conn.getInputStream(), buffer.length);
+                    @NotNull ByteArrayOutputStream baos = new ByteArrayOutputStream((int) size);
+                    @NotNull byte[] buffer = new byte[8192];
+                    @NotNull InputStream is = new BufferedInputStream(conn.getInputStream(), buffer.length);
                     int read;
                     while ((read = is.read(buffer)) > -1) {
                         baos.write(buffer, 0, read);
                     }
-                    String doc = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+                    @NotNull String doc = new String(baos.toByteArray(), StandardCharsets.UTF_8);
                     String cType = conn.getContentType();
-                    byte[] raw = doc.getBytes(StandardCharsets.UTF_8);
+                    @NotNull byte[] raw = doc.getBytes(StandardCharsets.UTF_8);
                     Headers responseHeaders = t.getResponseHeaders();
                     responseHeaders.set("Content-Type", cType);
                     t.sendResponseHeaders(code, raw.length); // TODO: proper return code handling
@@ -81,8 +83,8 @@ class ProxyHandler {
         }
     }
 
-    static boolean checkProxy(HttpExchange exchange, String request) throws MalformedURLException {
-        String proxyRequest = null;
+    static boolean checkProxy(@NotNull HttpExchange exchange, @NotNull String request) throws MalformedURLException {
+        @Nullable String proxyRequest = null;
         if (request.startsWith(Server.ENDPOINT_PROXY)) {
             proxyRequest = request;
         } else {

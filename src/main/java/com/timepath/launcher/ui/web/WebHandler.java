@@ -7,6 +7,8 @@ import com.timepath.XMLUtils;
 import com.timepath.launcher.Launcher;
 import com.timepath.launcher.LauncherUtils;
 import com.timepath.util.Cache;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Source;
@@ -35,29 +37,32 @@ class WebHandler implements HttpHandler {
     /**
      * Current working package
      */
+    @NotNull
     private final String cwp;
+    @Nullable
     private final Map<String, Page> cache = new Cache<String, Page>() {
 
+        @Nullable
         @Override
-        protected Page fill(String key) {
+        protected Page fill(@NotNull String key) {
             if ("/".equals(key) || "/raw".equals(key)) {
                 try {
                     long future = System.currentTimeMillis() + EXPIRES_INDEX * 1000;
-                    Source source = Converter.serialize(launcher.getRepositories());
+                    @NotNull Source source = Converter.serialize(launcher.getRepositories());
                     String index = Converter.transform(new StreamSource(getStream("/projects.xsl")), source);
-                    Page indexPage = new Page(index, future);
+                    @NotNull Page indexPage = new Page(index, future);
                     cache.put("/", indexPage);
                     String raw = XMLUtils.pprint(source, 4);
-                    Page rawPage = new Page(raw, future);
+                    @NotNull Page rawPage = new Page(raw, future);
                     cache.put("/raw", rawPage);
                     return "/".equals(key) ? indexPage : rawPage;
-                } catch (TransformerException | ParserConfigurationException | IOException ex) {
+                } catch (@NotNull TransformerException | ParserConfigurationException | IOException ex) {
                     LOG.log(Level.SEVERE, null, ex);
                 }
             }
             try {
                 long future = System.currentTimeMillis() + EXPIRES_ALL * 1000;
-                String s = key.substring(1);
+                @NotNull String s = key.substring(1);
                 InputStream is = getClass().getResourceAsStream(cwp + s);
                 if (cwd != null) is = new URL(cwd + s).openStream();
                 if (is == null) throw new FileNotFoundException("File not found: " + key);
@@ -70,8 +75,9 @@ class WebHandler implements HttpHandler {
             return null;
         }
 
+        @Nullable
         @Override
-        protected Page expire(String key, Page value) {
+        protected Page expire(String key, @Nullable Page value) {
             return (LauncherUtils.DEBUG || (value != null && value.expired())) ? null : value;
         }
     };
@@ -83,7 +89,7 @@ class WebHandler implements HttpHandler {
         cwp = ('/' + getClass().getPackage().getName().replace('.', '/') + '/');
         LOG.log(Level.INFO, "cwd: {0}", cwd);
         LOG.log(Level.INFO, "cwp: {0}", cwp);
-        TimerTask task = new TimerTask() {
+        @NotNull TimerTask task = new TimerTask() {
             @Override
             public void run() {
                 cache.get("/");
@@ -103,8 +109,8 @@ class WebHandler implements HttpHandler {
      */
     private static byte[] read(InputStream is) throws IOException {
         is = new BufferedInputStream(is);
-        ByteArrayOutputStream baos = new ByteArrayOutputStream(is.available());
-        byte[] buf = new byte[1024];
+        @NotNull ByteArrayOutputStream baos = new ByteArrayOutputStream(is.available());
+        @NotNull byte[] buf = new byte[1024];
         int read;
         while ((read = is.read(buf, 0, buf.length)) != -1) {
             baos.write(buf, 0, read);
@@ -112,6 +118,7 @@ class WebHandler implements HttpHandler {
         return baos.toByteArray();
     }
 
+    @Nullable
     private InputStream getStream(String request) throws IOException {
         Page page = cache.get(request);
         if (page == null) return null;
@@ -119,7 +126,7 @@ class WebHandler implements HttpHandler {
     }
 
     @Override
-    public void handle(HttpExchange exchange) throws IOException {
+    public void handle(@NotNull HttpExchange exchange) throws IOException {
         LOG.log(Level.INFO, "{0} {1}: {2}", new Object[]{
                 exchange.getProtocol(), exchange.getRequestMethod(), exchange.getRequestURI()
         });
@@ -161,7 +168,7 @@ class WebHandler implements HttpHandler {
         byte[] data;
         long expires;
 
-        Page(String data, long expires) {
+        Page(@NotNull String data, long expires) {
             this(data.getBytes(StandardCharsets.UTF_8), expires);
         }
 

@@ -1,5 +1,7 @@
 package com.timepath.util.logging;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.logging.Handler;
@@ -15,21 +17,21 @@ public class LogAggregator extends Handler {
 
     @Override
     public void publish(LogRecord record) {
-        for (Handler h : handlers) {
+        for (@NotNull Handler h : handlers) {
             h.publish(record);
         }
     }
 
     @Override
     public void flush() {
-        for (Handler h : handlers) {
+        for (@NotNull Handler h : handlers) {
             h.flush();
         }
     }
 
     @Override
     public void close() {
-        for (Handler h : handlers) {
+        for (@NotNull Handler h : handlers) {
             h.close();
         }
     }

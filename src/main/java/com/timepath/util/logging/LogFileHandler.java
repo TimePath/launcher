@@ -2,6 +2,7 @@ package com.timepath.util.logging;
 
 import com.timepath.IOUtils;
 import com.timepath.launcher.LauncherUtils;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,7 +13,9 @@ import java.util.logging.*;
 public class LogFileHandler extends Handler {
 
     private static final Logger LOG = Logger.getLogger(LogFileHandler.class.getName());
+    @NotNull
     private final FileHandler fh;
+    @NotNull
     private final File logFile;
 
     public LogFileHandler() throws IOException {
@@ -20,10 +23,10 @@ public class LogFileHandler extends Handler {
         logFile = new File(LauncherUtils.CURRENT_FILE.getParentFile(),
                 MessageFormat.format("logs/log_{0}.txt", System.currentTimeMillis() / 1000));
         logFile.getParentFile().mkdirs();
-        Formatter formatter = new XMLFormatter();
+        @NotNull Formatter formatter = new XMLFormatter();
         fh = new FileHandler(logFile.getPath(), 0, 1, false);
         fh.setFormatter(formatter);
-        final URL u = logFile.toURI().toURL();
+        @NotNull final URL u = logFile.toURI().toURL();
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override
             public void run() {
@@ -35,6 +38,7 @@ public class LogFileHandler extends Handler {
         }));
     }
 
+    @NotNull
     public File getLogFile() {
         return logFile;
     }
@@ -54,6 +58,7 @@ public class LogFileHandler extends Handler {
         fh.close();
     }
 
+    @NotNull
     @Override
     public String toString() {
         return getClass().getName() + " -> " + logFile;

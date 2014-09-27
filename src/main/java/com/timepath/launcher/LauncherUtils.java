@@ -3,6 +3,7 @@ package com.timepath.launcher;
 import com.timepath.JARUtils;
 import com.timepath.Utils;
 import com.timepath.util.logging.DBInbox;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,12 +29,13 @@ public class LauncherUtils {
     private LauncherUtils() {
     }
 
-    public static void log(String name, String dir, Object o) {
+    public static void log(String name, String dir, @NotNull Object o) {
         logThread(name, dir, o.toString()).start();
     }
 
-    public static Thread logThread(final String fileName, final String directory, final String str) {
-        Runnable submit = new Runnable() {
+    @NotNull
+    public static Thread logThread(final String fileName, final String directory, @NotNull final String str) {
+        @NotNull Runnable submit = new Runnable() {
             @Override
             public void run() {
                 try {

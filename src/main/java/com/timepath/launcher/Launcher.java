@@ -8,6 +8,8 @@ import com.timepath.launcher.data.RepositoryManager;
 import com.timepath.maven.Package;
 import com.timepath.maven.UpdateChecker;
 import com.timepath.util.Cache;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -25,7 +27,9 @@ public class Launcher {
             "http://oss.jfrog.org/artifactory/oss-snapshot-local/com/timepath/launcher/config/" + "public.xml";
     public static final Preferences PREFS = Preferences.userNodeForPackage(Launcher.class);
     private static final Logger LOG = Logger.getLogger(Launcher.class.getName());
+    @NotNull
     private static Map<Package, Boolean> locked = new Cache<Package, Boolean>() {
+        @NotNull
         @Override
         protected Boolean fill(Package key) {
             return false;
@@ -33,6 +37,7 @@ public class Launcher {
     };
     private final CompositeClassLoader cl = CompositeClassLoader.createPrivileged();
     private final DownloadManager downloadManager = new DownloadManager();
+    @Nullable
     private Package self;
     private List<Repository> repositories;
 
@@ -51,6 +56,7 @@ public class Launcher {
     /**
      * @return the downloadManager
      */
+    @NotNull
     public DownloadManager getDownloadManager() {
         return downloadManager;
     }
@@ -61,7 +67,7 @@ public class Launcher {
     public List<Repository> getRepositories(boolean override) {
         if (!override && repositories != null) return repositories;
         repositories = new LinkedList<>();
-        Repository main = Repository.fromIndex(REPO_MAIN);
+        @Nullable Repository main = Repository.fromIndex(REPO_MAIN);
         main.setEnabled(true);
         repositories.add(main);
         self = main.getSelf();
@@ -85,8 +91,8 @@ public class Launcher {
      *
      * @param program
      */
-    public void start(final Program program) {
-        Thread t = new Thread(new Runnable() {
+    public void start(@NotNull final Program program) {
+        @NotNull Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -106,7 +112,8 @@ public class Launcher {
      * @param program
      * @return a Set of updated {@code Package}s, or null if currently updating
      */
-    public Set<Package> update(Program program) {
+    @Nullable
+    public Set<Package> update(@NotNull Program program) {
         Package parent = program.getPackage();
         if (isLocked(parent)) {
             LOG.log(Level.INFO, "Package {0} locked, aborting: {1}", new Object[]{parent, program});
@@ -115,21 +122,21 @@ public class Launcher {
         try {
             setLocked(parent, true);
             LOG.log(Level.INFO, "Checking for updates");
-            Map<Package, Future<?>> downloads = new HashMap<>();
-            Set<Package> updates = UpdateChecker.getUpdates(parent);
+            @NotNull Map<Package, Future<?>> downloads = new HashMap<>();
+            @NotNull Set<Package> updates = UpdateChecker.getUpdates(parent);
             LOG.log(Level.INFO, "Updates: {0}", updates);
             for (Package pkg : updates) {
                 LOG.log(Level.INFO, "Submitting {0}", pkg);
                 downloads.put(pkg, downloadManager.submit(pkg));
             }
             LOG.log(Level.INFO, "Waiting for completion");
-            for (Map.Entry<Package, Future<?>> e : downloads.entrySet()) {
+            for (@NotNull Map.Entry<Package, Future<?>> e : downloads.entrySet()) {
                 Package pkg = e.getKey();
                 Future<?> future = e.getValue();
                 try {
                     future.get();
                     LOG.log(Level.INFO, "Updated {0}", pkg);
-                } catch (InterruptedException | ExecutionException ex) {
+                } catch (@NotNull InterruptedException | ExecutionException ex) {
                     LOG.log(Level.SEVERE, null, ex);
                 }
             }

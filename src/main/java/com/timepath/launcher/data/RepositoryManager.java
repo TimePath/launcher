@@ -2,6 +2,8 @@ package com.timepath.launcher.data;
 
 import com.timepath.launcher.Launcher;
 import com.timepath.util.concurrent.DaemonThreadFactory;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -21,32 +23,34 @@ public class RepositoryManager {
     public static final String KEY_ENABLED = "enabled";
     private static final Logger LOG = Logger.getLogger(RepositoryManager.class.getName());
 
-    public static void addRepository(Repository r) {
+    public static void addRepository(@NotNull Repository r) {
         getNode(r).put(KEY_URL, r.getLocation());
     }
 
-    private static Preferences getNode(Repository r) {
+    private static Preferences getNode(@NotNull Repository r) {
         return PREFS_REPOS.node(getNodeName(r));
     }
 
-    private static String getNodeName(Repository r) {
+    @NotNull
+    private static String getNodeName(@NotNull Repository r) {
         return String.valueOf(r.hashCode());
     }
 
-    public static void setRepositoryEnabled(Repository r, boolean flag) {
+    public static void setRepositoryEnabled(@NotNull Repository r, boolean flag) {
         getNode(r).putBoolean(KEY_ENABLED, flag);
     }
 
-    public static void removeRepository(Repository r) {
+    public static void removeRepository(@NotNull Repository r) {
         getNode(r).remove(KEY_URL);
     }
 
+    @NotNull
     public static List<Repository> loadCustom() {
-        List<Repository> repositories = new LinkedList<>();
-        List<Future<Repository>> futures = new LinkedList<>();
+        @NotNull List<Repository> repositories = new LinkedList<>();
+        @NotNull List<Future<Repository>> futures = new LinkedList<>();
         try {
-            ExecutorService pool = Executors.newCachedThreadPool(new DaemonThreadFactory());
-            for (final String s : PREFS_REPOS.childrenNames()) {
+            @NotNull ExecutorService pool = Executors.newCachedThreadPool(new DaemonThreadFactory());
+            for (@NotNull final String s : PREFS_REPOS.childrenNames()) {
                 Preferences repo = PREFS_REPOS.node(s);
                 final String url = repo.get(KEY_URL, null);
                 if (url == null) { // Dead
@@ -56,9 +60,10 @@ public class RepositoryManager {
                 }
                 final boolean enabled = repo.getBoolean(KEY_ENABLED, true);
                 futures.add(pool.submit(new Callable<Repository>() {
+                    @Nullable
                     @Override
                     public Repository call() throws Exception {
-                        final Repository r = Repository.fromIndex(url);
+                        @Nullable final Repository r = Repository.fromIndex(url);
                         if (r == null) return null;
                         if (!s.equals(getNodeName(r))) return null; // Node name needs update
                         r.setEnabled(enabled);
@@ -69,11 +74,11 @@ public class RepositoryManager {
         } catch (BackingStoreException e) {
             LOG.log(Level.SEVERE, null, e);
         }
-        for (Future<Repository> future : futures) {
+        for (@NotNull Future<Repository> future : futures) {
             try {
                 Repository r = future.get();
                 if (r != null) repositories.add(r);
-            } catch (InterruptedException | ExecutionException e) {
+            } catch (@NotNull InterruptedException | ExecutionException e) {
                 LOG.log(Level.SEVERE, null, e);
             }
         }

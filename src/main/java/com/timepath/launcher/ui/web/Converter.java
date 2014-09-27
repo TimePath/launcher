@@ -4,6 +4,7 @@ import com.timepath.launcher.data.Program;
 import com.timepath.launcher.data.Repository;
 import com.timepath.maven.Package;
 import com.timepath.maven.UpdateChecker;
+import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -36,23 +37,24 @@ class Converter {
      * @throws javax.xml.transform.TransformerException
      */
     public static String transform(Source xslDoc, Source xmlDoc) throws TransformerException {
-        ByteArrayOutputStream byteArray = new ByteArrayOutputStream(10240);
+        @NotNull ByteArrayOutputStream byteArray = new ByteArrayOutputStream(10240);
         Transformer transformer = transformerFactory.newTransformer(xslDoc);
-        StreamResult outputTarget = new StreamResult(byteArray);
+        @NotNull StreamResult outputTarget = new StreamResult(byteArray);
         transformer.transform(xmlDoc, outputTarget);
         return byteArray.toString();
     }
 
-    public static Source serialize(Iterable<Repository> repos) throws ParserConfigurationException {
-        Collection<Program> programs = new LinkedList<>();
-        for (Repository repo : repos) {
+    @NotNull
+    public static Source serialize(@NotNull Iterable<Repository> repos) throws ParserConfigurationException {
+        @NotNull Collection<Program> programs = new LinkedList<>();
+        for (@NotNull Repository repo : repos) {
             programs.addAll(repo.getExecutions());
         }
         Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
         Node root = document.createElement("root");
         Node rootPrograms = root.appendChild(document.createElement("programs"));
         Node rootLibs = root.appendChild(document.createElement("libs"));
-        for (Program p : programs) {
+        for (@NotNull Program p : programs) {
             Element elemProgram = document.createElement("entry");
             {
                 elemProgram.setAttribute("appid", String.valueOf(p.getId()));
@@ -60,7 +62,7 @@ class Converter {
                 elemProgram.setAttribute("saved", String.valueOf(p.isStarred()));
                 Node rootDeps = elemProgram.appendChild(document.createElement("depends"));
                 {
-                    for (Package dep : p.getPackage().getDownloads()) {
+                    for (@NotNull Package dep : p.getPackage().getDownloads()) {
                         Element elemPackage = document.createElement("entry");
                         {
                             elemPackage.setAttribute("name", dep.getName());

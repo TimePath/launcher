@@ -5,6 +5,8 @@ import com.timepath.launcher.ui.swing.LauncherFrame;
 import com.timepath.util.logging.LogAggregator;
 import com.timepath.util.logging.LogFileHandler;
 import com.timepath.util.logging.LogIOHandler;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.io.IOException;
@@ -35,14 +37,15 @@ public class Main implements Protocol {
     static {
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             @Override
-            public void uncaughtException(Thread t, Throwable e) {
+            public void uncaughtException(@NotNull Thread t, Throwable e) {
                 Logger.getLogger(t.getName()).log(Level.SEVERE, "Uncaught Exception in " + t + ":", e);
             }
         });
         Policy.setPolicy(new Policy() {
+            @NotNull
             @Override
             public PermissionCollection getPermissions(CodeSource codesource) {
-                Permissions perms = new Permissions();
+                @NotNull Permissions perms = new Permissions();
                 perms.add(new AllPermission());
                 return perms;
             }
@@ -50,22 +53,23 @@ public class Main implements Protocol {
         System.setSecurityManager(null);
     }
 
+    @NotNull
     private static String RMI_ENDPOINT = "com/timepath/launcher";
     private Launcher launcher;
 
-    public static void main(String[] args) {
-        Protocol main = getInstance();
+    public static void main(@NotNull String[] args) {
+        @Nullable Protocol main = getInstance();
         boolean local = main instanceof Main;
         if (local) {
             LOG.log(Level.INFO, "Initial: {0}ms", System.currentTimeMillis() - LauncherUtils.START_TIME);
             LOG.log(Level.INFO, "Args = {0}", Arrays.toString(args));
             Updater.checkForUpdate(args);
             initLogging();
-            Map<String, Object> dbg = new HashMap<>(3);
+            @NotNull Map<String, Object> dbg = new HashMap<>(3);
             dbg.put("name", ManagementFactory.getRuntimeMXBean().getName());
             dbg.put("env", System.getenv());
             dbg.put("properties", System.getProperties());
-            String pprint = com.timepath.Utils.pprint(dbg);
+            @Nullable String pprint = com.timepath.Utils.pprint(dbg);
             if (!LauncherUtils.DEBUG) {
                 LauncherUtils.log(LauncherUtils.USER + ".xml.gz", "launcher/" + LauncherUtils.CURRENT_VERSION + "/connects", pprint);
             }
@@ -78,9 +82,10 @@ public class Main implements Protocol {
         }
     }
 
+    @Nullable
     public static Protocol getInstance() {
         int port = 1099; // FIXME: Hardcoded
-        Protocol stub = null;
+        @Nullable Protocol stub = null;
         if (Launcher.PREFS.getBoolean("rmi", false)) {
             if ((stub = createServer(port)) == null) stub = createClient(port);
         }
@@ -88,30 +93,34 @@ public class Main implements Protocol {
         return stub;
     }
 
+    @Nullable
     private static Protocol createClient(int port) {
         LOG.log(Level.INFO, "RMI server already started, connecting...");
         try {
             Registry registry = LocateRegistry.getRegistry("localhost", port);
             return (Protocol) registry.lookup(RMI_ENDPOINT);
-        } catch (RemoteException | NotBoundException e) {
+        } catch (@NotNull RemoteException | NotBoundException e) {
             LOG.log(Level.SEVERE, "Unable to connect to RMI server", e);
         }
         return null;
     }
 
+    @Nullable
     private static Protocol createServer(int port) {
         try {
             class LocalRMIServerSocketFactory implements RMIServerSocketFactory {
 
                 ServerSocket socket;
 
+                @NotNull
                 @Override
                 public ServerSocket createServerSocket(int port) throws IOException {
                     return (socket = new ServerSocket(port, 0, InetAddress.getByName(null)));
                 }
             }
-            LocalRMIServerSocketFactory serverFactory = new LocalRMIServerSocketFactory();
+            @NotNull LocalRMIServerSocketFactory serverFactory = new LocalRMIServerSocketFactory();
             Registry registry = LocateRegistry.createRegistry(port, new RMIClientSocketFactory() {
+                @NotNull
                 @Override
                 public Socket createSocket(String host, int port) throws IOException {
                     return new Socket(host, port);
@@ -119,8 +128,8 @@ public class Main implements Protocol {
             }, serverFactory);
             port = serverFactory.socket.getLocalPort();
             LOG.log(Level.INFO, "RMI server listening on port {0}", port);
-            Main main = new Main();
-            Protocol stub = (Protocol) UnicastRemoteObject.exportObject(main, 0);
+            @NotNull Main main = new Main();
+            @NotNull Protocol stub = (Protocol) UnicastRemoteObject.exportObject(main, 0);
             registry.rebind(RMI_ENDPOINT, stub);
             return main;
         } catch (IOException e) {
@@ -133,18 +142,18 @@ public class Main implements Protocol {
         Level consoleLevel = Level.CONFIG;
         try {
             consoleLevel = Level.parse(LauncherUtils.SETTINGS.get("consoleLevel", consoleLevel.getName()));
-        } catch (IllegalArgumentException | NullPointerException ignored) {
+        } catch (@NotNull IllegalArgumentException | NullPointerException ignored) {
         }
         Level logfileLevel = Level.CONFIG;
         try {
             logfileLevel = Level.parse(LauncherUtils.SETTINGS.get("logfileLevel", logfileLevel.getName()));
-        } catch (IllegalArgumentException | NullPointerException ignored) {
+        } catch (@NotNull IllegalArgumentException | NullPointerException ignored) {
         }
         // Choose finest level
         Level packageLevel = Level.parse(Integer.toString(Math.min(logfileLevel.intValue(), consoleLevel.intValue())));
         Logger.getLogger("com.timepath").setLevel(packageLevel);
         Logger globalLogger = Logger.getLogger("");
-        SimpleFormatter consoleFormatter = new SimpleFormatter();
+        @NotNull SimpleFormatter consoleFormatter = new SimpleFormatter();
         if (!consoleLevel.equals(Level.OFF)) {
             for (Handler h : globalLogger.getHandlers()) {
                 if (h instanceof ConsoleHandler) {
@@ -154,11 +163,11 @@ public class Main implements Protocol {
             }
         }
         if (!logfileLevel.equals(Level.OFF)) {
-            LogAggregator lh = new LogAggregator();
+            @NotNull LogAggregator lh = new LogAggregator();
             if (!LauncherUtils.DEBUG) {
                 try {
                     lh.addHandler(new LogFileHandler());
-                } catch (IOException | SecurityException ex) {
+                } catch (@NotNull IOException | SecurityException ex) {
                     LOG.log(Level.SEVERE, null, ex);
                 }
             }

@@ -1,6 +1,7 @@
 package com.timepath.swing;
 
 import com.timepath.launcher.LauncherUtils;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
@@ -18,10 +19,10 @@ public class ThemeSelector extends JComboBox<String> {
     private static final Logger LOG = Logger.getLogger(ThemeSelector.class.getName());
 
     public ThemeSelector() {
-        final DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
+        @NotNull final DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
         setModel(model);
         String currentLafClass = UIManager.getLookAndFeel().getClass().getName();
-        for (UIManager.LookAndFeelInfo lafInfo : UIManager.getInstalledLookAndFeels()) {
+        for (@NotNull UIManager.LookAndFeelInfo lafInfo : UIManager.getInstalledLookAndFeels()) {
             try {
                 Class.forName(lafInfo.getClassName());
             } catch (ClassNotFoundException ignored) {
@@ -36,8 +37,8 @@ public class ThemeSelector extends JComboBox<String> {
         addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent evt) {
-                String target = (String) model.getSelectedItem();
-                for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+                @NotNull String target = (String) model.getSelectedItem();
+                for (@NotNull UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
                     if (target.equals(info.getName())) {
                         LOG.log(Level.INFO, "Setting L&F: {0}", info.getClassName());
                         try {
@@ -48,7 +49,7 @@ public class ThemeSelector extends JComboBox<String> {
                             }
                             LauncherUtils.SETTINGS.put("laf", usrTheme);
                             return;
-                        } catch (InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
+                        } catch (@NotNull InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
                             LOG.log(Level.SEVERE, null, e);
                         } catch (ClassNotFoundException e) {
                             LOG.log(Level.WARNING, "Unable to load user L&F", e);

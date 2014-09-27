@@ -11,6 +11,8 @@ import com.timepath.launcher.data.RepositoryManager;
 import com.timepath.maven.MavenResolver;
 import com.timepath.maven.Package;
 import com.timepath.swing.ThemeSelector;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.Timer;
@@ -41,6 +43,7 @@ import java.util.regex.Pattern;
 public class LauncherFrame extends JFrame {
 
     private static final Logger LOG = Logger.getLogger(LauncherFrame.class.getName());
+    @NotNull
     protected RepositoryManagerPanel repositoryManager = new RepositoryManagerPanel() {
 
         @Override
@@ -48,7 +51,7 @@ public class LauncherFrame extends JFrame {
             // FIXME: showInternalInputDialog returns immediately
             String in = JOptionPane.showInputDialog(LauncherFrame.this.getContentPane(), "Enter URL");
             if (in == null) return;
-            Repository r = Repository.fromIndex(in);
+            @Nullable Repository r = Repository.fromIndex(in);
             if (r == null) {
                 JOptionPane.showInternalMessageDialog(LauncherFrame.this.getContentPane(),
                         "Invalid repository",
@@ -66,7 +69,7 @@ public class LauncherFrame extends JFrame {
             int[] selection = jTable1.getSelectedRows();
             Arrays.sort(selection);
             List<Repository> rows = model.getRows();
-            for (Repository r : rows.toArray(new Repository[rows.size()])) {
+            for (@NotNull Repository r : rows.toArray(new Repository[rows.size()])) {
                 boolean selected = Arrays.binarySearch(selection, i++) >= 0;
                 if (selected) RepositoryManager.removeRepository(r);
             }
@@ -78,6 +81,7 @@ public class LauncherFrame extends JFrame {
     protected DownloadPanel downloadPanel;
     protected JButton launchButton;
     protected JScrollPane newsScroll;
+    @Nullable
     protected JTree programList;
     protected JSplitPane programSplit;
     protected JTabbedPane tabs;
@@ -86,10 +90,10 @@ public class LauncherFrame extends JFrame {
         // Has to be here to catch exceptions occurring on the EDT
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             @Override
-            public void uncaughtException(Thread t, Throwable e) {
-                String msg = "Uncaught Exception in " + t + ":";
+            public void uncaughtException(@NotNull Thread t, @NotNull Throwable e) {
+                @NotNull String msg = "Uncaught Exception in " + t + ":";
                 Logger.getLogger(t.getName()).log(Level.SEVERE, msg, e);
-                StringWriter sw = new StringWriter();
+                @NotNull StringWriter sw = new StringWriter();
                 e.printStackTrace(new PrintWriter(sw));
                 JOptionPane.showInternalMessageDialog(LauncherFrame.this.getContentPane(),
                         new JScrollPane(new JTextArea(msg + '\n' + sw.toString()) {{
@@ -110,6 +114,7 @@ public class LauncherFrame extends JFrame {
     public LauncherFrame(Launcher l) {
         launcher = l;
         launcher.getDownloadManager().addListener(new DownloadMonitor() {
+            @NotNull
             AtomicInteger c = new AtomicInteger();
 
             @Override
@@ -150,6 +155,7 @@ public class LauncherFrame extends JFrame {
     /**
      * Get a program from a TreeNode
      */
+    @Nullable
     protected static Program getSelected(Object selected) {
         if (!(selected instanceof DefaultMutableTreeNode)) return null;
         Object obj = ((DefaultMutableTreeNode) selected).getUserObject();
@@ -174,9 +180,9 @@ public class LauncherFrame extends JFrame {
                     List<Repository> repos = get();
                     repositoryManager.setRepositories(repos);
                     // Update the program list
-                    DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode();
-                    for (Repository repo : repos) {
-                        DefaultMutableTreeNode repoNode = rootNode;
+                    @NotNull DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode();
+                    for (@NotNull Repository repo : repos) {
+                        @NotNull DefaultMutableTreeNode repoNode = rootNode;
                         // Create a new pseudo root node if there are multiple repositories
                         if (repos.size() > 1) {
                             repoNode = new DefaultMutableTreeNode(repo.getName());
@@ -186,10 +192,10 @@ public class LauncherFrame extends JFrame {
                             repoNode.add(new DefaultMutableTreeNode(p));
                         }
                     }
-                    final DefaultTreeModel newModel = new DefaultTreeModel(rootNode);
+                    @NotNull final DefaultTreeModel newModel = new DefaultTreeModel(rootNode);
                     programList.setModel(newModel);
                     final DefaultMutableTreeNode firstLeaf = rootNode.getFirstLeaf();
-                    final TreePath path = new TreePath(firstLeaf.getPath());
+                    @NotNull final TreePath path = new TreePath(firstLeaf.getPath());
                     programList.expandPath(path);
                     programList.setSelectionPath(path);
                     pack(programSplit);
@@ -200,7 +206,7 @@ public class LauncherFrame extends JFrame {
                                 JOptionPane.INFORMATION_MESSAGE,
                                 null);
                     }
-                } catch (InterruptedException | ExecutionException e) {
+                } catch (@NotNull InterruptedException | ExecutionException e) {
                     LOG.log(Level.SEVERE, null, e);
                 } finally {
                     LauncherFrame.this.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
@@ -212,13 +218,13 @@ public class LauncherFrame extends JFrame {
     /**
      * Hack to pack the SplitPane
      */
-    protected void pack(final JSplitPane programSplit) {
-        PropertyChangeListener pcl = new PropertyChangeListener() {
+    protected void pack(@NotNull final JSplitPane programSplit) {
+        @NotNull PropertyChangeListener pcl = new PropertyChangeListener() {
             /** Flag to ignore the first event */
             boolean ignore = true;
 
             @Override
-            public void propertyChange(PropertyChangeEvent evt) {
+            public void propertyChange(@NotNull PropertyChangeEvent evt) {
                 if (ignore) {
                     ignore = false;
                     return;
@@ -249,31 +255,31 @@ public class LauncherFrame extends JFrame {
                     });
                     addKeyListener(new KeyAdapter() {
                         @Override
-                        public void keyPressed(KeyEvent e) {
+                        public void keyPressed(@NotNull KeyEvent e) {
                             if (e.getKeyCode() == KeyEvent.VK_ENTER) start(getSelected(getLastSelectedPathComponent()));
                         }
                     });
-                    MouseAdapter adapter = new MouseAdapter() {
+                    @NotNull MouseAdapter adapter = new MouseAdapter() {
                         @Override
-                        public void mouseClicked(MouseEvent e) {
+                        public void mouseClicked(@NotNull MouseEvent e) {
                             if (select(e) == -1) return;
                             if (SwingUtilities.isLeftMouseButton(e) && (e.getClickCount() >= 2)) {
-                                Program p = getSelected(getLastSelectedPathComponent());
+                                @Nullable Program p = getSelected(getLastSelectedPathComponent());
                                 start(p);
                             }
                         }
 
                         @Override
-                        public void mousePressed(MouseEvent e) {
+                        public void mousePressed(@NotNull MouseEvent e) {
                             select(e);
                         }
 
                         @Override
-                        public void mouseDragged(MouseEvent e) {
+                        public void mouseDragged(@NotNull MouseEvent e) {
                             select(e);
                         }
 
-                        private int select(MouseEvent e) {
+                        private int select(@NotNull MouseEvent e) {
                             int selRow = getClosestRowForLocation(e.getX(), e.getY());
                             setSelectionRow(selRow);
                             return selRow;
@@ -350,7 +356,7 @@ public class LauncherFrame extends JFrame {
     /**
      * Display the news for a program
      */
-    protected void news(Program p) {
+    protected void news(@Nullable Program p) {
         if (p == null) { // Handle things other than programs
             newsScroll.setViewportView(null);
             launchButton.setEnabled(false);
@@ -360,11 +366,12 @@ public class LauncherFrame extends JFrame {
         }
     }
 
-    protected void start(final Program program) {
+    protected void start(@Nullable final Program program) {
         if (program == null) return; // Handle things other than programs
         setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         launchButton.setEnabled(false);
         new SwingWorker<Set<Package>, Void>() {
+            @Nullable
             @Override
             protected Set<Package> doInBackground() {
                 return launcher.update(program);
@@ -398,7 +405,7 @@ public class LauncherFrame extends JFrame {
                             launcher.start(program);
                         }
                     }
-                } catch (InterruptedException | ExecutionException e) {
+                } catch (@NotNull InterruptedException | ExecutionException e) {
                     LOG.log(Level.SEVERE, null, e);
                 } finally {
                     setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
@@ -408,8 +415,9 @@ public class LauncherFrame extends JFrame {
         }.execute();
     }
 
+    @NotNull
     protected JEditorPane initAboutPanel() {
-        final JEditorPane pane = new JEditorPane("text/html", "") {{
+        @NotNull final JEditorPane pane = new JEditorPane("text/html", "") {{
             setEditable(false);
             setOpaque(false);
             setBackground(new Color(255, 255, 255, 0));
@@ -417,16 +425,16 @@ public class LauncherFrame extends JFrame {
         }};
         String buildDate = "unknown";
         long time = LauncherUtils.CURRENT_VERSION;
-        final DateFormat df = new SimpleDateFormat("EEE dd MMM yyyy, hh:mm:ss a z");
+        @NotNull final DateFormat df = new SimpleDateFormat("EEE dd MMM yyyy, hh:mm:ss a z");
         if (time != 0) buildDate = df.format(new Date(time));
         String aboutText = IOUtils.requestPage(getClass().getResource("/com/timepath/launcher/ui/swing/about.html").toString())
                 .replace("${buildDate}", buildDate)
                 .replace("${steamGroup}", "http://steamcommunity.com/gid/103582791434775526")
                 .replace("${steamChat}", "steam://friends/joinchat/103582791434775526");
-        final String[] split = aboutText.split(Pattern.quote("${localtime}"));
+        @NotNull final String[] split = aboutText.split(Pattern.quote("${localtime}"));
         pane.setText(split[0] + "calculating..." + split[1]);
         df.setTimeZone(TimeZone.getTimeZone("Australia/Sydney"));
-        final Timer timer = new Timer(1000, new ActionListener() {
+        @NotNull final Timer timer = new Timer(1000, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 final String time = df.format(System.currentTimeMillis());
@@ -444,7 +452,7 @@ public class LauncherFrame extends JFrame {
         timer.setInitialDelay(0);
         addHierarchyListener(new HierarchyListener() {
             @Override
-            public void hierarchyChanged(HierarchyEvent e) {
+            public void hierarchyChanged(@NotNull HierarchyEvent e) {
                 if ((e.getChangeFlags() & HierarchyEvent.DISPLAYABILITY_CHANGED) == 0) return;
                 if (isDisplayable()) {
                     timer.start();

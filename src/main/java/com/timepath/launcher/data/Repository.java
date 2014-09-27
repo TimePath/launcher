@@ -5,6 +5,8 @@ import com.timepath.StringUtils;
 import com.timepath.XMLUtils;
 import com.timepath.launcher.LauncherUtils;
 import com.timepath.maven.Package;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
@@ -42,10 +44,12 @@ public class Repository {
      * The package representing this repository. Mostly only relevant to the main repository so that the main launcher
      * has a way of updating itself
      */
+    @Nullable
     private com.timepath.maven.Package self;
     /**
      * The name of this repository
      */
+    @Nullable
     private String name;
     /**
      * A list of all program entry points
@@ -62,11 +66,12 @@ public class Repository {
      * @param location
      * @return
      */
-    public static Repository fromIndex(String location) {
-        String page = IOUtils.requestPage(location);
+    @Nullable
+    public static Repository fromIndex(@NotNull String location) {
+        @Nullable String page = IOUtils.requestPage(location);
         if (page == null) return null;
-        byte[] data = page.getBytes(StandardCharsets.UTF_8);
-        Repository r = parse(findCompatible(new ByteArrayInputStream(data)));
+        @NotNull byte[] data = page.getBytes(StandardCharsets.UTF_8);
+        @NotNull Repository r = parse(findCompatible(new ByteArrayInputStream(data)));
         r.location = location;
         return r;
     }
@@ -77,25 +82,26 @@ public class Repository {
      * @param root
      * @return
      */
-    private static Repository parse(Node root) {
+    @NotNull
+    private static Repository parse(@Nullable Node root) {
         if (root == null) throw new IllegalArgumentException("The root node must not be null");
-        Repository r = new Repository();
+        @NotNull Repository r = new Repository();
         r.name = XMLUtils.get(root, "name");
         r.self = Package.parse(root, null);
         if (r.self != null) Package.setSelf(r.self, true);
         r.executions = new LinkedList<>();
         for (Node entry : XMLUtils.getElements(root, "programs/program")) {
-            Package pkg = Package.parse(entry, null);
+            @Nullable Package pkg = Package.parse(entry, null);
             // extended format with execution data
             for (Node execution : XMLUtils.getElements(entry, "executions/execution")) {
-                Node cfg = XMLUtils.last(XMLUtils.getElements(execution, "configuration"));
-                Program p = new Program(pkg,
+                @Nullable Node cfg = XMLUtils.last(XMLUtils.getElements(execution, "configuration"));
+                @NotNull Program p = new Program(pkg,
                         XMLUtils.get(execution, "name"),
                         XMLUtils.get(execution, "url"),
                         XMLUtils.get(cfg, "main"),
                         StringUtils.argParse(XMLUtils.get(cfg, "args")));
                 r.executions.add(p);
-                String daemonStr = XMLUtils.get(cfg, "daemon");
+                @Nullable String daemonStr = XMLUtils.get(cfg, "daemon");
                 if (daemonStr != null) p.setDaemon(Boolean.parseBoolean(daemonStr));
             }
         }
@@ -105,14 +111,15 @@ public class Repository {
     /**
      * @return a compatible configuration node
      */
-    private static Node findCompatible(InputStream is) {
+    @Nullable
+    private static Node findCompatible(@NotNull InputStream is) {
         try {
             DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
             Document doc = docBuilder.parse(new BufferedInputStream(is));
             Node root = XMLUtils.getElements(doc, "root").get(0);
-            Node version = null;
-            Node iter = null;
+            @Nullable Node version = null;
+            @Nullable Node iter = null;
             NodeList versions = root.getChildNodes();
             for (int i = 0; i < versions.getLength(); iter = versions.item(i++)) {
                 if ((iter == null) || !iter.hasAttributes()) continue;
@@ -131,18 +138,18 @@ public class Repository {
             }
             LOG.log(Level.FINE, "\n{0}", XMLUtils.pprint(new DOMSource(version), 2));
             return version;
-        } catch (IOException | ParserConfigurationException | SAXException ex) {
+        } catch (@NotNull IOException | ParserConfigurationException | SAXException ex) {
             LOG.log(Level.SEVERE, null, ex);
         }
         return null;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(@Nullable Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        Repository that = (Repository) o;
+        @NotNull Repository that = (Repository) o;
 
         if (!location.equals(that.location)) return false;
 
@@ -157,10 +164,12 @@ public class Repository {
     /**
      * @return the executions
      */
+    @NotNull
     public List<Program> getExecutions() {
         return enabled ? Collections.unmodifiableList(executions) : Collections.<Program>emptyList();
     }
 
+    @NotNull
     @Override
     public String toString() {
         return MessageFormat.format("{0} ({1})", name, location);
@@ -173,6 +182,7 @@ public class Repository {
         return name == null ? location : name;
     }
 
+    @Nullable
     public Package getSelf() {
         return self;
     }
