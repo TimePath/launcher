@@ -16,22 +16,29 @@ import java.util.prefs.Preferences;
  */
 public class RepositoryManager {
 
-    private static final Logger LOG = Logger.getLogger(RepositoryManager.class.getName());
-
     public static final Preferences PREFS_REPOS = Launcher.PREFS.node("repositories");
     public static final String KEY_URL = "url";
     public static final String KEY_ENABLED = "enabled";
+    private static final Logger LOG = Logger.getLogger(RepositoryManager.class.getName());
 
     public static void addRepository(Repository r) {
-        PREFS_REPOS.node(String.valueOf(r.hashCode())).put(KEY_URL, r.getLocation());
+        getNode(r).put(KEY_URL, r.getLocation());
+    }
+
+    private static Preferences getNode(Repository r) {
+        return PREFS_REPOS.node(getNodeName(r));
+    }
+
+    private static String getNodeName(Repository r) {
+        return String.valueOf(r.hashCode());
     }
 
     public static void setRepositoryEnabled(Repository r, boolean flag) {
-        PREFS_REPOS.node(String.valueOf(r.hashCode())).putBoolean(KEY_ENABLED, flag);
+        getNode(r).putBoolean(KEY_ENABLED, flag);
     }
 
     public static void removeRepository(Repository r) {
-        PREFS_REPOS.node(String.valueOf(r.hashCode())).remove(KEY_URL);
+        getNode(r).remove(KEY_URL);
     }
 
     public static List<Repository> loadCustom() {
@@ -39,11 +46,12 @@ public class RepositoryManager {
         List<Future<Repository>> futures = new LinkedList<>();
         try {
             ExecutorService pool = Executors.newCachedThreadPool(new DaemonThreadFactory());
-            for (String s : PREFS_REPOS.childrenNames()) {
+            for (final String s : PREFS_REPOS.childrenNames()) {
                 Preferences repo = PREFS_REPOS.node(s);
                 final String url = repo.get(KEY_URL, null);
                 if (url == null) { // Dead
                     repo.removeNode();
+                    repo.flush();
                     continue;
                 }
                 final boolean enabled = repo.getBoolean(KEY_ENABLED, true);
@@ -51,7 +59,9 @@ public class RepositoryManager {
                     @Override
                     public Repository call() throws Exception {
                         final Repository r = Repository.fromIndex(url);
-                        if (r != null) r.setEnabled(enabled);
+                        if (r == null) return null;
+                        if (!s.equals(getNodeName(r))) return null; // Node name needs update
+                        r.setEnabled(enabled);
                         return r;
                     }
                 }));

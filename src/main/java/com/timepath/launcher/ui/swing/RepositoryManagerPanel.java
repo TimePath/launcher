@@ -1,9 +1,9 @@
 package com.timepath.launcher.ui.swing;
 
 import com.timepath.launcher.data.Repository;
+import com.timepath.swing.ObjectBasedTableModel;
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
 import java.awt.event.ActionEvent;
 import java.util.List;
 
@@ -11,22 +11,51 @@ import java.util.List;
  * @author TimePath
  */
 @SuppressWarnings("serial")
-public abstract class RepositoryManagerPanel extends JPanel {
+abstract class RepositoryManagerPanel extends JPanel {
 
+    public static final String[] COLUMNS = new String[]{"Repository", "Location", "Enabled"};
     protected JButton addButton;
     protected JButton removeButton;
     protected JPanel jPanel1;
     protected JScrollPane jScrollPane1;
     protected JTable jTable1;
-    protected DefaultTableModel model;
+    protected ObjectBasedTableModel<Repository> model;
 
     protected RepositoryManagerPanel() {
-        jTable1 = new JTable(new DefaultTableModel(new Object[][]{}, new String[]{"Repository", "Location", "Enabled"}) {
-            Class<?>[] types = {String.class, String.class, Boolean.class};
+        jTable1 = new JTable(model = new ObjectBasedTableModel<Repository>(){
+            @Override
+            public String[] columns() {
+                return COLUMNS;
+            }
 
             @Override
             public Class<?> getColumnClass(int columnIndex) {
-                return types[columnIndex];
+                switch (columnIndex) {
+                    case 0: return String.class;
+                    case 1: return String.class;
+                    case 2: return Boolean.class;
+                }
+                return super.getColumnClass(columnIndex);
+            }
+
+            @Override
+            public Object get(Repository o, int columnIndex) {
+                switch (columnIndex) {
+                    case 0: return o.getName();
+                    case 1: return o.getLocation();
+                    case 2: return o.isEnabled();
+                }
+                return null;
+            }
+
+            @Override
+            protected boolean isCellEditable(Repository repository, int columnIndex) {
+                switch (columnIndex) {
+                    case 0: return false;
+                    case 1: return true;
+                    case 2: return true;
+                }
+                return super.isCellEditable(repository, columnIndex);
             }
         });
         jScrollPane1 = new JScrollPane(jTable1);
@@ -95,7 +124,6 @@ public abstract class RepositoryManagerPanel extends JPanel {
                                         .addContainerGap()
                         )
         );
-        model = (DefaultTableModel) jTable1.getModel();
     }
 
     protected abstract void addActionPerformed(ActionEvent evt);
@@ -103,12 +131,7 @@ public abstract class RepositoryManagerPanel extends JPanel {
     protected abstract void removeActionPerformed(ActionEvent evt);
 
     public void setRepositories(List<Repository> repositories) {
-        int i = model.getRowCount();
-        while (i > 0) {
-            model.removeRow(--i);
-        }
-        for (Repository repo : repositories)
-            model.addRow(new Object[]{repo.getName(), repo.getLocation(), repo.isEnabled()});
+        model.setRows(repositories);
     }
 
 }

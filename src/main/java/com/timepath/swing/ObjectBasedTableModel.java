@@ -1,8 +1,8 @@
 package com.timepath.swing;
 
 import javax.swing.table.AbstractTableModel;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -13,9 +13,19 @@ import java.util.List;
 public abstract class ObjectBasedTableModel<E> extends AbstractTableModel {
 
     private final List<String> columns = Arrays.asList(columns());
-    private final List<E> rows = new LinkedList<>();
+    private List<E> rows = new ArrayList<>();
 
     protected ObjectBasedTableModel() {
+    }
+
+    public List<E> getRows() {
+        return rows;
+    }
+
+    public void setRows(List<E> rows) {
+        fireTableRowsDeleted(0, Math.max(this.rows.size() - 1, 0));
+        this.rows = rows;
+        fireTableRowsInserted(0, Math.max(this.rows.size() - 1, 0));
     }
 
     /**
@@ -40,9 +50,7 @@ public abstract class ObjectBasedTableModel<E> extends AbstractTableModel {
     public String getColumnName(int column) {
         if (column < columns.size()) {
             String name = columns.get(column);
-            if (name != null) {
-                return name;
-            }
+            if (name != null) return name;
         }
         return super.getColumnName(column);
     }
@@ -85,6 +93,15 @@ public abstract class ObjectBasedTableModel<E> extends AbstractTableModel {
         rows.remove(idx);
         fireTableRowsDeleted(idx, idx);
         return true;
+    }
+
+    @Override
+    public boolean isCellEditable(int rowIndex, int columnIndex) {
+        return isCellEditable(rows.get(rowIndex), columnIndex);
+    }
+
+    protected boolean isCellEditable(E e, int columnIndex) {
+        return false;
     }
 
     /**

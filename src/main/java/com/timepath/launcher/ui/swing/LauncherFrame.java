@@ -13,6 +13,7 @@ import com.timepath.maven.Package;
 import com.timepath.swing.ThemeSelector;
 
 import javax.swing.*;
+import javax.swing.Timer;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -25,12 +26,11 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.reflect.Array;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.*;
 import java.util.List;
-import java.util.Set;
-import java.util.TimeZone;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -63,8 +63,13 @@ public class LauncherFrame extends JFrame {
 
         @Override
         protected void removeActionPerformed(ActionEvent evt) {
-            for (int row : jTable1.getSelectedRows()) {
-                RepositoryManager.removeRepository((Repository) model.getValueAt(row, 0));
+            int i = 0;
+            int[] selection = jTable1.getSelectedRows();
+            Arrays.sort(selection);
+            List<Repository> rows = model.getRows();
+            for(Repository r : rows.toArray(new Repository[rows.size()])) {
+                boolean selected = Arrays.binarySearch(selection, i++) >= 0;
+                if(selected) RepositoryManager.removeRepository(r);
             }
             updateList();
         }

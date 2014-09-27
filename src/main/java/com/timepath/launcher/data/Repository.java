@@ -33,7 +33,6 @@ import java.util.logging.Logger;
  * @author TimePath
  */
 public class Repository {
-
     private static final Logger LOG = Logger.getLogger(Repository.class.getName());
     /**
      * URL to the index file
@@ -136,6 +135,23 @@ public class Repository {
             LOG.log(Level.SEVERE, null, ex);
         }
         return null;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Repository that = (Repository) o;
+
+        if (!location.equals(that.location)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return location.hashCode();
     }
 
     /**
