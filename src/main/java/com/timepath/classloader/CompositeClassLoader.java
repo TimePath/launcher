@@ -69,13 +69,10 @@ public class CompositeClassLoader extends ClassLoader {
      * Start the specified main class with {@code args} using {@code urls}
      *
      * @param main the main class name
-     * @param args the command line arguments. Converted to an empty array if null
+     * @param args the command line arguments
      * @param urls additional resources
      */
-    public void start(String main, @Nullable String[] args, @NotNull Iterable<URL> urls) throws Throwable {
-        if (args == null) {
-            args = new String[0];
-        }
+    public void start(String main, @NotNull String[] args, @NotNull Iterable<URL> urls) throws Throwable {
         LOG.log(Level.INFO, "{0} {1} {2}", new Object[]{
                 main, Arrays.toString(args), urls
         });
