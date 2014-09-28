@@ -5,10 +5,10 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import com.timepath.SwingUtils;
 import com.timepath.launcher.Launcher;
-import com.timepath.launcher.LauncherUtils;
 import com.timepath.launcher.data.Program;
 import com.timepath.launcher.data.Repository;
 import com.timepath.util.concurrent.DaemonThreadFactory;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.event.HyperlinkEvent;
 import java.io.IOException;
@@ -89,7 +89,7 @@ public class Server implements Runnable {
             });
             server.start();
             LOG.log(Level.INFO, "Server up on port {0}", ADDRESS);
-            if (!LauncherUtils.DEBUG) browse();
+            browse();
             // Block until shutdown
             try {
                 latch.await();

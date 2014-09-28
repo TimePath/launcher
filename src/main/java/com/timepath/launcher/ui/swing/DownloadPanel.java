@@ -3,6 +3,8 @@ package com.timepath.launcher.ui.swing;
 import com.timepath.maven.Package;
 import com.timepath.maven.UpdateChecker;
 import com.timepath.swing.ObjectBasedTableModel;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 
@@ -10,20 +12,23 @@ import javax.swing.*;
  * @author TimePath
  */
 @SuppressWarnings("serial")
-public class DownloadPanel extends JPanel {
+class DownloadPanel extends JPanel {
 
+    @Nullable
     protected ObjectBasedTableModel<Package> tableModel;
 
     public DownloadPanel() {
-        final JTable jTable1 = new JTable();
+        JTable jTable1 = new JTable();
         jTable1.setModel(tableModel = new ObjectBasedTableModel<Package>() {
+            @NotNull
             @Override
             public String[] columns() {
                 return new String[]{"Name", "Progress"};
             }
 
+            @Nullable
             @Override
-            public Object get(Package o, int columnIndex) {
+            public Object get(@NotNull Package o, int columnIndex) {
                 switch (columnIndex) {
                     case 0:
                         return UpdateChecker.getFileName(o);
@@ -55,6 +60,7 @@ public class DownloadPanel extends JPanel {
         return String.format("%.1f %s", count, multiples[i]);
     }
 
+    @Nullable
     public ObjectBasedTableModel<Package> getTableModel() {
         return tableModel;
     }

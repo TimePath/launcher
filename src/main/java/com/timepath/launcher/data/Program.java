@@ -6,11 +6,14 @@ import com.timepath.classloader.CompositeClassLoader;
 import com.timepath.launcher.Launcher;
 import com.timepath.maven.Package;
 import com.timepath.maven.UpdateChecker;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -27,25 +30,27 @@ public class Program {
     private static final Logger LOG = Logger.getLogger(Program.class.getName());
     private static final AtomicInteger autoId = new AtomicInteger();
     private final String main;
+    @NotNull
     private final List<String> args;
     private final int id = autoId.getAndIncrement();
+    private final String newsfeedURL;
+    private final String title;
+    private final Package parent;
     private boolean starred;
-    private String newsfeedURL;
     private boolean daemon;
+    @Nullable
     private JPanel panel;
-    private String title;
-    private com.timepath.maven.Package parent;
 
-    public Program(final Package parent,
-                   final String title,
-                   final String newsfeedURL,
-                   final String main,
-                   final List<String> args) {
+    public Program(Package parent,
+                   String title,
+                   String newsfeedURL,
+                   String main,
+                   @Nullable List<String> args) {
         this.parent = parent;
         this.title = title;
         this.newsfeedURL = newsfeedURL;
         this.main = main;
-        this.args = args;
+        this.args = args != null ? args : Collections.<String>emptyList();
     }
 
     public boolean isStarred() {
@@ -69,16 +74,14 @@ public class Program {
         return title;
     }
 
-    public void start(Launcher context) {
+    public void start(@NotNull Launcher context) {
+        context.update(this);
         context.start(this);
     }
 
-    public void run(final CompositeClassLoader cl) throws Throwable {
+    public void run(@NotNull CompositeClassLoader cl) throws Throwable {
         LOG.log(Level.INFO, "Starting {0} ({1})", new Object[]{this, main});
-        String[] argv = null;
-        if (args != null) {
-            argv = args.toArray(new String[args.size()]);
-        }
+        String[] argv = args.toArray(new String[args.size()]);
         Set<URL> cp = getClassPath();
         cl.start(main, argv, cp);
     }
@@ -86,6 +89,7 @@ public class Program {
     /**
      * @return all dependencies, flattened
      */
+    @NotNull
     private Set<URL> getClassPath() {
         Set<Package> all = parent.getDownloads();
         Set<URL> h = new HashSet<>(all.size());
@@ -118,17 +122,18 @@ public class Program {
     public JPanel getPanel() {
         if (panel != null) return panel;
         panel = new JPanel(new BorderLayout());
-        // create placeholder
-        String str = (newsfeedURL == null) ? "No newsfeed available" : "Loading...";
-        final JEditorPane initial = new JEditorPane("text", str);
+        // Create placeholder
+        final JEditorPane initial = new JEditorPane("text", (newsfeedURL == null)
+                ? "No newsfeed available"
+                : "Loading...");
         initial.setEditable(false);
         panel.add(initial);
-        // load real feed asynchronously
+        // Load real feed in background
         if (newsfeedURL != null) {
             new SwingWorker<JEditorPane, Void>() {
                 @Override
-                protected JEditorPane doInBackground() throws Exception {
-                    String s = IOUtils.requestPage(newsfeedURL);
+                protected JEditorPane doInBackground() {
+                    @Nullable String s = IOUtils.requestPage(newsfeedURL);
                     JEditorPane editorPane = new JEditorPane("text/html", s);
                     editorPane.setEditable(false);
                     editorPane.addHyperlinkListener(SwingUtils.HYPERLINK_LISTENER);
