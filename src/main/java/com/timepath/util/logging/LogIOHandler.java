@@ -1,5 +1,8 @@
 package com.timepath.util.logging;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.management.ManagementFactory;
@@ -8,6 +11,7 @@ import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.util.Date;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.logging.*;
 
@@ -15,71 +19,73 @@ public class LogIOHandler extends StreamHandler {
 
     private static final Logger LOG = Logger.getLogger(LogIOHandler.class.getName());
     /**
-     * unique
+     * Unique name
      */
     protected final String node = ManagementFactory.getRuntimeMXBean().getName();
     @SuppressWarnings("MismatchedQueryAndUpdateOfCollection") // pollLast() actually does get
-    private final Deque<LogRecord> recordDeque = new LinkedList<>();
-    private PrintWriter pw;
+    private final Deque<String> recordDeque = new LinkedList<>();
+    @Nullable
+    private volatile PrintWriter pw;
 
     public LogIOHandler() {
         setFormatter(new LogIOFormatter());
     }
 
+    @NotNull
     public LogIOHandler connect(final String host, final int port) {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                try {
-                    Socket sock = new Socket(host, port);
+                try (Socket sock = new Socket(host, port)) {
                     pw = new PrintWriter(sock.getOutputStream(), true);
                     send("+node|" + node);
-                } catch (IOException ex) {
-                    LOG.log(Level.SEVERE, null, ex);
+                } catch (IOException e) {
+                    LOG.log(Level.SEVERE, null, e);
                 }
             }
         }).start();
         return this;
     }
 
-    private void send(String req) {
-        pw.print(req + "\r\n");
-        pw.flush();
-    }
-
-    @Override
-    public synchronized void publish(LogRecord record) {
-        recordDeque.addLast(record);
+    public synchronized void send(String line) {
+        recordDeque.addLast(line);
         if (pw != null) {
-            send(getFormatter().format(record));
-            recordDeque.pollLast(); // remove it after sending
+            for (Iterator<String> it = recordDeque.iterator(); it.hasNext(); ) {
+                pw.print(it.next() + "\r\n");
+                it.remove();
+            }
+            pw.flush();
         }
     }
 
     @Override
+    public synchronized void publish(LogRecord record) {
+        send(getFormatter().format(record));
+    }
+
+    @Override
     public synchronized void flush() {
-        pw.flush();
+        if (pw != null) {
+            pw.flush();
+        }
     }
 
     @Override
     public synchronized void close() {
         send("-node|" + node);
-        pw.close();
+        if (pw != null) {
+            pw.close();
+        }
         pw = null;
     }
 
     private class LogIOFormatter extends Formatter {
 
-        private DateFormat dateFormat;
+        private DateFormat dateFormat = DateFormat.getDateTimeInstance();
 
-        private LogIOFormatter() {
-        }
-
+        @NotNull
         @Override
-        public synchronized String format(LogRecord record) {
-            if (dateFormat == null) {
-                dateFormat = DateFormat.getDateTimeInstance();
-            }
+        public String format(@NotNull LogRecord record) {
             String level = record.getLevel().getName().toLowerCase();
             String message = MessageFormat.format("{0}: <{2}::{3}> {4}: {5}",
                     dateFormat.format(new Date(record.getMillis())),
