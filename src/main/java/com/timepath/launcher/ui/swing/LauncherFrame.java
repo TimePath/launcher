@@ -384,7 +384,7 @@ public class LauncherFrame extends JFrame {
                     if (updates != null) { // Ready to start
                         Package parent = program.getPackage();
                         boolean run = true;
-                        if (!LauncherUtils.DEBUG && Package.isSelf(parent)) { // Alert on self update
+                        if (!LauncherUtils.DEBUG && parent.isSelf()) { // Alert on self update
                             if (updates.contains(parent)) {
                                 run = false;
                                 JOptionPane.showInternalMessageDialog(LauncherFrame.this.getContentPane(),
