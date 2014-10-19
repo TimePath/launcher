@@ -33,11 +33,11 @@ class DownloadPanel extends JPanel {
                     case 0:
                         return UpdateChecker.getFileName(o);
                     case 1:
-                        if (o.size <= 0) return "";
+                        if (o.getSize() <= 0) return "";
                         return String.format("%s / %s (%.1f%%)",
-                                human(o.progress), human(o.size), (o.progress * 100.0d) / o.size);
+                                human(o.getProgress()), human(o.getSize()), (o.getProgress() * 100.0d) / o.getSize());
                     case 2:
-                        return o.size;
+                        return o.getSize();
                     default:
                         return null;
                 }

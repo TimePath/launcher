@@ -8,8 +8,8 @@ import com.timepath.launcher.data.DownloadManager.DownloadMonitor;
 import com.timepath.launcher.data.Program;
 import com.timepath.launcher.data.Repository;
 import com.timepath.launcher.data.RepositoryManager;
-import com.timepath.maven.MavenResolver;
 import com.timepath.maven.Package;
+import com.timepath.maven.PersistentCache;
 import com.timepath.swing.ThemeSelector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -318,7 +318,7 @@ public class LauncherFrame extends JFrame {
                     @Override
                     public void actionPerformed(ActionEvent event) {
                         try {
-                            MavenResolver.invalidateCaches();
+                            PersistentCache.drop();
                             JOptionPane.showInternalMessageDialog(LauncherFrame.this.getContentPane(),
                                     "Restart to check for updates",
                                     "Cleared cache",

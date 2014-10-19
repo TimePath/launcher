@@ -69,9 +69,9 @@ class Converter {
                             Element elemDownload = document.createElement("download");
                             {
 
-                                elemDownload.setAttribute("progress", String.valueOf(dep.progress == 0
+                                elemDownload.setAttribute("progress", String.valueOf(dep.getProgress() == 0
                                         ? 0
-                                        : (dep.progress * 100.0) / dep.size));
+                                        : (dep.getProgress() * 100.0) / dep.getSize()));
                                 elemDownload.setAttribute("url", UpdateChecker.getDownloadURL(dep));
                             }
                             elemPackage.appendChild(elemDownload);

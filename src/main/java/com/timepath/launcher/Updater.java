@@ -2,7 +2,7 @@ package com.timepath.launcher;
 
 import com.timepath.FileUtils;
 import com.timepath.IOUtils;
-import com.timepath.maven.UpdateChecker;
+import com.timepath.maven.Constants;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -45,11 +45,11 @@ public class Updater {
             //<editor-fold defaultstate="collapsed" desc="on user restart">
             if (!LauncherUtils.CURRENT_FILE.equals(updateFile)) {
                 try {
-                    @NotNull File updateChecksum = new File(updateFile.getPath() + '.' + UpdateChecker.ALGORITHM);
+                    @NotNull File updateChecksum = new File(updateFile.getPath() + '.' + Constants.ALGORITHM);
                     if (updateChecksum.exists()) {
                         @NotNull String cksumExpected = IOUtils.requestPage(updateChecksum.toURI().toURL().toString()).trim();
                         LOG.log(Level.INFO, "Expecting checksum = {0}", cksumExpected);
-                        @NotNull String cksum = FileUtils.checksum(updateFile, UpdateChecker.ALGORITHM);
+                        @NotNull String cksum = FileUtils.checksum(updateFile, Constants.ALGORITHM);
                         LOG.log(Level.INFO, "Actual checksum = {0}", cksum);
                         if (cksum.equals(cksumExpected)) {
                             @NotNull final Collection<String> cmds = new LinkedList<>();
@@ -93,7 +93,7 @@ public class Updater {
                          FileChannel destination = new RandomAccessFile(destFile, "rw").getChannel()) {
                         source.transferTo(0, source.size(), destination);
                     }
-                    new File(updateFile.getPath() + '.' + UpdateChecker.ALGORITHM).delete();
+                    new File(updateFile.getPath() + '.' + Constants.ALGORITHM).delete();
                     sourceFile.deleteOnExit();
                     return destFile.getName(); // can continue running from temp file
                 } catch (IOException ex) {

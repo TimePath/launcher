@@ -2,6 +2,7 @@ package com.timepath.launcher.data;
 
 import com.timepath.IOUtils;
 import com.timepath.launcher.LauncherUtils;
+import com.timepath.maven.Constants;
 import com.timepath.maven.Package;
 import com.timepath.maven.UpdateChecker;
 import com.timepath.util.concurrent.DaemonThreadFactory;
@@ -123,17 +124,17 @@ public class DownloadManager {
                         File downloadFile, checksumFile;
                         if (pkgFile.isSelf()) { // Special case
                             downloadFile = LauncherUtils.UPDATE;
-                            checksumFile = new File(LauncherUtils.UPDATE.getName() + '.' + UpdateChecker.ALGORITHM);
+                            checksumFile = new File(LauncherUtils.UPDATE.getName() + '.' + Constants.ALGORITHM);
                         } else {
                             downloadFile = UpdateChecker.getFile(pkgFile);
-                            checksumFile = UpdateChecker.getChecksumFile(pkgFile, UpdateChecker.ALGORITHM);
+                            checksumFile = UpdateChecker.getChecksumFile(pkgFile, Constants.ALGORITHM);
                         }
                         download(pkgFile);
                         // Get the checksum before the package is moved into place
                         LOG.log(Level.INFO, "Saving checksum: {0}", checksumFile);
                         Files.createDirectories(checksumFile.getAbsoluteFile().getParentFile().toPath());
                         try (@NotNull FileOutputStream checksumOutputStream = new FileOutputStream(checksumFile)) {
-                            checksumOutputStream.write(UpdateChecker.getChecksum(pkgFile, UpdateChecker.ALGORITHM).getBytes("UTF-8"));
+                            checksumOutputStream.write(UpdateChecker.getChecksum(pkgFile, Constants.ALGORITHM).getBytes("UTF-8"));
                         }
                         Path move = Files.move(temp.toPath(), downloadFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                         LOG.log(Level.INFO, "Complete: {0} > {1}", new Object[]{UpdateChecker.getDownloadURL(pkgFile), move});
@@ -155,11 +156,11 @@ public class DownloadManager {
             URLConnection connection = IOUtils.requestConnection(s, new IOUtils.ConnectionSettings() {
                 @Override
                 public void apply(@NotNull URLConnection u) {
-                    u.setRequestProperty("Range", "bytes=" + pkgFile.progress + "-");
+                    u.setRequestProperty("Range", "bytes=" + pkgFile.getProgress() + "-");
                 }
             });
             boolean partial = "bytes".equals(connection.getHeaderField("Accept-Ranges"));
-            pkgFile.size = connection.getContentLengthLong();
+            pkgFile.setSize(connection.getContentLengthLong());
             p.associate(connection);
             IOUtils.createFile(temp);
             LOG.log(Level.INFO, "Downloading {0} > {1}", new Object[]{s, temp});
@@ -170,7 +171,7 @@ public class DownloadManager {
                 for (int read; (read = is.read(buffer)) > -1; ) {
                     fos.write(buffer, 0, read);
                     total += read;
-                    pkgFile.progress = total;
+                    pkgFile.setProgress(total);
                     fireUpdated(pkgFile);
                 }
                 fos.flush();
