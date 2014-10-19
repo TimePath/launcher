@@ -124,14 +124,14 @@ public class DownloadManager {
                         File downloadFile, checksumFile;
                         if (pkgFile.isSelf()) { // Special case
                             downloadFile = LauncherUtils.UPDATE;
-                            checksumFile = new File(LauncherUtils.UPDATE.getName() + '.' + Constants.ALGORITHM);
+                            checksumFile = new File(LauncherUtils.WORK_DIR, LauncherUtils.UPDATE.getName() + '.' + Constants.ALGORITHM);
                         } else {
                             downloadFile = UpdateChecker.getFile(pkgFile);
                             checksumFile = UpdateChecker.getChecksumFile(pkgFile, Constants.ALGORITHM);
                         }
                         download(pkgFile);
                         // Get the checksum before the package is moved into place
-                        LOG.log(Level.INFO, "Saving checksum: {0}", checksumFile);
+                        LOG.log(Level.INFO, "Saving checksum: {0} > {1}", new Object[]{checksumFile, checksumFile.getAbsoluteFile()});
                         Files.createDirectories(checksumFile.getAbsoluteFile().getParentFile().toPath());
                         try (@NotNull FileOutputStream checksumOutputStream = new FileOutputStream(checksumFile)) {
                             checksumOutputStream.write(UpdateChecker.getChecksum(pkgFile, Constants.ALGORITHM).getBytes("UTF-8"));

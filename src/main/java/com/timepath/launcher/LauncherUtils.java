@@ -25,6 +25,7 @@ public class LauncherUtils {
     public static final long START_TIME = ManagementFactory.getRuntimeMXBean().getStartTime();
     public static final File UPDATE = new File("update.tmp");
     public static final File CURRENT_FILE = Utils.currentFile(LauncherUtils.class);
+    public static final File WORK_DIR = CURRENT_FILE.getParentFile();
 
     private LauncherUtils() {
     }
