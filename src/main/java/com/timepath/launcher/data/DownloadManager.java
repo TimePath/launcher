@@ -136,7 +136,7 @@ public class DownloadManager {
                         try (@NotNull FileOutputStream checksumOutputStream = new FileOutputStream(checksumFile)) {
                             checksumOutputStream.write(UpdateChecker.getChecksum(pkgFile, Constants.ALGORITHM).getBytes("UTF-8"));
                         }
-                        Path move = Files.move(temp.toPath(), downloadFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                        @NotNull Path move = Files.move(temp.toPath(), downloadFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                         LOG.log(Level.INFO, "Complete: {0} > {1}", new Object[]{UpdateChecker.getDownloadURL(pkgFile), move});
                         return;
                     } catch (SocketTimeoutException ignored) {

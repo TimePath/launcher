@@ -34,6 +34,7 @@ abstract class RepositoryManagerPanel extends JPanel {
                 return COLUMNS;
             }
 
+            @NotNull
             @Override
             public Class<?> getColumnClass(int columnIndex) {
                 switch (columnIndex) {

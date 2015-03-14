@@ -50,10 +50,11 @@ public abstract class ObjectBasedTableModel<E> extends AbstractTableModel {
     @NotNull
     public abstract String[] columns();
 
+    @NotNull
     @Override
     public String getColumnName(int column) {
         if (column < columns.size()) {
-            String name = columns.get(column);
+            @NotNull String name = columns.get(column);
             if (name != null) return name;
         }
         return super.getColumnName(column);

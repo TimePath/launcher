@@ -66,7 +66,7 @@ public class LauncherFrame extends JFrame {
         @Override
         protected void removeActionPerformed(ActionEvent evt) {
             int i = 0;
-            int[] selection = jTable1.getSelectedRows();
+            @NotNull int[] selection = jTable1.getSelectedRows();
             Arrays.sort(selection);
             List<Repository> rows = model.getRows();
             for (@NotNull Repository r : rows.toArray(new Repository[rows.size()])) {
@@ -100,7 +100,7 @@ public class LauncherFrame extends JFrame {
                             setEditable(false);
                             setTabSize(4);
                         }}) {{
-                            Dimension size = LauncherFrame.this.getSize();
+                            @NotNull Dimension size = LauncherFrame.this.getSize();
                             size.width /= 2;
                             size.height /= 2;
                             setPreferredSize(size);
@@ -146,7 +146,7 @@ public class LauncherFrame extends JFrame {
         this.updateList();
         this.setTitle("TimePath's program hub");
         this.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-        Point mid = GraphicsEnvironment.getLocalGraphicsEnvironment().getCenterPoint();
+        @NotNull Point mid = GraphicsEnvironment.getLocalGraphicsEnvironment().getCenterPoint();
         this.setSize(new Dimension(mid.x, mid.y));
         this.setLocationRelativeTo(null);
         LOG.log(Level.INFO, "Created UI at {0}ms", System.currentTimeMillis() - LauncherUtils.START_TIME);
@@ -194,7 +194,7 @@ public class LauncherFrame extends JFrame {
                     }
                     @NotNull final DefaultTreeModel newModel = new DefaultTreeModel(rootNode);
                     programList.setModel(newModel);
-                    final DefaultMutableTreeNode firstLeaf = rootNode.getFirstLeaf();
+                    @NotNull final DefaultMutableTreeNode firstLeaf = rootNode.getFirstLeaf();
                     @NotNull final TreePath path = new TreePath(firstLeaf.getPath());
                     programList.expandPath(path);
                     programList.setSelectionPath(path);
@@ -423,11 +423,11 @@ public class LauncherFrame extends JFrame {
             setBackground(new Color(255, 255, 255, 0));
             addHyperlinkListener(SwingUtils.HYPERLINK_LISTENER);
         }};
-        String buildDate = "unknown";
+        @NotNull String buildDate = "unknown";
         long time = LauncherUtils.CURRENT_VERSION;
         @NotNull final DateFormat df = new SimpleDateFormat("EEE dd MMM yyyy, hh:mm:ss a z");
         if (time != 0) buildDate = df.format(new Date(time));
-        String aboutText = IOUtils.requestPage(getClass().getResource("/com/timepath/launcher/ui/swing/about.html").toString())
+        @NotNull String aboutText = IOUtils.requestPage(getClass().getResource("/com/timepath/launcher/ui/swing/about.html").toString())
                 .replace("${buildDate}", buildDate)
                 .replace("${steamGroup}", "http://steamcommunity.com/gid/103582791434775526")
                 .replace("${steamChat}", "steam://friends/joinchat/103582791434775526");
@@ -437,7 +437,7 @@ public class LauncherFrame extends JFrame {
         @NotNull final Timer timer = new Timer(1000, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                final String time = df.format(System.currentTimeMillis());
+                @NotNull final String time = df.format(System.currentTimeMillis());
                 SwingUtilities.invokeLater(new Runnable() {
                     @Override
                     public void run() {

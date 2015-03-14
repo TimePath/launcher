@@ -72,7 +72,7 @@ public class CompositeClassLoader extends ClassLoader {
      * @param args the command line arguments
      * @param urls additional resources
      */
-    public void start(String main, @NotNull String[] args, @NotNull Iterable<URL> urls) throws Throwable {
+    public void start(@NotNull String main, @NotNull String[] args, @NotNull Iterable<URL> urls) throws Throwable {
         LOG.log(Level.INFO, "{0} {1} {2}", new Object[]{
                 main, Arrays.toString(args), urls
         });
@@ -110,9 +110,9 @@ public class CompositeClassLoader extends ClassLoader {
         add(cl);
     }
 
-    private void invokeMain(String name, String[] args)
+    private void invokeMain(@NotNull String name, String[] args)
             throws ClassNotFoundException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
-        Method method = loadClass(name).getMethod("main", String[].class);
+        @NotNull Method method = loadClass(name).getMethod("main", String[].class);
         int modifiers = method.getModifiers();
         if ((method.getReturnType() != void.class) || !Modifier.isStatic(modifiers) || !Modifier.isPublic(modifiers)) {
             throw new NoSuchMethodException("main");
@@ -121,7 +121,7 @@ public class CompositeClassLoader extends ClassLoader {
         method.invoke(null, new Object[]{args}); // varargs call
     }
 
-    @Nullable
+    @NotNull
     @Override
     protected Class<?> findClass(@NotNull String name) throws ClassNotFoundException {
         @Nullable Class<?> res = reflect(classes, "findClass", name);
@@ -141,7 +141,7 @@ public class CompositeClassLoader extends ClassLoader {
      */
     @Nullable
     @SuppressWarnings("unchecked")
-    private <A, B> B reflect(@NotNull Map<A, B> cache, String methodStr, @NotNull A key) {
+    private <A, B> B reflect(@NotNull Map<A, B> cache, @NotNull String methodStr, @NotNull A key) {
         LOG.log(Level.FINE, "{0}: {1}", new Object[]{methodStr, key});
         B ret = cache.get(key);
         if (ret != null) {
@@ -150,7 +150,7 @@ public class CompositeClassLoader extends ClassLoader {
         synchronized (loaders) {
             for (ClassLoader cl : loaders) {
                 try {
-                    Method method = ClassLoader.class.getDeclaredMethod(methodStr, key.getClass());
+                    @NotNull Method method = ClassLoader.class.getDeclaredMethod(methodStr, key.getClass());
                     method.setAccessible(true);
                     @NotNull B u = (B) method.invoke(cl, key);
                     if (u != null) { // return with first result
@@ -185,7 +185,7 @@ public class CompositeClassLoader extends ClassLoader {
     /**
      * TODO: calling class's jar only
      */
-    @Nullable
+    @NotNull
     @Override
     protected Enumeration<URL> findResources(@NotNull String name) throws IOException {
         @Nullable Enumeration<URL> res = reflect(enumerations, "findResources", name);

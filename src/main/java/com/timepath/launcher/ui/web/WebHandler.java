@@ -49,7 +49,7 @@ class WebHandler implements HttpHandler {
                 try {
                     long future = System.currentTimeMillis() + EXPIRES_INDEX * 1000;
                     @NotNull Source source = Converter.serialize(launcher.getRepositories());
-                    String index = Converter.transform(new StreamSource(getStream("/projects.xsl")), source);
+                    @NotNull String index = Converter.transform(new StreamSource(getStream("/projects.xsl")), source);
                     @NotNull Page indexPage = new Page(index, future);
                     cache.put("/", indexPage);
                     String raw = XMLUtils.pprint(source, 4);
@@ -66,7 +66,7 @@ class WebHandler implements HttpHandler {
                 InputStream is = getClass().getResourceAsStream(cwp + s);
                 if (cwd != null) is = new URL(cwd + s).openStream();
                 if (is == null) throw new FileNotFoundException("File not found: " + key);
-                byte[] data = read(is);
+                @NotNull byte[] data = read(is);
                 return new Page(data, future);
             } catch (FileNotFoundException ignored) {
             } catch (IOException e) {
@@ -107,6 +107,7 @@ class WebHandler implements HttpHandler {
      * @return The bytes read
      * @throws IOException
      */
+    @NotNull
     private static byte[] read(InputStream is) throws IOException {
         is = new BufferedInputStream(is);
         @NotNull ByteArrayOutputStream baos = new ByteArrayOutputStream(is.available());

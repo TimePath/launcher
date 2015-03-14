@@ -44,7 +44,7 @@ public class LogFileHandler extends Handler {
     }
 
     @Override
-    public void publish(LogRecord record) {
+    public void publish(@NotNull LogRecord record) {
         fh.publish(record);
     }
 

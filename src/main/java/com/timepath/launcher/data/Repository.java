@@ -90,10 +90,10 @@ public class Repository {
         r.self = Package.parse(root, null);
         if (r.self != null) r.self.setSelf(true);
         r.executions = new LinkedList<>();
-        for (Node entry : XMLUtils.getElements(root, "programs/program")) {
+        for (@NotNull Node entry : XMLUtils.getElements(root, "programs/program")) {
             @Nullable Package pkg = Package.parse(entry, null);
             // extended format with execution data
-            for (Node execution : XMLUtils.getElements(entry, "executions/execution")) {
+            for (@NotNull Node execution : XMLUtils.getElements(entry, "executions/execution")) {
                 @Nullable Node cfg = XMLUtils.last(XMLUtils.getElements(execution, "configuration"));
                 @NotNull Program p = new Program(pkg,
                         XMLUtils.get(execution, "name"),
@@ -115,9 +115,9 @@ public class Repository {
     private static Node findCompatible(@NotNull InputStream is) {
         try {
             DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+            @NotNull DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
             Document doc = docBuilder.parse(new BufferedInputStream(is));
-            Node root = XMLUtils.getElements(doc, "root").get(0);
+            @NotNull Node root = XMLUtils.getElements(doc, "root").get(0);
             @Nullable Node version = null;
             @Nullable Node iter = null;
             NodeList versions = root.getChildNodes();

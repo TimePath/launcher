@@ -16,7 +16,7 @@ public class LogAggregator extends Handler {
     }
 
     @Override
-    public void publish(LogRecord record) {
+    public void publish(@NotNull LogRecord record) {
         for (@NotNull Handler h : handlers) {
             h.publish(record);
         }

@@ -18,7 +18,7 @@ class DownloadPanel extends JPanel {
     protected ObjectBasedTableModel<Package> tableModel;
 
     public DownloadPanel() {
-        JTable jTable1 = new JTable();
+        @NotNull JTable jTable1 = new JTable();
         jTable1.setModel(tableModel = new ObjectBasedTableModel<Package>() {
             @NotNull
             @Override
@@ -43,8 +43,8 @@ class DownloadPanel extends JPanel {
                 }
             }
         });
-        JScrollPane jScrollPane1 = new JScrollPane(jTable1);
-        GroupLayout layout = new GroupLayout(this);
+        @NotNull JScrollPane jScrollPane1 = new JScrollPane(jTable1);
+        @NotNull GroupLayout layout = new GroupLayout(this);
         setLayout(layout);
         layout.setHorizontalGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                 .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 400, Short.MAX_VALUE));
@@ -52,9 +52,10 @@ class DownloadPanel extends JPanel {
                 .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE));
     }
 
+    @NotNull
     public static String human(double count) {
         int factor = 1000;
-        String[] multiples = {"KB", "MB", "GB"};
+        @NotNull String[] multiples = {"KB", "MB", "GB"};
         int i = 0;
         while ((count /= factor) >= factor) i++;
         return String.format("%.1f %s", count, multiples[i]);

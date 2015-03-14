@@ -21,7 +21,7 @@ public class ThemeSelector extends JComboBox<String> {
     public ThemeSelector() {
         @NotNull final DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
         setModel(model);
-        String currentLafClass = UIManager.getLookAndFeel().getClass().getName();
+        @NotNull String currentLafClass = UIManager.getLookAndFeel().getClass().getName();
         for (@NotNull UIManager.LookAndFeelInfo lafInfo : UIManager.getInstalledLookAndFeels()) {
             try {
                 Class.forName(lafInfo.getClassName());
@@ -44,7 +44,7 @@ public class ThemeSelector extends JComboBox<String> {
                         try {
                             String usrTheme = info.getClassName();
                             UIManager.setLookAndFeel(usrTheme);
-                            for (Window w : Window.getWindows()) { // TODO: Instrumentation to access detached components
+                            for (@NotNull Window w : Window.getWindows()) { // TODO: Instrumentation to access detached components
                                 SwingUtilities.updateComponentTreeUI(w);
                             }
                             LauncherUtils.SETTINGS.put("laf", usrTheme);

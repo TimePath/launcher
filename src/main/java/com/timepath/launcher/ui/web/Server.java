@@ -18,6 +18,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.jetbrains.annotations.Nullable;
 
 public class Server implements Runnable {
 
@@ -43,14 +44,14 @@ public class Server implements Runnable {
             browse();
             return;
         }
-        final Launcher launcher = new Launcher();
+        @NotNull final Launcher launcher = new Launcher();
         try {
             final HttpServer server = HttpServer.create(new InetSocketAddress(13610), BACKLOG);
             //noinspection AssignmentToStaticFieldFromInstanceMethod
             ADDRESS = server.getAddress();
             LOG.log(Level.INFO, "Starting server on port {0}", ADDRESS);
-            final CountDownLatch latch = new CountDownLatch(1);
-            ExecutorService threadPool = Executors.newCachedThreadPool(new DaemonThreadFactory());
+            @NotNull final CountDownLatch latch = new CountDownLatch(1);
+            @NotNull ExecutorService threadPool = Executors.newCachedThreadPool(new DaemonThreadFactory());
             server.setExecutor(threadPool);
             server.createContext("/", new WebHandler(launcher));
             server.createContext(ENDPOINT_SSE, new SSEHandler() {
@@ -62,12 +63,12 @@ public class Server implements Runnable {
             });
             server.createContext(ENDPOINT_LAUNCH, new HttpHandler() {
                 @Override
-                public void handle(HttpExchange exchange) throws IOException {
+                public void handle(@NotNull HttpExchange exchange) throws IOException {
                     String s = exchange.getRequestURI().getPath();
                     try {
                         int i = Integer.parseInt(s.substring(s.lastIndexOf('/') + 1));
-                        for (Repository repository : launcher.getRepositories()) {
-                            for (Program program : repository.getExecutions()) {
+                        for (@NotNull Repository repository : launcher.getRepositories()) {
+                            for (@NotNull Program program : repository.getExecutions()) {
                                 if (program.getId() == i) {
                                     program.start(launcher);
                                 }
@@ -80,7 +81,7 @@ public class Server implements Runnable {
             });
             server.createContext(ENDPOINT_SHUTDOWN, new HttpHandler() {
                 @Override
-                public void handle(HttpExchange exchange) throws IOException {
+                public void handle(@NotNull HttpExchange exchange) throws IOException {
                     LOG.log(Level.INFO, "Shutting down");
                     server.stop(0);
                     latch.countDown();
@@ -105,8 +106,8 @@ public class Server implements Runnable {
      * Open browser
      */
     private void browse() {
-        String s = "http://127.0.0.1:" + ADDRESS.getPort();
-        HyperlinkEvent e = new HyperlinkEvent(this, HyperlinkEvent.EventType.ACTIVATED, null, s);
+        @NotNull String s = "http://127.0.0.1:" + ADDRESS.getPort();
+        @Nullable HyperlinkEvent e = new HyperlinkEvent(this, HyperlinkEvent.EventType.ACTIVATED, null, s);
         SwingUtils.HYPERLINK_LISTENER.hyperlinkUpdate(e);
     }
 }

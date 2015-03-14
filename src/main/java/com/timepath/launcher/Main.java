@@ -97,7 +97,7 @@ public class Main implements Protocol {
     private static Protocol createClient(int port) {
         LOG.log(Level.INFO, "RMI server already started, connecting...");
         try {
-            Registry registry = LocateRegistry.getRegistry("localhost", port);
+            @NotNull Registry registry = LocateRegistry.getRegistry("localhost", port);
             return (Protocol) registry.lookup(RMI_ENDPOINT);
         } catch (@NotNull RemoteException | NotBoundException e) {
             LOG.log(Level.SEVERE, "Unable to connect to RMI server", e);
@@ -119,7 +119,7 @@ public class Main implements Protocol {
                 }
             }
             @NotNull LocalRMIServerSocketFactory serverFactory = new LocalRMIServerSocketFactory();
-            Registry registry = LocateRegistry.createRegistry(port, new RMIClientSocketFactory() {
+            @NotNull Registry registry = LocateRegistry.createRegistry(port, new RMIClientSocketFactory() {
                 @NotNull
                 @Override
                 public Socket createSocket(String host, int port) throws IOException {
@@ -150,9 +150,9 @@ public class Main implements Protocol {
         } catch (@NotNull IllegalArgumentException | NullPointerException ignored) {
         }
         // Choose finest level
-        Level packageLevel = Level.parse(Integer.toString(Math.min(logfileLevel.intValue(), consoleLevel.intValue())));
+        @NotNull Level packageLevel = Level.parse(Integer.toString(Math.min(logfileLevel.intValue(), consoleLevel.intValue())));
         Logger.getLogger("com.timepath").setLevel(packageLevel);
-        Logger globalLogger = Logger.getLogger("");
+        @NotNull Logger globalLogger = Logger.getLogger("");
         @NotNull SimpleFormatter consoleFormatter = new SimpleFormatter();
         if (!consoleLevel.equals(Level.OFF)) {
             for (Handler h : globalLogger.getHandlers()) {

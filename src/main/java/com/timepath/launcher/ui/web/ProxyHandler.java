@@ -26,7 +26,7 @@ class ProxyHandler {
      * @param t
      * @param loc
      */
-    public static void handleProxy(@NotNull HttpExchange t, String loc) {
+    public static void handleProxy(@NotNull HttpExchange t, @NotNull String loc) {
         LOG.log(Level.INFO, "Proxy: {0}", loc);
         URL url;
         try {

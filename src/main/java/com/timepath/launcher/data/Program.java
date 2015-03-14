@@ -81,8 +81,8 @@ public class Program {
 
     public void run(@NotNull CompositeClassLoader cl) throws Throwable {
         LOG.log(Level.INFO, "Starting {0} ({1})", new Object[]{this, main});
-        String[] argv = args.toArray(new String[args.size()]);
-        Set<URL> cp = getClassPath();
+        @NotNull String[] argv = args.toArray(new String[args.size()]);
+        @NotNull Set<URL> cp = getClassPath();
         cl.start(main, argv, cp);
     }
 
@@ -92,8 +92,8 @@ public class Program {
     @NotNull
     private Set<URL> getClassPath() {
         Set<Package> all = parent.getDownloads();
-        Set<URL> h = new HashSet<>(all.size());
-        for (Package download : all) {
+        @NotNull Set<URL> h = new HashSet<>(all.size());
+        for (@NotNull Package download : all) {
             try {
                 h.add(UpdateChecker.getFile(download).toURI().toURL());
             } catch (MalformedURLException e) {
@@ -119,11 +119,12 @@ public class Program {
         this.daemon = daemon;
     }
 
+    @Nullable
     public JPanel getPanel() {
         if (panel != null) return panel;
         panel = new JPanel(new BorderLayout());
         // Create placeholder
-        final JEditorPane initial = new JEditorPane("text", (newsfeedURL == null)
+        @NotNull final JEditorPane initial = new JEditorPane("text", (newsfeedURL == null)
                 ? "No newsfeed available"
                 : "Loading...");
         initial.setEditable(false);
@@ -131,10 +132,11 @@ public class Program {
         // Load real feed in background
         if (newsfeedURL != null) {
             new SwingWorker<JEditorPane, Void>() {
+                @Nullable
                 @Override
                 protected JEditorPane doInBackground() {
                     @Nullable String s = IOUtils.requestPage(newsfeedURL);
-                    JEditorPane editorPane = new JEditorPane("text/html", s);
+                    @NotNull JEditorPane editorPane = new JEditorPane("text/html", s);
                     editorPane.setEditable(false);
                     editorPane.addHyperlinkListener(SwingUtils.HYPERLINK_LISTENER);
                     return editorPane;
@@ -147,7 +149,7 @@ public class Program {
                         panel.add(get());
                         panel.updateUI();
                         LOG.log(Level.INFO, "Loaded {0}", newsfeedURL);
-                    } catch (InterruptedException | ExecutionException ex) {
+                    } catch (@NotNull InterruptedException | ExecutionException ex) {
                         LOG.log(Level.SEVERE, null, ex);
                     }
                 }

@@ -16,13 +16,14 @@ public class DBInbox {
     private DBInbox() {
     }
 
+    @NotNull
     public static String send(String host, String user, String file, String directory, @NotNull String message) throws IOException {
         @NotNull byte[] in = message.getBytes(StandardCharsets.UTF_8);
         @NotNull ByteArrayOutputStream baos = new ByteArrayOutputStream(in.length);
         try (@NotNull GZIPOutputStream gzip = new GZIPOutputStream(baos)) {
             gzip.write(in);
         }
-        byte[] bytes = baos.toByteArray();
+        @NotNull byte[] bytes = baos.toByteArray();
         @NotNull URL url = new URL("http://" + host + "/send/" + user + "/" + directory);
         @NotNull HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setDoOutput(true);

@@ -36,7 +36,7 @@ public class LogIOHandler extends StreamHandler {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                try (Socket sock = new Socket(host, port)) {
+                try (@NotNull Socket sock = new Socket(host, port)) {
                     pw = new PrintWriter(sock.getOutputStream(), true);
                     send("+node|" + node);
                 } catch (IOException e) {
@@ -47,10 +47,10 @@ public class LogIOHandler extends StreamHandler {
         return this;
     }
 
-    public synchronized void send(String line) {
+    public synchronized void send(@NotNull String line) {
         recordDeque.addLast(line);
         if (pw != null) {
-            for (Iterator<String> it = recordDeque.iterator(); it.hasNext(); ) {
+            for (@NotNull Iterator<String> it = recordDeque.iterator(); it.hasNext(); ) {
                 pw.print(it.next() + "\r\n");
                 it.remove();
             }
@@ -59,7 +59,7 @@ public class LogIOHandler extends StreamHandler {
     }
 
     @Override
-    public synchronized void publish(LogRecord record) {
+    public synchronized void publish(@NotNull LogRecord record) {
         send(getFormatter().format(record));
     }
 
@@ -81,13 +81,14 @@ public class LogIOHandler extends StreamHandler {
 
     private class LogIOFormatter extends Formatter {
 
+        @NotNull
         private DateFormat dateFormat = DateFormat.getDateTimeInstance();
 
         @NotNull
         @Override
         public String format(@NotNull LogRecord record) {
-            String level = record.getLevel().getName().toLowerCase();
-            String message = MessageFormat.format("{0}: <{2}::{3}> {4}: {5}",
+            @NotNull String level = record.getLevel().getName().toLowerCase();
+            @NotNull String message = MessageFormat.format("{0}: <{2}::{3}> {4}: {5}",
                     dateFormat.format(new Date(record.getMillis())),
                     record.getLoggerName(),
                     record.getSourceClassName(),

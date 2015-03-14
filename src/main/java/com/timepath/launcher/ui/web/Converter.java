@@ -36,6 +36,7 @@ class Converter {
      * @return
      * @throws javax.xml.transform.TransformerException
      */
+    @NotNull
     public static String transform(Source xslDoc, Source xmlDoc) throws TransformerException {
         @NotNull ByteArrayOutputStream byteArray = new ByteArrayOutputStream(10240);
         Transformer transformer = transformerFactory.newTransformer(xslDoc);
@@ -50,17 +51,17 @@ class Converter {
         for (@NotNull Repository repo : repos) {
             programs.addAll(repo.getExecutions());
         }
-        Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+        @NotNull Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
         Node root = document.createElement("root");
-        Node rootPrograms = root.appendChild(document.createElement("programs"));
-        Node rootLibs = root.appendChild(document.createElement("libs"));
+        @NotNull Node rootPrograms = root.appendChild(document.createElement("programs"));
+        @NotNull Node rootLibs = root.appendChild(document.createElement("libs"));
         for (@NotNull Program p : programs) {
             Element elemProgram = document.createElement("entry");
             {
                 elemProgram.setAttribute("appid", String.valueOf(p.getId()));
                 elemProgram.setAttribute("name", p.getTitle());
                 elemProgram.setAttribute("saved", String.valueOf(p.isStarred()));
-                Node rootDeps = elemProgram.appendChild(document.createElement("depends"));
+                @NotNull Node rootDeps = elemProgram.appendChild(document.createElement("depends"));
                 {
                     for (@NotNull Package dep : p.getPackage().getDownloads()) {
                         Element elemPackage = document.createElement("entry");
