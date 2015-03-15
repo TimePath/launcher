@@ -22,20 +22,27 @@ build << {
     }
 }
 
-dependencies {
-    compile project(':maven-resolver')
-}
-
 buildscript {
+    ext.kotlin_version = '0.10.770'
+
     repositories {
         mavenCentral()
+        maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
     }
 
     dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath 'com.netflix.nebula:gradle-info-plugin:1.9.+'
         classpath 'org.eclipse.jgit:org.eclipse.jgit:3.2.0.201312181205-r'
         classpath 'net.sf.proguard:proguard-gradle:4.10'
     }
+}
+
+apply plugin: 'kotlin'
+
+dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    compile project(':maven-resolver')
 }
 
 apply plugin: 'info'
