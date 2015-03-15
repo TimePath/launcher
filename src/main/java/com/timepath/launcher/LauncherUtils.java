@@ -1,15 +1,13 @@
 package com.timepath.launcher;
 
-import com.timepath.JARUtils;
 import com.timepath.Utils;
 import com.timepath.util.logging.DBInbox;
-import org.jetbrains.annotations.NotNull;
-
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.text.MessageFormat;
 import java.util.prefs.Preferences;
+import org.jetbrains.annotations.NotNull;
 
 public class LauncherUtils {
 
@@ -19,7 +17,17 @@ public class LauncherUtils {
                     .getName()
                     .split("@")[1]
     );
-    public static final long CURRENT_VERSION = JARUtils.version(LauncherUtils.class);
+    private static long initVersion() {
+        String impl = LauncherUtils.class.getPackage().getSpecificationVersion();
+        if (impl != null) {
+            try {
+                return Long.parseLong(impl);
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return 0;
+    }
+    public static final long CURRENT_VERSION = initVersion();
     public static final boolean DEBUG = CURRENT_VERSION == 0;
     public static final Preferences SETTINGS = Preferences.userRoot().node("timepath");
     public static final long START_TIME = ManagementFactory.getRuntimeMXBean().getStartTime();

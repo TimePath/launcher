@@ -1,3 +1,98 @@
+def mainClassName = 'com.timepath.launcher.Main'
+
+jar {
+    manifest {
+        attributes 'Main-Class': mainClassName
+        attributes 'Specification-Version': new Date().time
+    }
+}
+
+build << {
+    copy {
+        from 'lib/bootstrap/dist'
+        into 'build/resources/main/com/timepath/launcher/ui/web'
+        include '**/*.min.css'
+        include '**/*.min.js'
+        include 'fonts/*'
+    }
+    copy {
+        from 'lib/jquery-searchable/dist'
+        into 'build/resources/main/com/timepath/launcher/ui/web/js'
+        include 'jquery.searchable-1.1.0.min.js'
+    }
+}
+
 dependencies {
     compile project(':maven-resolver')
+}
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'com.netflix.nebula:gradle-info-plugin:1.9.+'
+        classpath 'org.eclipse.jgit:org.eclipse.jgit:3.2.0.201312181205-r'
+        classpath 'net.sf.proguard:proguard-gradle:4.10'
+    }
+}
+
+apply plugin: 'info'
+
+def realJar = jar.archivePath as File
+def tempJar = "${realJar}.jar" as File
+task preShrink << {
+    realJar.renameTo(tempJar)
+}
+preShrink.dependsOn jar
+build.dependsOn 'proguard'
+uploadArchives.dependsOn build
+task proguard(type: proguard.gradle.ProGuardTask, dependsOn: preShrink) {
+    injars tempJar
+    injars configurations.runtime.files
+    libraryjars "${System.getProperty('java.home')}/lib/rt.jar"
+    outjars realJar
+
+    dontobfuscate()
+    keep([includedescriptorclasses: true], '''\
+public class com.timepath.launcher.Main {
+    *;
+}
+''')
+    // Optimization
+    // Avoid missing LVT entries
+    dontoptimize()
+    // Useful stack trace
+    keepattributes 'SourceFile,LineNumberTable'
+    // Reflection
+    keepattributes '*Annotation*,EnclosingMethod'
+    // Entry points
+    keepclasseswithmembers '''\
+public class com.timepath.** {
+    public static void main(java.lang.String[]);
+}
+'''
+    // Applets
+    keep 'public class com.timepath.* extends java.applet.Applet'
+    // Enums
+    keepclassmembers([allowoptimization: true], '''\
+enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+''')
+    // RMI
+    keepattributes 'Exceptions'
+    keep '''\
+interface * extends java.rmi.Remote {
+    <methods>;
+}
+'''
+    keep '''\
+class * implements java.rmi.Remote {
+    <init>(java.rmi.activation.ActivationID, java.rmi.MarshalledObject);
+}
+'''
+
 }
