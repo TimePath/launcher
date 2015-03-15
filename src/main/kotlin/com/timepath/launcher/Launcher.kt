@@ -47,7 +47,7 @@ public class Launcher {
      * @return true if self is up to date
      */
     public fun updateRequired(): Boolean {
-        return !UpdateChecker.verify(self, LauncherUtils.CURRENT_FILE)
+        return !UpdateChecker.verify(self!!, LauncherUtils.CURRENT_FILE)
     }
 
     /**

@@ -26,10 +26,10 @@ class DownloadPanel : JPanel() {
                 when (columnIndex) {
                     0 -> return UpdateChecker.getFileName(o)
                     1 -> {
-                        if (o.getSize() <= 0) return ""
-                        return "%s / %s (%.1f%%)".format(human(o.getProgress().toDouble()), human(o.getSize().toDouble()), (o.getProgress().toDouble() * 100.0) / o.getSize().toDouble())
+                        if (o.size <= 0) return ""
+                        return "%s / %s (%.1f%%)".format(human(o.progress.toDouble()), human(o.size.toDouble()), (o.progress.toDouble() * 100.0) / o.size.toDouble())
                     }
-                    2 -> return o.getSize()
+                    2 -> return o.size
                     else -> return null
                 }
             }
@@ -50,7 +50,11 @@ class DownloadPanel : JPanel() {
             val factor = 1000
             val multiples = array("bytes", "KB", "MB", "GB")
             val i = (Math.log(count) / Math.log(factor.toDouble()))
-            return "%.1f %s".format(count / factor * i, multiples[i.toInt()])
+            return try {
+                "%.1f %s".format(count / factor * i, multiples[i.toInt()])
+            } catch(e: ArrayIndexOutOfBoundsException) {
+                "?"
+            }
         }
     }
 }

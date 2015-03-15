@@ -144,11 +144,11 @@ public class DownloadManager {
             val s = UpdateChecker.getDownloadURL(p)
             val connection = IOUtils.requestConnection(s, object : IOUtils.ConnectionSettings {
                 override fun apply(u: URLConnection) {
-                    u.setRequestProperty("Range", "bytes=" + pkgFile.getProgress() + "-")
+                    u.setRequestProperty("Range", "bytes=" + pkgFile.progress + "-")
                 }
             })
             val partial = "bytes" == connection.getHeaderField("Accept-Ranges")
-            pkgFile.setSize(connection.getContentLengthLong())
+            pkgFile.size = connection.getContentLengthLong()
             p.associate(connection)
             IOUtils.createFile(temp)
             LOG.log(Level.INFO, "Downloading {0} > {1}", array<Any>(s, temp!!))
@@ -161,7 +161,7 @@ public class DownloadManager {
                         if (read <= 0) break
                         fos.write(buffer, 0, read)
                         total += read.toLong()
-                        pkgFile.setProgress(total)
+                        pkgFile.progress = total
                         fireUpdated(pkgFile)
                     }
                     fos.flush()

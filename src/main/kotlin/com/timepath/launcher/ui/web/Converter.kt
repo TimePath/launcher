@@ -69,8 +69,8 @@ class Converter {
                                 val elemDownload = document.createElement("download")
                                 run {
                                     elemDownload.setAttribute("progress", (when {
-                                        dep.getProgress() == 0L -> "0"
-                                        else -> ((dep.getProgress().toDouble() * 100.0) / dep.getSize().toDouble()).toString()
+                                        dep.progress == 0L -> "0"
+                                        else -> ((dep.progress.toDouble() * 100.0) / dep.size.toDouble()).toString()
                                     }))
                                     elemDownload.setAttribute("url", UpdateChecker.getDownloadURL(dep))
                                 }
