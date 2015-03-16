@@ -65,7 +65,7 @@ class Converter {
                         for (dep in p.`package`.getDownloads()) {
                             val elemPackage = document.createElement("entry")
                             run {
-                                elemPackage.setAttribute("name", dep.getName())
+                                elemPackage.setAttribute("name", dep.name)
                                 val elemDownload = document.createElement("download")
                                 run {
                                     elemDownload.setAttribute("progress", (when {
