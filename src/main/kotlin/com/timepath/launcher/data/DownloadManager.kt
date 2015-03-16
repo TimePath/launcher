@@ -106,7 +106,7 @@ public class DownloadManager {
             try {
                 semaphore.acquireUninterruptibly()
                 val retryCount = 10
-                for (i in 0..retryCount + 1 - 1) {
+                for (i in (retryCount + 1).indices) {
                     try {
                         val downloadFile: File
                         val checksumFile: File

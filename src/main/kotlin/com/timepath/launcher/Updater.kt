@@ -73,7 +73,7 @@ public class Updater private() {
                 //</editor-fold>
             }
             //<editor-fold defaultstate="collapsed" desc="on update detected restart">
-            for (i in 0..args.size() - 1) {
+            for (i in args.size().indices) {
                 if ("-u".equalsIgnoreCase(args[i])) {
                     try {
                         val sourceFile = File(args[i + 1])
