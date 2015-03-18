@@ -31,7 +31,7 @@ public class LogIOHandler : StreamHandler() {
                 try {
                     Socket(host, port).use { sock ->
                         pw = PrintWriter(sock.getOutputStream(), true)
-                        send("+node|" + node)
+                        send("+node|$node")
                     }
                 } catch (e: IOException) {
                     LOG.log(Level.SEVERE, null, e)
@@ -48,7 +48,7 @@ public class LogIOHandler : StreamHandler() {
             run {
                 val it = recordDeque.iterator()
                 while (it.hasNext()) {
-                    pw!!.print(it.next() + "\r\n")
+                    pw!!.print("${it.next()}\r\n")
                     it.remove()
                 }
             }
@@ -67,7 +67,7 @@ public class LogIOHandler : StreamHandler() {
     }
 
     synchronized override fun close() {
-        send("-node|" + node)
+        send("-node|$node")
         if (pw != null) {
             pw!!.close()
         }
@@ -81,7 +81,7 @@ public class LogIOHandler : StreamHandler() {
         override fun format(record: LogRecord): String {
             val level = record.getLevel().getName().toLowerCase()
             val message = MessageFormat.format("{0}: <{2}::{3}> {4}: {5}", dateFormat.format(Date(record.getMillis())), record.getLoggerName(), record.getSourceClassName(), record.getSourceMethodName(), record.getLevel(), formatMessage(record))
-            return "+log||" + node + '|' + level + '|' + message
+            return "+log||$node|$level|$message"
         }
     }
 

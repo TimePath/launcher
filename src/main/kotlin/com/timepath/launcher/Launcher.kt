@@ -114,7 +114,7 @@ public class Launcher {
 
     class object {
 
-        public val REPO_MAIN: String = "http://oss.jfrog.org/artifactory/oss-snapshot-local/com/timepath/launcher/config/" + "public.xml"
+        public val REPO_MAIN: String = "http://oss.jfrog.org/artifactory/oss-snapshot-local/com/timepath/launcher/config/public.xml"
         public val PREFS: Preferences = Preferences.userNodeForPackage(javaClass<Launcher>())
         private val LOG = Logger.getLogger(javaClass<Launcher>().getName())
         private val locked = object : Cache<Package, Boolean>() {
@@ -128,7 +128,7 @@ public class Launcher {
         }
 
         public fun setLocked(aPackage: Package, lock: Boolean) {
-            LOG.log(Level.INFO, (if (lock) "L" else "Unl") + "ocking {0}", aPackage)
+            LOG.log(Level.INFO, if (lock) "Locking {0}" else "Unlocking {0}", aPackage)
             locked.put(aPackage, lock)
         }
     }

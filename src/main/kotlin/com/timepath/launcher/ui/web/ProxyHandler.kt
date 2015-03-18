@@ -88,7 +88,7 @@ class ProxyHandler {
                 val ref = exchange.getRequestHeaders().getFirst("Referer")
                 LOG.log(Level.FINE, "Has referer {0}", ref)
                 if (ref != null) {
-                    val path = URL(ref + '/' + request).getPath()
+                    val path = URL("$ref/$request").getPath()
                     if (path.startsWith(Server.ENDPOINT_PROXY)) {
                         proxyRequest = path
                     }

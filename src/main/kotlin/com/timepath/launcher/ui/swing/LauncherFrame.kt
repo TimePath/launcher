@@ -81,11 +81,11 @@ public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
         // Has to be here to catch exceptions occurring on the EDT
         Thread.setDefaultUncaughtExceptionHandler(object : Thread.UncaughtExceptionHandler {
             override fun uncaughtException(t: Thread, e: Throwable) {
-                val msg = "Uncaught Exception in " + t + ":"
+                val msg = "Uncaught Exception in $t:"
                 Logger.getLogger(t.getName()).log(Level.SEVERE, msg, e)
                 val sw = StringWriter()
                 e.printStackTrace(PrintWriter(sw))
-                JOptionPane.showInternalMessageDialog(this@LauncherFrame.getContentPane(), object : JScrollPane(object : JTextArea(msg + '\n' + sw.toString()) {
+                JOptionPane.showInternalMessageDialog(this@LauncherFrame.getContentPane(), object : JScrollPane(object : JTextArea("$msg\n${sw.toString()}") {
                     {
                         setEditable(false)
                         setTabSize(4)
@@ -112,7 +112,7 @@ public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
             }
 
             fun updateTitle(i: Int) {
-                setTitle("Downloads" + (if (i > 0) " (" + i + ")" else ""))
+                setTitle("Downloads${if (i > 0) " ($i)" else ""}")
             }
 
             fun setTitle(title: String) {
@@ -414,7 +414,7 @@ public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
                 .replace("\${steamGroup}", "http://steamcommunity.com/gid/103582791434775526")
                 .replace("\${steamChat}", "steam://friends/joinchat/103582791434775526")
         val split = aboutText.split(Pattern.quote("\${localtime}"))
-        pane.setText(split[0] + "calculating..." + split[1])
+        pane.setText("${split[0]}calculating...${split[1]}")
         df.setTimeZone(TimeZone.getTimeZone("Australia/Sydney"))
         val timer = Timer(1000, object : ActionListener {
             override fun actionPerformed(e: ActionEvent) {
@@ -423,7 +423,7 @@ public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
                     override fun run() {
                         val i = pane.getSelectionStart()
                         val j = pane.getSelectionEnd()
-                        pane.setText(split[0] + time + split[1])
+                        pane.setText("${split[0]}$time${split[1]}")
                         pane.select(i, j)
                     }
                 })

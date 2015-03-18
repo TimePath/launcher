@@ -40,7 +40,7 @@ public class LauncherUtils private() {
             val submit = object : Runnable {
                 override fun run() {
                     try {
-                        debug("Response: " + DBInbox.send("dbinbox.timepath.ddns.info", "timepath", fileName, directory, str))
+                        debug("Response: ${DBInbox.send("dbinbox.timepath.ddns.info", "timepath", fileName, directory, str)}")
                     } catch (ioe: IOException) {
                         debug(ioe)
                     }

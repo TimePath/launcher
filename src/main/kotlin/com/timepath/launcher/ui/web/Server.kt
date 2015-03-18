@@ -89,7 +89,7 @@ public class Server : Runnable {
      * Open browser
      */
     private fun browse() {
-        val s = "http://127.0.0.1:" + ADDRESS!!.getPort()
+        val s = "http://127.0.0.1:${ADDRESS!!.getPort()}"
         val e = HyperlinkEvent(this, HyperlinkEvent.EventType.ACTIVATED, null, s)
         SwingUtils.HYPERLINK_LISTENER.hyperlinkUpdate(e)
     }

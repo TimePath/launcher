@@ -56,7 +56,7 @@ class WebHandler(private val launcher: Launcher) : HttpHandler {
                 val s = key.substring(1)
                 var `is`: InputStream? = javaClass.getResourceAsStream(cwp + s)
                 if (cwd != null) `is` = URL("${cwd}${s}").openStream()
-                if (`is` == null) throw FileNotFoundException("File not found: " + key)
+                if (`is` == null) throw FileNotFoundException("File not found: $key")
                 val data = read(`is`!!)
                 return Page(data, future)
             } catch (ignored: FileNotFoundException) {
@@ -74,7 +74,7 @@ class WebHandler(private val launcher: Launcher) : HttpHandler {
 
     {
         cwd = javaClass<Server>().getResource("")
-        cwp = ('/' + javaClass.getPackage().getName().replace('.', '/') + '/')
+        cwp = ("/${javaClass.getPackage().getName().replace('.', '/')}/")
         LOG.log(Level.INFO, "cwd: {0}", cwd)
         LOG.log(Level.INFO, "cwp: {0}", cwp)
         val task = object : TimerTask() {
@@ -110,9 +110,9 @@ class WebHandler(private val launcher: Launcher) : HttpHandler {
         }
         val headers = exchange.getResponseHeaders()
         if ("/" == request) {
-            headers.set("Cache-Control", "max-age=" + EXPIRES_INDEX)
+            headers.set("Cache-Control", "max-age=$EXPIRES_INDEX")
         } else {
-            headers.set("Cache-Control", "max-age=" + EXPIRES_ALL)
+            headers.set("Cache-Control", "max-age=$EXPIRES_ALL")
         }
         if (request.endsWith(".css")) {
             headers.set("Content-type", "text/css")

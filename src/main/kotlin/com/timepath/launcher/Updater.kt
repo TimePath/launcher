@@ -35,7 +35,7 @@ public class Updater private() {
                 //<editor-fold defaultstate="collapsed" desc="on user restart">
                 if (LauncherUtils.CURRENT_FILE != updateFile) {
                     try {
-                        val updateChecksum = File(updateFile.getPath() + '.' + Constants.ALGORITHM)
+                        val updateChecksum = File("${updateFile.getPath()}.${Constants.ALGORITHM}")
                         if (updateChecksum.exists()) {
                             val cksumExpected = updateChecksum.toURI().toURL().readText().trim()
                             LOG.log(Level.INFO, "Expecting checksum = {0}", cksumExpected)

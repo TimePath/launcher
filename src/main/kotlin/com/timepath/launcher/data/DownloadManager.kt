@@ -113,7 +113,7 @@ public class DownloadManager {
                         if (pkgFile.isSelf()) {
                             // Special case
                             downloadFile = LauncherUtils.UPDATE
-                            checksumFile = File(LauncherUtils.WORK_DIR, LauncherUtils.UPDATE.getName() + '.' + Constants.ALGORITHM)
+                            checksumFile = File(LauncherUtils.WORK_DIR, "${LauncherUtils.UPDATE.getName()}.${Constants.ALGORITHM}")
                         } else {
                             downloadFile = UpdateChecker.getFile(pkgFile)
                             checksumFile = UpdateChecker.getChecksumFile(pkgFile, Constants.ALGORITHM)
@@ -144,7 +144,7 @@ public class DownloadManager {
             val s = UpdateChecker.getDownloadURL(p)
             val connection = IOUtils.requestConnection(s, object : IOUtils.ConnectionSettings {
                 override fun apply(u: URLConnection) {
-                    u.setRequestProperty("Range", "bytes=" + pkgFile.progress + "-")
+                    u.setRequestProperty("Range", "bytes=${pkgFile.progress}-")
                 }
             })
             val partial = "bytes" == connection.getHeaderField("Accept-Ranges")
