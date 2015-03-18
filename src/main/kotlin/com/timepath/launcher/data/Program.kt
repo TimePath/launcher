@@ -1,6 +1,5 @@
 package com.timepath.launcher.data
 
-import com.timepath.IOUtils
 import com.timepath.SwingUtils
 import com.timepath.classloader.CompositeClassLoader
 import com.timepath.launcher.Launcher
@@ -16,6 +15,8 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.logging.Level
 import java.util.logging.Logger
 import java.awt.BorderLayout
+import java.net.URI
+import java.io.IOException
 
 /**
  * @author TimePath
@@ -95,7 +96,11 @@ public class Program(public val `package`: Package, public val title: String, pr
         if (newsfeedURL != null) {
             object : SwingWorker<JEditorPane, Void>() {
                 override fun doInBackground(): JEditorPane? {
-                    val s = IOUtils.requestPage(newsfeedURL)
+                    val s = try {
+                        URI(newsfeedURL).toURL().readText()
+                    } catch (ignored: IOException) {
+                        null
+                    }
                     val editorPane = JEditorPane("text/html", s)
                     editorPane.setEditable(false)
                     editorPane.addHyperlinkListener(SwingUtils.HYPERLINK_LISTENER)

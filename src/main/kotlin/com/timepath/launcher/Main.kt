@@ -20,7 +20,6 @@ import java.rmi.server.RMIServerSocketFactory
 import java.rmi.server.UnicastRemoteObject
 import java.security.*
 import java.util.Arrays
-import java.util.HashMap
 import java.util.logging.*
 import kotlin.properties.Delegates
 import kotlin.platform.platformStatic
@@ -31,34 +30,28 @@ import kotlin.platform.platformStatic
 public class Main : Protocol {
     private var launcher: Launcher? = null
 
-    throws(javaClass<RemoteException>())
     override fun newFrame() {
-        SwingUtilities.invokeLater(object : Runnable {
-            override fun run() {
-                if (launcher == null) {
-                    SwingUtils.lookAndFeel(LauncherUtils.SETTINGS)
-                    launcher = Launcher()
-                }
-                LauncherFrame(launcher!!).setVisible(true)
+        SwingUtilities.invokeLater {
+            if (launcher == null) {
+                SwingUtils.lookAndFeel(LauncherUtils.SETTINGS)
+                launcher = Launcher()
             }
-        })
+            LauncherFrame(launcher!!).setVisible(true)
+        }
     }
 
     class object {
 
         private val LOG = Logger.getLogger(javaClass<Main>().getName())
 
-        ;{
-            Thread.setDefaultUncaughtExceptionHandler(object : Thread.UncaughtExceptionHandler {
-                override fun uncaughtException(t: Thread, e: Throwable) {
-                    Logger.getLogger(t.getName()).log(Level.SEVERE, "Uncaught Exception in " + t + ":", e)
-                }
-            })
+                ;{
+            Thread.setDefaultUncaughtExceptionHandler {(thread, throwable) ->
+                Logger.getLogger(thread.getName()).log(Level.SEVERE, "Uncaught Exception in $thread:", throwable)
+            }
             Policy.setPolicy(object : Policy() {
-                override fun getPermissions(codesource: CodeSource): PermissionCollection {
-                    val perms = Permissions()
-                    perms.add(AllPermission())
-                    return perms
+                override fun getPermissions(codesource: CodeSource) = Permissions().let {
+                    it.add(AllPermission())
+                    it
                 }
             })
             System.setSecurityManager(null)
@@ -74,32 +67,31 @@ public class Main : Protocol {
                 LOG.log(Level.INFO, "Args = {0}", Arrays.toString(args))
                 Updater.checkForUpdate(args)
                 initLogging()
-                val dbg = HashMap<String, Any>(3)
-                dbg.put("name", ManagementFactory.getRuntimeMXBean().getName())
-                dbg.put("env", System.getenv())
-                dbg.put("properties", System.getProperties())
+                val dbg = mapOf(
+                        "name" to ManagementFactory.getRuntimeMXBean().getName(),
+                        "env" to System.getenv(),
+                        "properties" to System.getProperties()
+                )
                 val pprint = com.timepath.Utils.pprint(dbg)
                 if (!LauncherUtils.DEBUG) {
-                    LauncherUtils.log(LauncherUtils.USER + ".xml.gz", "launcher/" + LauncherUtils.CURRENT_VERSION + "/connects", pprint)
+                    LauncherUtils.log("${LauncherUtils.USER}.xml.gz", "launcher/${LauncherUtils.CURRENT_VERSION}/connects", pprint)
                 }
                 LOG.log(Level.INFO, "Startup: {0}ms", System.currentTimeMillis() - LauncherUtils.START_TIME)
             }
             try {
-                main!!.newFrame()
+                main.newFrame()
             } catch (e: RemoteException) {
                 LOG.log(Level.SEVERE, null, e)
             }
-
         }
 
-        public fun getInstance(): Protocol? {
+        public fun getInstance(): Protocol {
             val port = 1099 // FIXME: Hardcoded
-            var stub: Protocol? = null
-            if (Launcher.PREFS.getBoolean("rmi", false)) {
-                stub = createServer(port) ?: createClient(port)
-            }
-            if (stub == null) stub = Main() // Legacy fallback
-            return stub
+            val useRmi = Launcher.PREFS.getBoolean("rmi", false)
+            return when {
+                useRmi -> createServer(port) ?: createClient(port)
+                else -> null
+            } ?: Main()
         }
 
         private fun createClient(port: Int): Protocol? {
@@ -116,38 +108,30 @@ public class Main : Protocol {
             return null
         }
 
-        private fun createServer(port: Int): Protocol? {
-            var port = port
-            try {
-                class LocalRMIServerSocketFactory : RMIServerSocketFactory {
+        private fun createServer(port: Int) = try {
+            class LocalRMIServerSocketFactory : RMIServerSocketFactory {
 
-                    var socket: ServerSocket by Delegates.notNull()
+                var socket: ServerSocket by Delegates.notNull()
 
-                    throws(javaClass<IOException>())
-                    override fun createServerSocket(port: Int): ServerSocket {
-                        socket = ServerSocket(port, 0, InetAddress.getByName(null))
-                        return socket
-                    }
+                override fun createServerSocket(port: Int): ServerSocket {
+                    socket = ServerSocket(port, 0, InetAddress.getByName(null))
+                    return socket
                 }
-
-                val serverFactory = LocalRMIServerSocketFactory()
-                val registry = LocateRegistry.createRegistry(port, object : RMIClientSocketFactory {
-                    throws(javaClass<IOException>())
-                    override fun createSocket(host: String, port: Int): Socket {
-                        return Socket(host, port)
-                    }
-                }, serverFactory)
-                port = serverFactory.socket.getLocalPort()
-                LOG.log(Level.INFO, "RMI server listening on port {0}", port)
-                val main = Main()
-                val stub = UnicastRemoteObject.exportObject(main, 0) as Protocol
-                registry.rebind(RMI_ENDPOINT, stub)
-                return main
-            } catch (e: IOException) {
-                LOG.log(Level.WARNING, "Unable to start RMI server: {0}", e.getMessage())
-                return null
             }
 
+            val serverFactory = LocalRMIServerSocketFactory()
+            val registry = LocateRegistry.createRegistry(port, RMIClientSocketFactory {(host, port) ->
+                Socket(host, port)
+            }, serverFactory)
+            val realPort = serverFactory.socket.getLocalPort()
+            LOG.log(Level.INFO, "RMI server listening on port {0}", realPort)
+            val main = Main()
+            val stub = UnicastRemoteObject.exportObject(main, 0) as Protocol
+            registry.rebind(RMI_ENDPOINT, stub)
+            main
+        } catch (e: IOException) {
+            LOG.log(Level.WARNING, "Unable to start RMI server: {0}", e.getMessage())
+            null
         }
 
         private fun initLogging() {

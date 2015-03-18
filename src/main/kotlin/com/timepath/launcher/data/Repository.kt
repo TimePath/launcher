@@ -1,6 +1,5 @@
 package com.timepath.launcher.data
 
-import com.timepath.IOUtils
 import com.timepath.StringUtils
 import com.timepath.XMLUtils
 import com.timepath.launcher.LauncherUtils
@@ -20,6 +19,7 @@ import java.util.Collections
 import java.util.LinkedList
 import java.util.logging.Level
 import java.util.logging.Logger
+import java.net.URI
 
 /**
  * A repository contains a list of multiple {@code Package}s and their {@code Program}s
@@ -99,8 +99,11 @@ public class Repository private() {
          * @return
          */
         public fun fromIndex(location: String): Repository? {
-            val page = IOUtils.requestPage(location)
-            if (page == null) return null
+            val page = try {
+                URI(location).toURL().readText()
+            } catch (ignored: IOException) {
+                return null
+            }
             val data = page.toByteArray()
             val r = parse(findCompatible(ByteArrayInputStream(data)))
             r.location = location

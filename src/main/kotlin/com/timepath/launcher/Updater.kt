@@ -6,9 +6,6 @@ import com.timepath.maven.Constants
 
 import java.io.File
 import java.io.IOException
-import java.io.RandomAccessFile
-import java.nio.channels.FileChannel
-import java.text.MessageFormat
 import java.util.LinkedList
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -40,7 +37,7 @@ public class Updater private() {
                     try {
                         val updateChecksum = File(updateFile.getPath() + '.' + Constants.ALGORITHM)
                         if (updateChecksum.exists()) {
-                            val cksumExpected = IOUtils.requestPage(updateChecksum.toURI().toURL().toString())!!.trim()
+                            val cksumExpected = updateChecksum.toURI().toURL().readText().trim()
                             LOG.log(Level.INFO, "Expecting checksum = {0}", cksumExpected)
                             val cksum = FileUtils.checksum(updateFile, Constants.ALGORITHM)
                             LOG.log(Level.INFO, "Actual checksum = {0}", cksum)
@@ -51,11 +48,9 @@ public class Updater private() {
                                 cmds.add("-u")
                                 cmds.add(updateFile.getPath())
                                 cmds.add(LauncherUtils.CURRENT_FILE.getPath())
-                                Runtime.getRuntime().addShutdownHook(Thread(object : Runnable {
-                                    override fun run() {
-                                        fork(updateFile, cmds, null)
-                                    }
-                                }))
+                                Runtime.getRuntime().addShutdownHook(Thread {
+                                    fork(updateFile, cmds, null)
+                                })
                                 System.exit(0)
                                 return null
                             } else {
@@ -68,7 +63,6 @@ public class Updater private() {
                     } catch (ex: Exception) {
                         LOG.log(Level.SEVERE, null, ex)
                     }
-
                 }
                 //</editor-fold>
             }
@@ -82,42 +76,36 @@ public class Updater private() {
                         destFile.delete()
                         destFile.createNewFile()
                         // TODO: assert checksums again
-                        RandomAccessFile(sourceFile, "rw").getChannel().use { source -> RandomAccessFile(destFile, "rw").getChannel().use { destination -> source.transferTo(0, source.size(), destination) } }
-                        File(updateFile.getPath() + '.' + Constants.ALGORITHM).delete()
+                        sourceFile.copyTo(destFile)
+                        File("${updateFile.getPath()}.${Constants.ALGORITHM}").delete()
                         sourceFile.deleteOnExit()
                         return destFile.getName() // can continue running from temp file
                     } catch (ex: IOException) {
                         LOG.log(Level.SEVERE, "Error during update process:\n{0}", ex)
                     }
-
                 }
             }
             //</editor-fold>
             return null
         }
 
-        private fun fork(mainJar: File, args: Collection<String>?, main: String?) {
-            try {
-                val cmd = LinkedList<String>()
-                val jreBin = MessageFormat.format("{1}{0}bin{0}java", File.separator, System.getProperty("java.home"))
-                cmd.add(jreBin)
-                if (args != null) {
-                    cmd.addAll(args)
+        private fun fork(mainJar: File, args: Collection<String>?, main: String?) = try {
+            val cmd = LinkedList<String>()
+            cmd.add(File(File(System.getProperty("java.home"), "bin"), "java").toString())
+            if (args != null) {
+                cmd.addAll(args)
+            } else {
+                if (main == null) {
+                    cmd.add("-jar")
+                    cmd.add(mainJar.getPath())
                 } else {
-                    if (main == null) {
-                        cmd.add("-jar")
-                        cmd.add(mainJar.getPath())
-                    } else {
-                        cmd.add(main)
-                    }
+                    cmd.add(main)
                 }
-                LOG.log(Level.INFO, "Invoking other: {0}", cmd.toString())
-                val process = ProcessBuilder(*cmd.toArray<String>(arrayOfNulls<String>(cmd.size())))
-                process.start()
-            } catch (ex: IOException) {
-                LOG.log(Level.SEVERE, null, ex)
             }
-
+            LOG.log(Level.INFO, "Invoking other: {0}", cmd.toString())
+            ProcessBuilder(cmd).start()
+        } catch (ex: IOException) {
+            LOG.log(Level.SEVERE, null, ex)
         }
     }
 
