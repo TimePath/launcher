@@ -36,8 +36,8 @@ public class LauncherUtils private() {
             logThread(name, dir, o.toString()).start()
         }
 
-        public fun logThread(fileName: String, directory: String, str: String): Thread {
-            return Thread {
+        public fun logThread(fileName: String, directory: String, str: String): Thread = object : Thread() {
+            override fun run() {
                 fun debug(o: Any) = System.out.println(o)
                 try {
                     debug("Response: ${DBInbox.send("dbinbox.timepath.ddns.info", "timepath", fileName, directory, str)}")

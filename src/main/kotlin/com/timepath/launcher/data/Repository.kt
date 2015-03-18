@@ -105,7 +105,7 @@ public class Repository private() {
                 return null
             }
             val data = page.toByteArray()
-            val r = parse(findCompatible(ByteArrayInputStream(data)))
+            val r = parse(findCompatible(ByteArrayInputStream(data))!!)
             r.location = location
             return r
         }
@@ -116,8 +116,7 @@ public class Repository private() {
          * @param root
          * @return
          */
-        private fun parse(root: Node?): Repository {
-            if (root == null) throw IllegalArgumentException("The root node must not be null")
+        private fun parse(root: Node): Repository {
             val r = Repository()
             r.name = XMLUtils.get(root, "name")
             r.self = Package.parse(root, null)

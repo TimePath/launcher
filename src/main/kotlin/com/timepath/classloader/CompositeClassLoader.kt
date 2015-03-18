@@ -38,10 +38,7 @@ public class CompositeClassLoader : ClassLoader() {
      *
      * @param loader the {@code ClassLoader}
      */
-    public fun add(loader: ClassLoader?) {
-        if (loader == null) {
-            throw IllegalArgumentException("ClassLoader must not be null")
-        }
+    public fun add(loader: ClassLoader) {
         synchronized (loaders) {
             loaders.add(0, loader)
         }
