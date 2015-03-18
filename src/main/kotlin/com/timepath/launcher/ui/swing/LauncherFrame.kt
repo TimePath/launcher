@@ -77,7 +77,7 @@ public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
     protected var programSplit: JSplitPane by Delegates.notNull()
     protected var tabs: JTabbedPane by Delegates.notNull()
 
-    ;{
+            ;{
         // Has to be here to catch exceptions occurring on the EDT
         Thread.setDefaultUncaughtExceptionHandler(object : Thread.UncaughtExceptionHandler {
             override fun uncaughtException(t: Thread, e: Throwable) {
@@ -419,14 +419,12 @@ public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
         val timer = Timer(1000, object : ActionListener {
             override fun actionPerformed(e: ActionEvent) {
                 val time = df.format(System.currentTimeMillis())
-                SwingUtilities.invokeLater(object : Runnable {
-                    override fun run() {
-                        val i = pane.getSelectionStart()
-                        val j = pane.getSelectionEnd()
-                        pane.setText("${split[0]}$time${split[1]}")
-                        pane.select(i, j)
-                    }
-                })
+                SwingUtilities.invokeLater {
+                    val i = pane.getSelectionStart()
+                    val j = pane.getSelectionEnd()
+                    pane.setText("${split[0]}$time${split[1]}")
+                    pane.select(i, j)
+                }
             }
         })
         timer.setInitialDelay(0)

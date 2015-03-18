@@ -15,6 +15,7 @@ import java.util.concurrent.Future
 import java.util.logging.Level
 import java.util.logging.Logger
 import java.util.prefs.Preferences
+import kotlin.concurrent.thread
 
 /**
  * @author TimePath
@@ -56,20 +57,17 @@ public class Launcher {
      * @param program
      */
     public fun start(program: Program) {
-        val t = Thread(object : Runnable {
-            override fun run() {
-                try {
-                    program.run(cl)
-                } catch (throwable: Throwable) {
-                    throw RuntimeException(throwable)
-                }
-
+        thread(
+                name = program.toString(),
+                daemon = program.isDaemon(),
+                contextClassLoader = cl
+        ) {
+            try {
+                program.run(cl)
+            } catch (throwable: Throwable) {
+                throw RuntimeException(throwable)
             }
-        })
-        t.setName(program.toString())
-        t.setDaemon(program.isDaemon())
-        t.setContextClassLoader(cl)
-        t.start()
+        }
     }
 
     /**

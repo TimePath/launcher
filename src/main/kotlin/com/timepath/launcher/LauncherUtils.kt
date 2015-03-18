@@ -37,21 +37,14 @@ public class LauncherUtils private() {
         }
 
         public fun logThread(fileName: String, directory: String, str: String): Thread {
-            val submit = object : Runnable {
-                override fun run() {
-                    try {
-                        debug("Response: ${DBInbox.send("dbinbox.timepath.ddns.info", "timepath", fileName, directory, str)}")
-                    } catch (ioe: IOException) {
-                        debug(ioe)
-                    }
-
-                }
-
-                public fun debug(o: Any) {
-                    System.out.println(o)
+            return Thread {
+                fun debug(o: Any) = System.out.println(o)
+                try {
+                    debug("Response: ${DBInbox.send("dbinbox.timepath.ddns.info", "timepath", fileName, directory, str)}")
+                } catch (ioe: IOException) {
+                    debug(ioe)
                 }
             }
-            return Thread(submit)
         }
     }
 }

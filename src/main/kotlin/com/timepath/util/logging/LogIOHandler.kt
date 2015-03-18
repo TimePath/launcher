@@ -8,9 +8,9 @@ import java.net.Socket
 import java.text.DateFormat
 import java.text.MessageFormat
 import java.util.Date
-import java.util.Deque
 import java.util.LinkedList
 import java.util.logging.*
+import kotlin.concurrent.thread
 
 public class LogIOHandler : StreamHandler() {
     /**
@@ -26,19 +26,17 @@ public class LogIOHandler : StreamHandler() {
     }
 
     public fun connect(host: String, port: Int): LogIOHandler {
-        Thread(object : Runnable {
-            override fun run() {
-                try {
-                    Socket(host, port).use { sock ->
-                        pw = PrintWriter(sock.getOutputStream(), true)
-                        send("+node|$node")
-                    }
-                } catch (e: IOException) {
-                    LOG.log(Level.SEVERE, null, e)
+        thread {
+            try {
+                Socket(host, port).use { sock ->
+                    pw = PrintWriter(sock.getOutputStream(), true)
+                    send("+node|$node")
                 }
-
+            } catch (e: IOException) {
+                LOG.log(Level.SEVERE, null, e)
             }
-        }).start()
+
+        }
         return this
     }
 
