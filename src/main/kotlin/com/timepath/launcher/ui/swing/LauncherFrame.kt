@@ -367,7 +367,7 @@ public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
                         var run = true
                         if (!LauncherUtils.DEBUG && parent.isSelf()) {
                             // Alert on self update
-                            if (updates.contains(parent)) {
+                            if (parent in updates) {
                                 run = false
                                 JOptionPane.showInternalMessageDialog(this@LauncherFrame.getContentPane(), "Restart to apply", "Update downloaded", JOptionPane.INFORMATION_MESSAGE, null)
                             } else {
