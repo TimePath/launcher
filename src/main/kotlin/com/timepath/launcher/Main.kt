@@ -40,12 +40,12 @@ public class Main : Protocol {
         }
     }
 
-    class object {
+    companion object {
 
         private val LOG = Logger.getLogger(javaClass<Main>().getName())
 
-                ;{
-            Thread.setDefaultUncaughtExceptionHandler {(thread, throwable) ->
+        init {
+            Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
                 Logger.getLogger(thread.getName()).log(Level.SEVERE, "Uncaught Exception in $thread:", throwable)
             }
             Policy.setPolicy(object : Policy() {
@@ -120,7 +120,7 @@ public class Main : Protocol {
             }
 
             val serverFactory = LocalRMIServerSocketFactory()
-            val registry = LocateRegistry.createRegistry(port, RMIClientSocketFactory {(host, port) ->
+            val registry = LocateRegistry.createRegistry(port, RMIClientSocketFactory { host, port ->
                 Socket(host, port)
             }, serverFactory)
             val realPort = serverFactory.socket.getLocalPort()

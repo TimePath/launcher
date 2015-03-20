@@ -5,18 +5,15 @@ import com.sun.net.httpserver.HttpHandler
 import com.sun.net.httpserver.HttpServer
 import com.timepath.SwingUtils
 import com.timepath.launcher.Launcher
-import com.timepath.launcher.data.Program
-import com.timepath.launcher.data.Repository
 import com.timepath.util.concurrent.DaemonThreadFactory
-
-import javax.swing.event.HyperlinkEvent
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.util.concurrent.CountDownLatch
-import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.logging.Level
 import java.util.logging.Logger
+import javax.swing.event.HyperlinkEvent
+import kotlin.platform.platformStatic
 
 public class Server : Runnable {
 
@@ -94,7 +91,7 @@ public class Server : Runnable {
         SwingUtils.HYPERLINK_LISTENER.hyperlinkUpdate(e)
     }
 
-    class object {
+    companion object {
 
         public val BACKLOG: Int = 20
         public val ENDPOINT_PROXY: String = "/proxy"
@@ -104,10 +101,8 @@ public class Server : Runnable {
         private val LOG = Logger.getLogger(javaClass<Server>().getName())
         private var ADDRESS: InetSocketAddress? = null
 
-        public fun main(args: Array<String>) {
+        public platformStatic fun main(args: Array<String>) {
             Server().run()
         }
     }
 }
-
-fun main(args: Array<String>) = Server.main(args)

@@ -77,7 +77,7 @@ public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
     protected var programSplit: JSplitPane by Delegates.notNull()
     protected var tabs: JTabbedPane by Delegates.notNull()
 
-            ;{
+    init {
         // Has to be here to catch exceptions occurring on the EDT
         Thread.setDefaultUncaughtExceptionHandler(object : Thread.UncaughtExceptionHandler {
             override fun uncaughtException(t: Thread, e: Throwable) {
@@ -86,12 +86,12 @@ public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
                 val sw = StringWriter()
                 e.printStackTrace(PrintWriter(sw))
                 JOptionPane.showInternalMessageDialog(this@LauncherFrame.getContentPane(), object : JScrollPane(object : JTextArea("$msg\n${sw.toString()}") {
-                    {
+                    init {
                         setEditable(false)
                         setTabSize(4)
                     }
                 }) {
-                    {
+                    init {
                         val size = this@LauncherFrame.getSize()
                         size.width /= 2
                         size.height /= 2
@@ -102,7 +102,7 @@ public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
         })
     }
 
-    {
+    init {
         launcher.downloadManager.addListener(object : DownloadMonitor {
             var c = AtomicInteger()
 
@@ -212,16 +212,16 @@ public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
 
     protected fun initComponents() {
         aboutPanel = object : JPanel(BorderLayout()) {
-            {
+            init {
                 add(initAboutPanel(), BorderLayout.CENTER)
             }
         }
         setContentPane(object : JTabbedPane() {
-            {
+            init {
                 addTab("Programs", object : JSplitPane(JSplitPane.HORIZONTAL_SPLIT, true) {
-                    {
+                    init {
                         setLeftComponent(JScrollPane(object : JTree(null as? TreeModel) {
-                            {
+                            init {
                                 setRootVisible(false)
                                 setShowsRootHandles(true)
                                 getSelectionModel().addTreeSelectionListener(object : TreeSelectionListener {
@@ -265,9 +265,9 @@ public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
                             it
                         }))
                         setRightComponent(object : JPanel(BorderLayout()) {
-                            {
+                            init {
                                 add(object : JScrollPane() {
-                                    {
+                                    init {
                                         getVerticalScrollBar().setUnitIncrement(16)
                                     }
                                 }.let {
@@ -300,9 +300,9 @@ public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
             it
         })
         setJMenuBar(object : JMenuBar() {
-            {
+            init {
                 add(object : JMenu("Tools") {
-                    {
+                    init {
                         add(JMenuItem(object : AbstractAction("Repository management") {
                             override fun actionPerformed(e: ActionEvent) {
                                 JOptionPane.showInternalMessageDialog(this@LauncherFrame.getContentPane(), repositoryManager, "Repository manager", JOptionPane.PLAIN_MESSAGE)
@@ -328,7 +328,7 @@ public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
                     }
                 })
                 add(object : JMenu("Help") {
-                    {
+                    init {
                         add(JMenuItem(object : AbstractAction("About") {
                             override fun actionPerformed(e: ActionEvent) {
                                 JOptionPane.showInternalMessageDialog(this@LauncherFrame.getContentPane(), aboutPanel)
@@ -398,7 +398,7 @@ public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
 
     protected fun initAboutPanel(): JEditorPane {
         val pane = object : JEditorPane("text/html", "") {
-            {
+            init {
                 setEditable(false)
                 setOpaque(false)
                 setBackground(Color(255, 255, 255, 0))
@@ -441,7 +441,7 @@ public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
         return pane
     }
 
-    class object {
+    companion object {
 
         private val LOG = Logger.getLogger(javaClass<LauncherFrame>().getName())
 
@@ -449,9 +449,7 @@ public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
          * Get a program from a TreeNode
          */
         protected fun getSelected(selected: Any): Program? {
-            if (selected !is DefaultMutableTreeNode) return null
-            val obj = (selected).getUserObject()
-            return if (obj is Program) obj else null
+            return (selected as? DefaultMutableTreeNode)?.getUserObject() as? Program
         }
     }
 }

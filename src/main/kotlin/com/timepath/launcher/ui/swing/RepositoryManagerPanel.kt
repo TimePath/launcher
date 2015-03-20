@@ -18,7 +18,7 @@ abstract class RepositoryManagerPanel protected() : JPanel() {
     protected var jTable1: JTable? = null
     protected var model: ObjectBasedTableModel<Repository>? = null
 
-    {
+    init {
         jTable1 = JTable(object : ObjectBasedTableModel<Repository>() {
             override fun columns(): Array<String> {
                 return COLUMNS
@@ -82,7 +82,7 @@ abstract class RepositoryManagerPanel protected() : JPanel() {
         model!!.setRows(repositories)
     }
 
-    class object {
+    companion object {
 
         public val COLUMNS: Array<String> = array("Repository", "Location", "Enabled")
     }

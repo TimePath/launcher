@@ -15,7 +15,7 @@ import java.util.logging.Logger
 SuppressWarnings("serial")
 public class ThemeSelector : JComboBox<String>() {
 
-    {
+    init {
         val model = DefaultComboBoxModel<String>()
         setModel(model)
         val currentLafClass = UIManager.getLookAndFeel().javaClass.getName()
@@ -63,7 +63,7 @@ public class ThemeSelector : JComboBox<String>() {
         })
     }
 
-    class object {
+    companion object {
 
         private val LOG = Logger.getLogger(javaClass<ThemeSelector>().getName())
     }

@@ -10,7 +10,7 @@ public class LogFileHandler [throws(javaClass<IOException>())]() : Handler() {
     private val fh: FileHandler
     public val logFile: File
 
-    {
+    init {
         // I have to set this up to be able to recall it
         logFile = File(LauncherUtils.CURRENT_FILE.getParentFile(), "logs/log_${System.currentTimeMillis() / 1000}.txt")
         logFile.getParentFile().mkdirs()

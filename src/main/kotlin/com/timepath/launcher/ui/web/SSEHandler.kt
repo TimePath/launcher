@@ -23,7 +23,7 @@ open class SSEHandler : HttpHandler {
         exchange.sendResponseHeaders(HttpURLConnection.HTTP_OK, 0)
     }
 
-    class object {
+    companion object {
 
         protected fun event(message: String): String? {
             return event(message, null)

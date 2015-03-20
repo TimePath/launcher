@@ -89,7 +89,7 @@ public class Repository private() {
         this.enabled = enabled
     }
 
-    class object {
+    companion object {
         private val LOG = Logger.getLogger(javaClass<Repository>().getName())
 
         /**

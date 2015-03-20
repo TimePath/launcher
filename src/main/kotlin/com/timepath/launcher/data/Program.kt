@@ -28,7 +28,7 @@ public class Program(public val `package`: Package, public val title: String, pr
     private var daemon: Boolean = false
     private var panel: JPanel? = null
 
-    {
+    init {
         this.args = args ?: listOf<String>()
     }
 
@@ -125,7 +125,7 @@ public class Program(public val `package`: Package, public val title: String, pr
         return panel
     }
 
-    class object {
+    companion object {
 
         private val LOG = Logger.getLogger(javaClass<Program>().getName())
         private val autoId = AtomicInteger()

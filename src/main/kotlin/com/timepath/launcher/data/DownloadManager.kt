@@ -93,7 +93,7 @@ public class DownloadManager {
     private inner class DownloadTask (private val pkgFile: Package) : Runnable {
         private var temp: File? = null
 
-        {
+        init {
             try {
                 this.temp = File.createTempFile("pkg", "")
             } catch (e: IOException) {
@@ -170,7 +170,7 @@ public class DownloadManager {
         }
     }
 
-    class object {
+    companion object {
 
         public val MAX_CONCURRENT_CONNECTIONS: Int = 10
         val LOG = Logger.getLogger(javaClass<DownloadManager>().getName())

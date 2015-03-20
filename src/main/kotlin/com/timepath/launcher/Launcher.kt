@@ -110,7 +110,7 @@ public class Launcher {
         }
     }
 
-    class object {
+    companion object {
 
         public val REPO_MAIN: String = "http://oss.jfrog.org/artifactory/oss-snapshot-local/com/timepath/launcher/config/public.xml"
         public val PREFS: Preferences = Preferences.userNodeForPackage(javaClass<Launcher>())

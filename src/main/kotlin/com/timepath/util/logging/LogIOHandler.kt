@@ -21,7 +21,7 @@ public class LogIOHandler : StreamHandler() {
     private val recordDeque = LinkedList<String>()
     volatile private var pw: PrintWriter? = null
 
-    {
+    init {
         setFormatter(LogIOFormatter())
     }
 
@@ -83,7 +83,7 @@ public class LogIOHandler : StreamHandler() {
         }
     }
 
-    class object {
+    companion object {
 
         private val LOG = Logger.getLogger(javaClass<LogIOHandler>().getName())
     }

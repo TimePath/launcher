@@ -44,7 +44,7 @@ public class CompositeClassLoader : ClassLoader() {
         }
     }
 
-    {
+    init {
         add(javaClass.getClassLoader()) // our parent classloader
     }
 
@@ -204,7 +204,7 @@ public class CompositeClassLoader : ClassLoader() {
         return super.findLibrary(libname)
     }
 
-    class object {
+    companion object {
 
         private val LOG = Logger.getLogger(javaClass<CompositeClassLoader>().getName())
 

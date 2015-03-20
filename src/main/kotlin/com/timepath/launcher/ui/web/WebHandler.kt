@@ -72,7 +72,7 @@ class WebHandler(private val launcher: Launcher) : HttpHandler {
         }
     }
 
-    {
+    init {
         cwd = javaClass<Server>().getResource("")
         cwp = ("/${javaClass.getPackage().getName().replace('.', '/')}/")
         LOG.log(Level.INFO, "cwd: {0}", cwd)
@@ -130,7 +130,7 @@ class WebHandler(private val launcher: Launcher) : HttpHandler {
         }
     }
 
-    class object {
+    companion object {
 
         private val EXPIRES_ALL = 60 * 60 // Hour
         private val EXPIRES_INDEX = if (LauncherUtils.DEBUG) 1 else 10

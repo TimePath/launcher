@@ -15,7 +15,7 @@ class DownloadPanel : JPanel() {
     public var tableModel: ObjectBasedTableModel<Package>? = null
         protected set
 
-    {
+    init {
         val jTable1 = JTable()
         jTable1.setModel(object : ObjectBasedTableModel<Package>() {
             override fun columns(): Array<String> {
@@ -44,7 +44,7 @@ class DownloadPanel : JPanel() {
         layout.setVerticalGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING).addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 300, java.lang.Short.MAX_VALUE.toInt()))
     }
 
-    class object {
+    companion object {
 
         public fun human(count: Double): String {
             val factor = 1000
