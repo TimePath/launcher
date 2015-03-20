@@ -70,8 +70,46 @@ abstract class RepositoryManagerPanel protected() : JPanel() {
         jPanel1Layout.setVerticalGroup(jPanel1Layout.createParallelGroup(GroupLayout.Alignment.LEADING).addGroup(jPanel1Layout.createSequentialGroup().addContainerGap().addGroup(jPanel1Layout.createParallelGroup(GroupLayout.Alignment.BASELINE).addComponent(addButton).addComponent(removeButton)).addContainerGap(GroupLayout.DEFAULT_SIZE, java.lang.Short.MAX_VALUE.toInt())))
         val layout = GroupLayout(this)
         setLayout(layout)
-        layout.setHorizontalGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING).addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup().addContainerGap().addGroup(layout.createParallelGroup(GroupLayout.Alignment.TRAILING).addComponent(jPanel1, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, java.lang.Short.MAX_VALUE.toInt()).addComponent(jScrollPane1, GroupLayout.PREFERRED_SIZE, 0, java.lang.Short.MAX_VALUE.toInt())).addContainerGap()))
-        layout.setVerticalGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING).addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup().addContainerGap().addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 275, java.lang.Short.MAX_VALUE.toInt()).addPreferredGap(LayoutStyle.ComponentPlacement.RELATED).addComponent(jPanel1, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE).addContainerGap()))
+        layout.setHorizontalGroup(
+                layout.createParallelGroup(
+                        GroupLayout.Alignment.LEADING)
+                        .addGroup(
+                                GroupLayout.Alignment.TRAILING,
+                                layout.createSequentialGroup()
+                                        .addContainerGap()
+                                        .addGroup(
+                                                layout.createParallelGroup(
+                                                        GroupLayout.Alignment.TRAILING)
+                                                        .addComponent(
+                                                                jPanel1,
+                                                                GroupLayout.DEFAULT_SIZE,
+                                                                GroupLayout.DEFAULT_SIZE,
+                                                                java.lang.Short.MAX_VALUE.toInt())
+                                                        .addComponent(
+                                                                jScrollPane1!!,
+                                                                GroupLayout.PREFERRED_SIZE,
+                                                                0,
+                                                                java.lang.Short.MAX_VALUE.toInt()))
+                                        .addContainerGap()))
+        layout.setVerticalGroup(
+                layout.createParallelGroup(
+                        GroupLayout.Alignment.LEADING)
+                        .addGroup(
+                                GroupLayout.Alignment.TRAILING,
+                                layout.createSequentialGroup()
+                                        .addContainerGap()
+                                        .addComponent(
+                                                jScrollPane1!!,
+                                                GroupLayout.DEFAULT_SIZE,
+                                                275,
+                                                java.lang.Short.MAX_VALUE.toInt())
+                                        .addPreferredGap(
+                                                LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(jPanel1,
+                                                GroupLayout.PREFERRED_SIZE,
+                                                GroupLayout.DEFAULT_SIZE,
+                                                GroupLayout.PREFERRED_SIZE).
+                                        addContainerGap()))
     }
 
     protected abstract fun addActionPerformed(evt: ActionEvent)

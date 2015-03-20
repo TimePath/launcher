@@ -72,7 +72,7 @@ public class Main : Protocol {
                         "env" to System.getenv(),
                         "properties" to System.getProperties()
                 )
-                val pprint = com.timepath.Utils.pprint(dbg)
+                val pprint = com.timepath.Utils.pprint(dbg)!!
                 if (!LauncherUtils.DEBUG) {
                     LauncherUtils.log("${LauncherUtils.USER}.xml.gz", "launcher/${LauncherUtils.CURRENT_VERSION}/connects", pprint)
                 }

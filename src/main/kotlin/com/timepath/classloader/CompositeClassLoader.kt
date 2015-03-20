@@ -131,6 +131,7 @@ public class CompositeClassLoader : ClassLoader() {
                 try {
                     val method = javaClass<ClassLoader>().getDeclaredMethod(methodStr, key.javaClass)
                     method.setAccessible(true)
+                    [suppress("UNCHECKED_CAST")]
                     val u = method.invoke(cl, key) as B
                     if (u != null) {
                         // return with first result

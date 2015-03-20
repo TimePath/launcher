@@ -139,15 +139,16 @@ class WebHandler(private val launcher: Launcher) : HttpHandler {
         /**
          * Reads an InputStream to a byte array
          *
-         * @param is The stream to read from
+         * @param input The stream to read from
          * @return The bytes read
          * @throws IOException
          */
         throws(javaClass<IOException>())
-        private fun read(`is`: InputStream): ByteArray {
-            var `is` = `is`.buffered()
-            val baos = ByteArrayOutputStream(`is`.available())
-            `is`.copyTo(baos)
+        private fun read(input: InputStream): ByteArray {
+            [suppress("NAME_SHADOWING")]
+            val input = input.buffered()
+            val baos = ByteArrayOutputStream(input.available())
+            input.copyTo(baos)
             return baos.toByteArray()
         }
 

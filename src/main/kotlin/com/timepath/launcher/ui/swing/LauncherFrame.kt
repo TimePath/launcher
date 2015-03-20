@@ -11,7 +11,21 @@ import com.timepath.launcher.data.RepositoryManager
 import com.timepath.maven.Package
 import com.timepath.maven.PersistentCache
 import com.timepath.swing.ThemeSelector
-
+import java.awt.*
+import java.awt.event.*
+import java.beans.PropertyChangeEvent
+import java.beans.PropertyChangeListener
+import java.io.PrintWriter
+import java.io.StringWriter
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.TimeZone
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.logging.Level
+import java.util.logging.Logger
+import java.util.prefs.BackingStoreException
+import java.util.regex.Pattern
 import javax.swing.*
 import javax.swing.event.TreeSelectionEvent
 import javax.swing.event.TreeSelectionListener
@@ -19,26 +33,7 @@ import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 import javax.swing.tree.TreeModel
 import javax.swing.tree.TreePath
-import java.awt.event.*
-import java.beans.PropertyChangeEvent
-import java.beans.PropertyChangeListener
-import java.io.PrintWriter
-import java.io.StringWriter
-import java.text.SimpleDateFormat
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.atomic.AtomicInteger
-import java.util.logging.Level
-import java.util.logging.Logger
-import java.util.prefs.BackingStoreException
-import java.util.regex.Pattern
 import kotlin.properties.Delegates
-import java.awt.GraphicsEnvironment
-import java.awt.Dimension
-import java.awt.Cursor
-import java.awt.BorderLayout
-import java.awt.Color
-import java.util.TimeZone
-import java.util.Date
 
 SuppressWarnings("serial")
 public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
@@ -220,46 +215,46 @@ public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
             init {
                 addTab("Programs", object : JSplitPane(JSplitPane.HORIZONTAL_SPLIT, true) {
                     init {
-                        setLeftComponent(JScrollPane(object : JTree(null as? TreeModel) {
-                            init {
-                                setRootVisible(false)
-                                setShowsRootHandles(true)
-                                getSelectionModel().addTreeSelectionListener(object : TreeSelectionListener {
-                                    override fun valueChanged(e: TreeSelectionEvent) {
-                                        news(getSelected(getLastSelectedPathComponent()))
-                                    }
-                                })
-                                addKeyListener(object : KeyAdapter() {
-                                    override fun keyPressed(e: KeyEvent) {
-                                        if (e.getKeyCode() == KeyEvent.VK_ENTER) start(getSelected(getLastSelectedPathComponent()))
-                                    }
-                                })
-                                val adapter = object : MouseAdapter() {
-                                    override fun mouseClicked(e: MouseEvent) {
-                                        if (select(e) == -1) return
-                                        if (SwingUtilities.isLeftMouseButton(e) && (e.getClickCount() >= 2)) {
-                                            val p = getSelected(getLastSelectedPathComponent())
-                                            start(p)
-                                        }
-                                    }
-
-                                    override fun mousePressed(e: MouseEvent) {
-                                        select(e)
-                                    }
-
-                                    override fun mouseDragged(e: MouseEvent) {
-                                        select(e)
-                                    }
-
-                                    private fun select(e: MouseEvent): Int {
-                                        val selRow = getClosestRowForLocation(e.getX(), e.getY())
-                                        setSelectionRow(selRow)
-                                        return selRow
+                        setLeftComponent(JScrollPane(with(JTree()) {
+                            setModel(null)
+                            setRootVisible(false)
+                            setShowsRootHandles(true)
+                            getSelectionModel().addTreeSelectionListener(object : TreeSelectionListener {
+                                override fun valueChanged(e: TreeSelectionEvent) {
+                                    news(getSelected(getLastSelectedPathComponent()))
+                                }
+                            })
+                            addKeyListener(object : KeyAdapter() {
+                                override fun keyPressed(e: KeyEvent) {
+                                    if (e.getKeyCode() == KeyEvent.VK_ENTER) start(getSelected(getLastSelectedPathComponent()))
+                                }
+                            })
+                            val adapter = object : MouseAdapter() {
+                                override fun mouseClicked(e: MouseEvent) {
+                                    if (select(e) == -1) return
+                                    if (SwingUtilities.isLeftMouseButton(e) && (e.getClickCount() >= 2)) {
+                                        val p = getSelected(getLastSelectedPathComponent())
+                                        start(p)
                                     }
                                 }
-                                addMouseMotionListener(adapter)
-                                addMouseListener(adapter)
+
+                                override fun mousePressed(e: MouseEvent) {
+                                    select(e)
+                                }
+
+                                override fun mouseDragged(e: MouseEvent) {
+                                    select(e)
+                                }
+
+                                private fun select(e: MouseEvent): Int {
+                                    val selRow = getClosestRowForLocation(e.getX(), e.getY())
+                                    setSelectionRow(selRow)
+                                    return selRow
+                                }
                             }
+                            addMouseMotionListener(adapter)
+                            addMouseListener(adapter)
+                            this
                         }.let {
                             programList = it
                             it
@@ -418,11 +413,10 @@ public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
         df.setTimeZone(TimeZone.getTimeZone("Australia/Sydney"))
         val timer = Timer(1000, object : ActionListener {
             override fun actionPerformed(e: ActionEvent) {
-                val time = df.format(System.currentTimeMillis())
                 SwingUtilities.invokeLater {
                     val i = pane.getSelectionStart()
                     val j = pane.getSelectionEnd()
-                    pane.setText("${split[0]}$time${split[1]}")
+                    pane.setText("${split[0]}${df.format(System.currentTimeMillis())}${split[1]}")
                     pane.select(i, j)
                 }
             }

@@ -121,9 +121,7 @@ public class Launcher {
             }
         }
 
-        public fun isLocked(aPackage: Package): Boolean {
-            return locked[aPackage]
-        }
+        public fun isLocked(aPackage: Package): Boolean = locked[aPackage] ?: false
 
         public fun setLocked(aPackage: Package, lock: Boolean) {
             LOG.log(Level.INFO, if (lock) "Locking {0}" else "Unlocking {0}", aPackage)

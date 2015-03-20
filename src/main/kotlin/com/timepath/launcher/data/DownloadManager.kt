@@ -150,8 +150,9 @@ public class DownloadManager {
             val partial = "bytes" == connection.getHeaderField("Accept-Ranges")
             pkgFile.size = connection.getContentLengthLong()
             p.associate(connection)
+            val temp = temp!!
             IOUtils.createFile(temp)
-            LOG.log(Level.INFO, "Downloading {0} > {1}", array<Any>(s, temp!!))
+            LOG.log(Level.INFO, "Downloading {0} > {1}", array<Any>(s, temp))
             val buffer = ByteArray(8192)
             IOUtils.openStream(connection).use { `is` ->
                 BufferedOutputStream(FileOutputStream(temp, partial)).use { fos ->

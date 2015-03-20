@@ -23,7 +23,7 @@ public object RepositoryManager {
     private val LOG = Logger.getLogger(javaClass<RepositoryManager>().getName())
 
     public fun addRepository(r: Repository) {
-        getNode(r).put(KEY_URL, r.location)
+        getNode(r).put(KEY_URL, r.location!!)
     }
 
     private fun getNode(r: Repository): Preferences {

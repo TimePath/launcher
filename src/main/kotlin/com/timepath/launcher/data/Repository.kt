@@ -67,7 +67,7 @@ public class Repository private() {
      * @return the executions
      */
     public fun getExecutions(): List<Program> {
-        return if (enabled) Collections.unmodifiableList<Program>(executions) else listOf<Program>()
+        return if (enabled) Collections.unmodifiableList<Program>(executions!!) else listOf<Program>()
     }
 
     override fun toString(): String {
@@ -127,7 +127,7 @@ public class Repository private() {
                 // extended format with execution data
                 for (execution in XMLUtils.getElements(entry, "executions/execution")) {
                     val cfg = XMLUtils.last<Node>(XMLUtils.getElements(execution, "configuration"))
-                    val p = Program(pkg!!, XMLUtils.get(execution, "name"), XMLUtils.get(execution, "url"), XMLUtils.get(cfg, "main"), StringUtils.argParse(XMLUtils.get(cfg, "args")))
+                    val p = Program(pkg!!, XMLUtils.get(execution, "name")!!, XMLUtils.get(execution, "url"), XMLUtils.get(cfg, "main")!!, StringUtils.argParse(XMLUtils.get(cfg, "args")))
                     r.executions!!.add(p)
                     val daemonStr = XMLUtils.get(cfg, "daemon")
                     if (daemonStr != null) p.setDaemon(java.lang.Boolean.parseBoolean(daemonStr))
