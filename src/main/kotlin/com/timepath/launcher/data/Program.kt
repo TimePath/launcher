@@ -5,18 +5,19 @@ import com.timepath.classloader.CompositeClassLoader
 import com.timepath.launcher.Launcher
 import com.timepath.maven.Package
 import com.timepath.maven.UpdateChecker
-
-import javax.swing.*
+import java.awt.BorderLayout
+import java.io.IOException
 import java.net.MalformedURLException
+import java.net.URI
 import java.net.URL
 import java.util.HashSet
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.logging.Level
 import java.util.logging.Logger
-import java.awt.BorderLayout
-import java.net.URI
-import java.io.IOException
+import javax.swing.JEditorPane
+import javax.swing.JPanel
+import javax.swing.SwingWorker
 
 /**
  * @author TimePath

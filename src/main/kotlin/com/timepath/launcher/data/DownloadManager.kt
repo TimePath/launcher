@@ -6,8 +6,10 @@ import com.timepath.maven.Constants
 import com.timepath.maven.Package
 import com.timepath.maven.UpdateChecker
 import com.timepath.util.concurrent.DaemonThreadFactory
-
-import java.io.*
+import java.io.BufferedOutputStream
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.URLConnection
 import java.nio.file.Files

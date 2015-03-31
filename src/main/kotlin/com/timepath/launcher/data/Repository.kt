@@ -6,20 +6,19 @@ import com.timepath.launcher.LauncherUtils
 import com.timepath.maven.Package
 import org.w3c.dom.Node
 import org.xml.sax.SAXException
-
-import javax.xml.parsers.DocumentBuilderFactory
-import javax.xml.parsers.ParserConfigurationException
-import javax.xml.transform.dom.DOMSource
 import java.io.BufferedInputStream
 import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.io.InputStream
+import java.net.URI
 import java.text.MessageFormat
 import java.util.Collections
 import java.util.LinkedList
 import java.util.logging.Level
 import java.util.logging.Logger
-import java.net.URI
+import javax.xml.parsers.DocumentBuilderFactory
+import javax.xml.parsers.ParserConfigurationException
+import javax.xml.transform.dom.DOMSource
 
 /**
  * A repository contains a list of multiple {@code Package}s and their {@code Program}s

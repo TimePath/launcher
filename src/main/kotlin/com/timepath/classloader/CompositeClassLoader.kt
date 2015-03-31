@@ -5,19 +5,15 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.lang.reflect.InvocationTargetException
-import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.net.URL
 import java.net.URLClassLoader
 import java.nio.channels.Channels
-import java.nio.channels.FileChannel
-import java.nio.channels.ReadableByteChannel
+import java.security.AccessController.doPrivileged
 import java.security.PrivilegedAction
 import java.util.*
 import java.util.logging.Level
 import java.util.logging.Logger
-
-import java.security.AccessController.doPrivileged
 
 /**
  * Breaks the {@code ClassLoader} contract to first delegate to other {@code ClassLoader}s before its parent

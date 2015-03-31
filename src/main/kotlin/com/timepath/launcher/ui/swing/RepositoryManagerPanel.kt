@@ -2,9 +2,8 @@ package com.timepath.launcher.ui.swing
 
 import com.timepath.launcher.data.Repository
 import com.timepath.swing.ObjectBasedTableModel
-
-import javax.swing.*
 import java.awt.event.ActionEvent
+import javax.swing.*
 
 /**
  * @author TimePath

@@ -1,9 +1,9 @@
 package com.timepath.swing
 
 
-import javax.swing.table.AbstractTableModel
 import java.util.ArrayList
 import java.util.Arrays
+import javax.swing.table.AbstractTableModel
 
 /**
  * @param <E>

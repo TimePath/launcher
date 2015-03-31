@@ -6,10 +6,6 @@ import com.timepath.XMLUtils
 import com.timepath.launcher.Launcher
 import com.timepath.launcher.LauncherUtils
 import com.timepath.util.Cache
-
-import javax.xml.parsers.ParserConfigurationException
-import javax.xml.transform.TransformerException
-import javax.xml.transform.stream.StreamSource
 import java.io.*
 import java.net.HttpURLConnection
 import java.net.URL
@@ -18,6 +14,9 @@ import java.util.Timer
 import java.util.TimerTask
 import java.util.logging.Level
 import java.util.logging.Logger
+import javax.xml.parsers.ParserConfigurationException
+import javax.xml.transform.TransformerException
+import javax.xml.transform.stream.StreamSource
 
 class WebHandler(private val launcher: Launcher) : HttpHandler {
     /**

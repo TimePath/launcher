@@ -5,8 +5,6 @@ import com.timepath.launcher.ui.swing.LauncherFrame
 import com.timepath.util.logging.LogAggregator
 import com.timepath.util.logging.LogFileHandler
 import com.timepath.util.logging.LogIOHandler
-
-import javax.swing.*
 import java.io.IOException
 import java.lang.management.ManagementFactory
 import java.net.InetAddress
@@ -18,11 +16,18 @@ import java.rmi.registry.LocateRegistry
 import java.rmi.server.RMIClientSocketFactory
 import java.rmi.server.RMIServerSocketFactory
 import java.rmi.server.UnicastRemoteObject
-import java.security.*
+import java.security.AllPermission
+import java.security.CodeSource
+import java.security.Permissions
+import java.security.Policy
 import java.util.Arrays
-import java.util.logging.*
-import kotlin.properties.Delegates
+import java.util.logging.ConsoleHandler
+import java.util.logging.Level
+import java.util.logging.Logger
+import java.util.logging.SimpleFormatter
+import javax.swing.SwingUtilities
 import kotlin.platform.platformStatic
+import kotlin.properties.Delegates
 
 /**
  * @author TimePath

@@ -3,8 +3,10 @@ package com.timepath.launcher.ui.swing
 import com.timepath.maven.Package
 import com.timepath.maven.UpdateChecker
 import com.timepath.swing.ObjectBasedTableModel
-
-import javax.swing.*
+import javax.swing.GroupLayout
+import javax.swing.JPanel
+import javax.swing.JScrollPane
+import javax.swing.JTable
 
 /**
  * @author TimePath

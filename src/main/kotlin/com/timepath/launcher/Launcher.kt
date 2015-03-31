@@ -8,8 +8,8 @@ import com.timepath.launcher.data.RepositoryManager
 import com.timepath.maven.Package
 import com.timepath.maven.UpdateChecker
 import com.timepath.util.Cache
-
-import java.util.*
+import java.util.HashMap
+import java.util.LinkedList
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.logging.Level
