@@ -7,9 +7,8 @@ import com.timepath.maven.Package
 import com.timepath.maven.UpdateChecker
 import java.awt.BorderLayout
 import java.io.IOException
-import java.net.MalformedURLException
-import java.net.URI
-import java.net.URL
+import java.io.InputStream
+import java.net.*
 import java.util.HashSet
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.atomic.AtomicInteger
@@ -79,6 +78,18 @@ public class Program(public val `package`: Package, public val title: String, pr
         this.daemon = daemon
     }
 
+    fun URL.openFollowRedirects(proxy: Proxy = Proxy.NO_PROXY): InputStream {
+        val conn = openConnection(proxy) as HttpURLConnection
+        return when (conn.getResponseCode()) {
+            HttpURLConnection.HTTP_MOVED_PERM,
+            HttpURLConnection.HTTP_MOVED_TEMP,
+            HttpURLConnection.HTTP_SEE_OTHER -> {
+                URI(conn.getHeaderField("Location")).toURL().openFollowRedirects(proxy)
+            }
+            else -> conn.getInputStream()
+        }
+    }
+
     public fun getPanel(): JPanel? {
         if (panel != null) return panel
         panel = JPanel(BorderLayout())
@@ -94,7 +105,7 @@ public class Program(public val `package`: Package, public val title: String, pr
             object : SwingWorker<JEditorPane, Void>() {
                 override fun doInBackground(): JEditorPane? {
                     val s = try {
-                        URI(newsfeedURL).toURL().readText()
+                        URI(newsfeedURL).toURL().openFollowRedirects().bufferedReader().readText()
                     } catch (ignored: IOException) {
                         null
                     }
