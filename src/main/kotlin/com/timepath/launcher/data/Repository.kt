@@ -22,10 +22,8 @@ import javax.xml.transform.dom.DOMSource
 
 /**
  * A repository contains a list of multiple {@code Package}s and their {@code Program}s
- *
- * @author TimePath
  */
-public class Repository private() {
+public class Repository private constructor() {
     /**
      * URL to the index file
      */

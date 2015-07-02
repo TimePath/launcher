@@ -17,9 +17,6 @@ import java.util.logging.Logger
 import java.util.prefs.Preferences
 import kotlin.concurrent.thread
 
-/**
- * @author TimePath
- */
 public class Launcher {
     private val cl = CompositeClassLoader.createPrivileged()
     public val downloadManager: DownloadManager = DownloadManager()
@@ -77,7 +74,7 @@ public class Launcher {
     public fun update(program: Program): Set<Package>? {
         val parent = program.`package`
         if (isLocked(parent)) {
-            LOG.log(Level.INFO, "Package {0} locked, aborting: {1}", array(parent, program))
+            LOG.log(Level.INFO, "Package {0} locked, aborting: {1}", arrayOf(parent, program))
             return null
         }
         try {

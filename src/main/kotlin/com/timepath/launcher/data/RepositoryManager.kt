@@ -3,7 +3,6 @@ package com.timepath.launcher.data
 import com.timepath.launcher.Launcher
 import com.timepath.util.concurrent.DaemonThreadFactory
 import java.util.LinkedList
-import java.util.concurrent.Callable
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
@@ -12,9 +11,6 @@ import java.util.logging.Logger
 import java.util.prefs.BackingStoreException
 import java.util.prefs.Preferences
 
-/**
- * @author TimePath
- */
 public object RepositoryManager {
 
     public val PREFS_REPOS: Preferences = Launcher.PREFS.node("repositories")
@@ -57,16 +53,12 @@ public object RepositoryManager {
                     continue
                 }
                 val enabled = repo.getBoolean(KEY_ENABLED, true)
-                futures.add(pool.submit<Repository>(object : Callable<Repository> {
-                    throws(javaClass<Exception>())
-                    override fun call(): Repository? {
-                        val r = Repository.fromIndex(url)
-                        if (r == null) return null
-                        if (s != getNodeName(r)) return null // Node name needs update
-                        r.setEnabled(enabled)
-                        return r
-                    }
-                }))
+                futures.add(pool.submit<Repository>() {
+                    val r = Repository.fromIndex(url) ?: return@submit null
+                    if (s != getNodeName(r)) return@submit null // Node name needs update
+                    r.setEnabled(enabled)
+                    return@submit r
+                })
             }
         } catch (e: BackingStoreException) {
             LOG.log(Level.SEVERE, null, e)

@@ -19,9 +19,6 @@ import javax.swing.JEditorPane
 import javax.swing.JPanel
 import javax.swing.SwingWorker
 
-/**
- * @author TimePath
- */
 public class Program(public val `package`: Package, public val title: String, private val newsfeedURL: String?, public val main: String, args: List<String>?) {
     private val args: List<String>
     public val id: Int = autoId.getAndIncrement()
@@ -50,10 +47,9 @@ public class Program(public val `package`: Package, public val title: String, pr
         context.start(this)
     }
 
-    throws(javaClass<Throwable>())
     public fun run(cl: CompositeClassLoader) {
-        LOG.log(Level.INFO, "Starting {0} ({1})", array(this, main))
-        val argv = args.copyToArray()
+        LOG.log(Level.INFO, "Starting {0} ({1})", arrayOf(this, main))
+        val argv = args.toTypedArray()
         val cp = getClassPath()
         cl.start(main, argv, cp)
     }

@@ -56,7 +56,7 @@ class WebHandler(private val launcher: Launcher) : HttpHandler {
                 var `is`: InputStream? = javaClass.getResourceAsStream(cwp + s)
                 if (cwd != null) `is` = URL("${cwd}${s}").openStream()
                 if (`is` == null) throw FileNotFoundException("File not found: $key")
-                val data = read(`is`!!)
+                val data = read(`is`)
                 return Page(data, future)
             } catch (ignored: FileNotFoundException) {
             } catch (e: IOException) {
@@ -86,19 +86,17 @@ class WebHandler(private val launcher: Launcher) : HttpHandler {
         Timer("page-rebuild-timer", true).scheduleAtFixedRate(task, period, period)
     }
 
-    throws(javaClass<IOException>())
     private fun getStream(request: String): InputStream? {
         val page = cache[request]
         if (page == null) return null
         return BufferedInputStream(ByteArrayInputStream(page.data))
     }
 
-    throws(javaClass<IOException>())
     override fun handle(exchange: HttpExchange) {
-        LOG.log(Level.INFO, "{0} {1}: {2}", array<Any>(exchange.getProtocol(), exchange.getRequestMethod(), exchange.getRequestURI()))
-        LOG.log(Level.FINE, "{0}", Arrays.toString(exchange.getRequestHeaders().entrySet().copyToArray()))
+        LOG.log(Level.INFO, "{0} {1}: {2}", arrayOf<Any>(exchange.getProtocol(), exchange.getRequestMethod(), exchange.getRequestURI()))
+        LOG.log(Level.FINE, "{0}", Arrays.toString(exchange.getRequestHeaders().entrySet().toTypedArray()))
         if (LOG.isLoggable(Level.FINE)) {
-            LOG.fine(Arrays.toString(exchange.getRequestHeaders().entrySet().copyToArray()))
+            LOG.fine(Arrays.toString(exchange.getRequestHeaders().entrySet().toTypedArray()))
         }
         val request = exchange.getRequestURI().toString()
         if (ProxyHandler.checkProxy(exchange, request)) return
@@ -142,9 +140,8 @@ class WebHandler(private val launcher: Launcher) : HttpHandler {
          * @return The bytes read
          * @throws IOException
          */
-        throws(javaClass<IOException>())
         private fun read(input: InputStream): ByteArray {
-            [suppress("NAME_SHADOWING")]
+            @suppress("NAME_SHADOWING")
             val input = input.buffered()
             val baos = ByteArrayOutputStream(input.available())
             input.copyTo(baos)

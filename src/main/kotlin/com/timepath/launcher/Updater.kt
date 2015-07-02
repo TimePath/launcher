@@ -8,9 +8,6 @@ import java.util.LinkedList
 import java.util.logging.Level
 import java.util.logging.Logger
 
-/**
- * @author TimePath
- */
 public object Updater {
 
     private val LOG = Logger.getLogger(javaClass<Updater>().getName())
@@ -64,8 +61,8 @@ public object Updater {
             //</editor-fold>
         }
         //<editor-fold defaultstate="collapsed" desc="on update detected restart">
-        for (i in args.size().indices) {
-            if ("-u".equalsIgnoreCase(args[i])) {
+        repeat(args.size()) { i ->
+            if ("-u".equals(args[i], ignoreCase = true)) {
                 try {
                     val sourceFile = File(args[i + 1])
                     val destFile = File(args[i + 2])

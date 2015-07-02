@@ -10,7 +10,9 @@ import java.util.prefs.Preferences
 
 public object LauncherUtils {
 
-    public val USER: String = MessageFormat.format("{0}@{1}", System.getProperty("user.name"), ManagementFactory.getRuntimeMXBean().getName().split("@")[1])
+    public val USER: String = MessageFormat.format("{0}@{1}",
+            System.getProperty("user.name"), ManagementFactory.getRuntimeMXBean().getName().splitBy("@")[1])
+
     private fun initVersion(): Long {
         val impl = javaClass<LauncherUtils>().getPackage().getSpecificationVersion()
         if (impl != null) {

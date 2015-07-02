@@ -5,11 +5,7 @@ import com.timepath.swing.ObjectBasedTableModel
 import java.awt.event.ActionEvent
 import javax.swing.*
 
-/**
- * @author TimePath
- */
-SuppressWarnings("serial")
-abstract class RepositoryManagerPanel protected() : JPanel() {
+abstract class RepositoryManagerPanel protected constructor() : JPanel() {
     protected var addButton: JButton
     protected var removeButton: JButton
     protected var jPanel1: JPanel
@@ -121,7 +117,7 @@ abstract class RepositoryManagerPanel protected() : JPanel() {
 
     companion object {
 
-        public val COLUMNS: Array<String> = array("Repository", "Location", "Enabled")
+        public val COLUMNS: Array<String> = arrayOf("Repository", "Location", "Enabled")
     }
 
 }

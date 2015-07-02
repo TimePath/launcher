@@ -6,16 +6,11 @@ import com.timepath.maven.UpdateChecker
 import java.io.ByteArrayOutputStream
 import java.util.LinkedList
 import javax.xml.parsers.DocumentBuilderFactory
-import javax.xml.parsers.ParserConfigurationException
 import javax.xml.transform.Source
-import javax.xml.transform.TransformerException
 import javax.xml.transform.TransformerFactory
 import javax.xml.transform.dom.DOMSource
 import javax.xml.transform.stream.StreamResult
 
-/**
- * @author TimePath
- */
 object Converter {
 
     val transformerFactory = TransformerFactory.newInstance()
@@ -28,7 +23,6 @@ object Converter {
      * @return
      * @throws javax.xml.transform.TransformerException
      */
-    throws(javaClass<TransformerException>())
     public fun transform(xslDoc: Source, xmlDoc: Source): String {
         val byteArray = ByteArrayOutputStream(10240)
         val transformer = transformerFactory.newTransformer(xslDoc)
@@ -37,7 +31,6 @@ object Converter {
         return byteArray.toString()
     }
 
-    throws(javaClass<ParserConfigurationException>())
     public fun serialize(repos: Iterable<Repository>): Source {
         val programs = LinkedList<Program>()
         for (repo in repos) {

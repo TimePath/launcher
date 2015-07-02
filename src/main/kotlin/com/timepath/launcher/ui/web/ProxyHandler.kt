@@ -10,9 +10,6 @@ import java.nio.charset.StandardCharsets
 import java.util.logging.Level
 import java.util.logging.Logger
 
-/**
- * @author TimePath
- */
 object ProxyHandler {
 
     private val LOG = Logger.getLogger(javaClass<ProxyHandler>().getName())
@@ -63,11 +60,11 @@ object ProxyHandler {
                         os.write(raw)
                     }
                     3 -> {
-                        LOG.log(Level.INFO, "{0} -> {1}", array<Any>(code, conn.getHeaderField("Location")))
+                        LOG.log(Level.INFO, "{0} -> {1}", arrayOf<Any>(code, conn.getHeaderField("Location")))
                         t.sendResponseHeaders(code, 0) // TODO: redirect
                     }
                     else -> {
-                        LOG.log(Level.INFO, "{0}: {1}", array<Any>(code, loc))
+                        LOG.log(Level.INFO, "{0}: {1}", arrayOf<Any>(code, loc))
                         t.sendResponseHeaders(code, 0)
                     }
                 }
@@ -78,7 +75,6 @@ object ProxyHandler {
 
     }
 
-    throws(javaClass<MalformedURLException>())
     fun checkProxy(exchange: HttpExchange, request: String): Boolean {
         var proxyRequest: String? = null
         if (request.startsWith(Server.ENDPOINT_PROXY)) {
@@ -94,7 +90,7 @@ object ProxyHandler {
             }
         }
         if (proxyRequest != null) {
-            handleProxy(exchange, proxyRequest!!.substring(Server.ENDPOINT_PROXY.length() + 1)) // Remove leading '/proxy/'
+            handleProxy(exchange, proxyRequest.substring(Server.ENDPOINT_PROXY.length() + 1)) // Remove leading '/proxy/'
             return true
         }
         return false

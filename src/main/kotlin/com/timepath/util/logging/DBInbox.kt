@@ -1,18 +1,17 @@
 package com.timepath.util.logging
 
 
-import java.io.*
+import java.io.BufferedReader
+import java.io.ByteArrayOutputStream
+import java.io.DataOutputStream
+import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.util.zip.GZIPOutputStream
 
-/**
- * @author TimePath
- */
 public object DBInbox {
 
-    throws(javaClass<IOException>())
     public fun send(host: String, user: String, file: String, directory: String, message: String): String {
         val `in` = message.toByteArray()
         val baos = ByteArrayOutputStream(`in`.size())

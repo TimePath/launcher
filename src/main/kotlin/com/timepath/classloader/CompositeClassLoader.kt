@@ -18,7 +18,6 @@ import java.util.logging.Logger
 /**
  * Breaks the {@code ClassLoader} contract to first delegate to other {@code ClassLoader}s before its parent
  *
- * @author TimePath
  * @see <a href="http://www.jdotsoft.com/JarClassLoader.php">JarClassLoader</a>
  */
 public class CompositeClassLoader : ClassLoader() {
@@ -51,9 +50,8 @@ public class CompositeClassLoader : ClassLoader() {
      * @param args the command line arguments
      * @param urls additional resources
      */
-    throws(javaClass<Throwable>())
     public fun start(main: String, args: Array<String>, urls: Iterable<URL>) {
-        LOG.log(Level.INFO, "{0} {1} {2}", array(main, Arrays.toString(args), urls))
+        LOG.log(Level.INFO, "{0} {1} {2}", arrayOf(main, Arrays.toString(args), urls))
         add(urls)
         invokeMain(main, args)
     }
@@ -78,16 +76,13 @@ public class CompositeClassLoader : ClassLoader() {
         if (jars.containsKey(url)) {
             return
         }
-        val cl = doPrivileged(object : PrivilegedAction<URLClassLoader> {
-            override fun run(): URLClassLoader {
-                return URLClassLoader.newInstance(array(url), this@CompositeClassLoader)
-            }
+        val cl = doPrivileged(PrivilegedAction {
+            URLClassLoader.newInstance(arrayOf(url), this@CompositeClassLoader)
         })
         jars.put(url, cl)
         add(cl)
     }
 
-    throws(javaClass<ClassNotFoundException>(), javaClass<IllegalAccessException>(), javaClass<InvocationTargetException>(), javaClass<NoSuchMethodException>())
     private fun invokeMain(name: String, args: Array<String>) {
         val method = loadClass(name).getMethod("main", javaClass<Array<String>>())
         val modifiers = method.getModifiers()
@@ -95,10 +90,9 @@ public class CompositeClassLoader : ClassLoader() {
             throw NoSuchMethodException("main")
         }
         method.setAccessible(true)
-        method.invoke(null, *array<Any>(args)) // varargs call
+        method.invoke(null, *arrayOf(args)) // varargs call
     }
 
-    throws(javaClass<ClassNotFoundException>())
     override fun findClass(name: String): Class<*> {
         val res = reflect(classes, "findClass", name)
         if (res != null) {
@@ -117,7 +111,7 @@ public class CompositeClassLoader : ClassLoader() {
      */
     SuppressWarnings("unchecked")
     private fun <A, B> reflect(cache: MutableMap<A, B>, methodStr: String, key: A): B {
-        LOG.log(Level.FINE, "{0}: {1}", array<Any>(methodStr, key))
+        LOG.log(Level.FINE, "{0}: {1}", arrayOf<Any>(methodStr, key))
         val ret = cache[key]
         if (ret != null) {
             return ret
@@ -127,7 +121,7 @@ public class CompositeClassLoader : ClassLoader() {
                 try {
                     val method = javaClass<ClassLoader>().getDeclaredMethod(methodStr, key.javaClass)
                     method.setAccessible(true)
-                    [suppress("UNCHECKED_CAST")]
+                    @suppress("UNCHECKED_CAST")
                     val u = method.invoke(cl, key) as B
                     if (u != null) {
                         // return with first result
@@ -164,7 +158,7 @@ public class CompositeClassLoader : ClassLoader() {
     /**
      * TODO: calling class's jar only
      */
-    throws(javaClass<IOException>())
+    throws(IOException::class)
     override fun findResources(name: String): Enumeration<URL> {
         val res = reflect(enumerations, "findResources", name)
         if (res != null) {
@@ -190,7 +184,7 @@ public class CompositeClassLoader : ClassLoader() {
             var total: Long = 0
             while (true) {
                 val read = outputChannel.transferFrom(rbc, total, 8192)
-                if(read <= 0) break
+                if (read <= 0) break
                 total += read
             }
             return file.getAbsolutePath()

@@ -34,7 +34,6 @@ import javax.swing.tree.DefaultTreeModel
 import javax.swing.tree.TreePath
 import kotlin.properties.Delegates
 
-SuppressWarnings("serial")
 public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
     protected var repositoryManager: RepositoryManagerPanel = object : RepositoryManagerPanel() {
 
@@ -56,7 +55,7 @@ public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
             val selection = jTable1!!.getSelectedRows()
             selection.sort()
             val rows = model!!.getRows()
-            for (r in rows.copyToArray()) {
+            for (r in rows.toTypedArray()) {
                 val selected = selection.binarySearch(i++) >= 0
                 if (selected) RepositoryManager.removeRepository(r)
             }
@@ -138,7 +137,6 @@ public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
     protected fun updateList() {
         this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR))
         object : SwingWorker<MutableList<Repository>, Void>() {
-            throws(javaClass<Exception>())
             override fun doInBackground(): MutableList<Repository> {
                 return launcher.getRepositories(true)
             }
@@ -407,7 +405,7 @@ public class LauncherFrame(protected var launcher: Launcher) : JFrame() {
                 .replace("\${buildDate}", buildDate)
                 .replace("\${steamGroup}", "http://steamcommunity.com/gid/103582791434775526")
                 .replace("\${steamChat}", "steam://friends/joinchat/103582791434775526")
-        val split = aboutText.split(Pattern.quote("\${localtime}"))
+        val split = aboutText.splitBy("\${localtime}")
         pane.setText("${split[0]}calculating...${split[1]}")
         df.setTimeZone(TimeZone.getTimeZone("Australia/Sydney"))
         val timer = Timer(1000, object : ActionListener {

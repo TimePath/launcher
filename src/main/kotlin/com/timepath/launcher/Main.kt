@@ -4,7 +4,6 @@ import com.timepath.SwingUtils
 import com.timepath.launcher.ui.swing.LauncherFrame
 import com.timepath.util.logging.LogAggregator
 import com.timepath.util.logging.LogFileHandler
-import com.timepath.util.logging.LogIOHandler
 import java.io.IOException
 import java.lang.management.ManagementFactory
 import java.net.InetAddress
@@ -29,9 +28,6 @@ import javax.swing.SwingUtilities
 import kotlin.platform.platformStatic
 import kotlin.properties.Delegates
 
-/**
- * @author TimePath
- */
 public class Main : Protocol {
     private var launcher: Launcher? = null
 
@@ -179,7 +175,7 @@ public class Main : Protocol {
                     }
 
                 }
-                lh.addHandler(LogIOHandler().connect("logging.timepath.ddns.info", 28777))
+                // lh.addHandler(LogIOHandler().connect("logging.timepath.ddns.info", 28777))
                 lh.setLevel(logfileLevel)
                 globalLogger.addHandler(lh)
                 LOG.log(Level.INFO, "Logger: {0}", lh)

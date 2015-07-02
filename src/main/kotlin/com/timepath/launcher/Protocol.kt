@@ -3,11 +3,8 @@ package com.timepath.launcher
 import java.rmi.Remote
 import java.rmi.RemoteException
 
-/**
- * @author TimePath
- */
-public trait Protocol : Remote {
+public interface Protocol : Remote {
 
-    throws(javaClass<RemoteException>())
+    throws(RemoteException::class)
     public fun newFrame()
 }

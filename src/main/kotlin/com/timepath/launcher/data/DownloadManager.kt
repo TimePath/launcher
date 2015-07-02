@@ -23,9 +23,6 @@ import java.util.concurrent.Semaphore
 import java.util.logging.Level
 import java.util.logging.Logger
 
-/**
- * @author TimePath
- */
 public class DownloadManager {
     private val semaphore = Semaphore(MAX_CONCURRENT_CONNECTIONS, true)
     protected val monitors: MutableList<DownloadMonitor> = LinkedList()
@@ -56,7 +53,7 @@ public class DownloadManager {
             future = pool.submit(DownloadTask(pkgFile))
             tasks.put(pkgFile, future!!)
         }
-        return future!!
+        return future
     }
 
     protected fun fireSubmitted(pkgFile: Package) {
@@ -83,7 +80,7 @@ public class DownloadManager {
         }
     }
 
-    public trait DownloadMonitor {
+    public interface DownloadMonitor {
 
         public fun onSubmit(pkgFile: Package)
 
@@ -92,7 +89,7 @@ public class DownloadManager {
         public fun onFinish(pkgFile: Package)
     }
 
-    private inner class DownloadTask (private val pkgFile: Package) : Runnable {
+    private inner class DownloadTask(private val pkgFile: Package) : Runnable {
         private var temp: File? = null
 
         init {
@@ -108,7 +105,7 @@ public class DownloadManager {
             try {
                 semaphore.acquireUninterruptibly()
                 val retryCount = 10
-                for (i in (retryCount + 1).indices) {
+                for (i in 0..retryCount) {
                     try {
                         val downloadFile: File
                         val checksumFile: File
@@ -122,11 +119,11 @@ public class DownloadManager {
                         }
                         download(pkgFile)
                         // Get the checksum before the package is moved into place
-                        LOG.log(Level.INFO, "Saving checksum: {0} > {1}", array<Any>(checksumFile, checksumFile.getAbsoluteFile()))
+                        LOG.log(Level.INFO, "Saving checksum: {0} > {1}", arrayOf<Any>(checksumFile, checksumFile.getAbsoluteFile()))
                         Files.createDirectories(checksumFile.getAbsoluteFile().getParentFile().toPath())
                         FileOutputStream(checksumFile).use { checksumOutputStream -> checksumOutputStream.write(UpdateChecker.getChecksum(pkgFile, Constants.ALGORITHM)!!.toByteArray()) }
                         val move = Files.move(temp!!.toPath(), downloadFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
-                        LOG.log(Level.INFO, "Complete: {0} > {1}", array<Any>(UpdateChecker.getDownloadURL(pkgFile), move))
+                        LOG.log(Level.INFO, "Complete: {0} > {1}", arrayOf<Any>(UpdateChecker.getDownloadURL(pkgFile), move))
                         return
                     } catch (ignored: SocketTimeoutException) {
                     } catch (e: IOException) {
@@ -141,7 +138,6 @@ public class DownloadManager {
             }
         }
 
-        throws(javaClass<IOException>())
         private fun download(p: Package) {
             val s = UpdateChecker.getDownloadURL(p)
             val connection = IOUtils.requestConnection(s, object : IOUtils.ConnectionSettings {
@@ -154,7 +150,7 @@ public class DownloadManager {
             p.associate(connection)
             val temp = temp!!
             IOUtils.createFile(temp)
-            LOG.log(Level.INFO, "Downloading {0} > {1}", array<Any>(s, temp))
+            LOG.log(Level.INFO, "Downloading {0} > {1}", arrayOf<Any>(s, temp))
             val buffer = ByteArray(8192)
             IOUtils.openStream(connection).use { `is` ->
                 BufferedOutputStream(FileOutputStream(temp, partial)).use { fos ->

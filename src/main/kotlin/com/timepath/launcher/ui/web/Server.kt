@@ -35,12 +35,9 @@ public class Server : Runnable {
             server.createContext("/", WebHandler(launcher))
             server.createContext(ENDPOINT_SSE, object : SSEHandler() {
 
-                throws(javaClass<IOException>())
-                override fun handle(exchange: HttpExchange) {
-                }
+                override fun handle(exchange: HttpExchange) = Unit
             })
             server.createContext(ENDPOINT_LAUNCH, object : HttpHandler {
-                throws(javaClass<IOException>())
                 override fun handle(exchange: HttpExchange) {
                     val s = exchange.getRequestURI().getPath()
                     try {
@@ -58,7 +55,6 @@ public class Server : Runnable {
                 }
             })
             server.createContext(ENDPOINT_SHUTDOWN, object : HttpHandler {
-                throws(javaClass<IOException>())
                 override fun handle(exchange: HttpExchange) {
                     LOG.log(Level.INFO, "Shutting down")
                     server.stop(0)

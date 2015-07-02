@@ -8,10 +8,6 @@ import javax.swing.JPanel
 import javax.swing.JScrollPane
 import javax.swing.JTable
 
-/**
- * @author TimePath
- */
-SuppressWarnings("serial")
 class DownloadPanel : JPanel() {
 
     public var tableModel: ObjectBasedTableModel<Package>? = null
@@ -21,7 +17,7 @@ class DownloadPanel : JPanel() {
         val jTable1 = JTable()
         jTable1.setModel(object : ObjectBasedTableModel<Package>() {
             override fun columns(): Array<String> {
-                return array("Name", "Progress")
+                return arrayOf("Name", "Progress")
             }
 
             override fun get(o: Package, columnIndex: Int): Any? {
@@ -50,7 +46,7 @@ class DownloadPanel : JPanel() {
 
         public fun human(count: Double): String {
             val factor = 1000
-            val multiples = array("bytes", "KB", "MB", "GB")
+            val multiples = arrayOf("bytes", "KB", "MB", "GB")
             val i = (Math.log(count) / Math.log(factor.toDouble()))
             return try {
                 "%.1f %s".format(count / factor * i, multiples[i.toInt()])

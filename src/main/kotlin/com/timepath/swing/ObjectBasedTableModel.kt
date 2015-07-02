@@ -7,10 +7,8 @@ import javax.swing.table.AbstractTableModel
 
 /**
  * @param <E>
- * @author TimePath
  */
-SuppressWarnings("serial")
-public abstract class ObjectBasedTableModel<E> protected() : AbstractTableModel() {
+public abstract class ObjectBasedTableModel<E> protected constructor() : AbstractTableModel() {
 
     private val columns = Arrays.asList<String>(*columns())
     private var rows: MutableList<E> = ArrayList()

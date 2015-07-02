@@ -2,13 +2,12 @@ package com.timepath.util.logging
 
 import com.timepath.launcher.LauncherUtils
 import java.io.File
-import java.io.IOException
 import java.util.logging.FileHandler
 import java.util.logging.Handler
 import java.util.logging.LogRecord
 import java.util.logging.XMLFormatter
 
-public class LogFileHandler [throws(javaClass<IOException>())]() : Handler() {
+public class LogFileHandler constructor() : Handler() {
     private val fh: FileHandler
     public val logFile: File
 
