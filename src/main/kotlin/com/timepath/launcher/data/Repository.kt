@@ -121,10 +121,19 @@ public class Repository private constructor() {
             r.executions = LinkedList<Program>()
             for (entry in XMLUtils.getElements(root, "programs/program")) {
                 val pkg = Package.parse(entry, null)
+                if (pkg == null) {
+                    LOG.warning("Null package:\n${XMLUtils.pprint(entry)}")
+                    continue
+                }
                 // extended format with execution data
                 for (execution in XMLUtils.getElements(entry, "executions/execution")) {
                     val cfg = XMLUtils.last<Node>(XMLUtils.getElements(execution, "configuration"))
-                    val p = Program(pkg!!, XMLUtils.get(execution, "name")!!, XMLUtils.get(execution, "url"), XMLUtils.get(cfg, "main")!!, StringUtils.argParse(XMLUtils.get(cfg, "args")))
+                    val p = Program(pkg,
+                            XMLUtils.get(execution, "name"),
+                            XMLUtils.get(execution, "url"),
+                            XMLUtils.get(cfg, "main"),
+                            StringUtils.argParse(XMLUtils.get(cfg, "args"))
+                    )
                     r.executions!!.add(p)
                     val daemonStr = XMLUtils.get(cfg, "daemon")
                     if (daemonStr != null) p.setDaemon(java.lang.Boolean.parseBoolean(daemonStr))
